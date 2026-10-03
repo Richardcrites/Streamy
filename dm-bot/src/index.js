@@ -3,6 +3,7 @@ import { Client, Events, GatewayIntentBits, MessageFlags } from "discord.js";
 import * as store from "./store.js";
 import * as character from "./handlers/character.js";
 import * as play from "./handlers/play.js";
+import * as mission from "./handlers/mission.js";
 import { aiLabel } from "./ai.js";
 
 if (!process.env.DISCORD_TOKEN) {
@@ -47,7 +48,10 @@ async function route(interaction) {
         break;
       case "org": return play.org(interaction, g, sub);
       case "comms": return play.comms(interaction, g, sub);
-      case "dm-admin": return play.admin(interaction, g, sub);
+      case "mission": return mission.start(interaction, g);
+      case "dm-admin":
+        if (sub === "persona") return mission.editPersona(interaction, g);
+        return play.admin(interaction, g, sub);
       case "dm-help": return play.help(interaction);
     }
     return;
@@ -66,6 +70,9 @@ async function route(interaction) {
     if (action === "modal") return character.onCustomName(interaction, g);
     if (action === "bs") return character.onBackstory(interaction, g);
   }
+  if (kind === "ms") return mission.onButton(interaction, g, args[0], args[1]);
+  if (kind === "msm") return mission.onReport(interaction, g, args[0], args[1]);
+  if (kind === "persona") return mission.savePersona(interaction, g);
   if (kind === "ch") return play.onChoice(interaction, g, args[0], args[1], Number(args[2]));
   if (kind === "chm") return play.onReport(interaction, g, args[0], args[1], Number(args[2]));
 }

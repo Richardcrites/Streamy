@@ -1,8 +1,8 @@
 // Optional AI narrator. With an OPENROUTER_API_KEY (any model on openrouter.ai) or an
-// ANTHROPIC_API_KEY (Claude directly), the DM's prose (origin stories, transmissions, chapter
-// briefings, finales) is rewritten by the model using the full lore codex and the stored story
-// so far. The engine's structure (objectives, places, hooks) stays fixed so quests remain
-// playable. If no key is set or a call fails, the procedural text is used.
+// ANTHROPIC_API_KEY (Claude directly), the DM's prose (origin stories, transmissions, briefings,
+// missions, finales) is written by the model using the full lore codex and the stored story so far.
+// The engine's structure (objectives, places, hooks) stays fixed so quests remain playable.
+// If no key is set or a call fails, the procedural text is used.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -14,7 +14,7 @@ const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "openrouter/auto";
 const LORE_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../lore");
 
 let client = null;
-let systemPrompt = null;
+let loreText = null;
 
 // An OpenRouter key (sk-or-…) pasted into ANTHROPIC_API_KEY is a common mix-up: route it to OpenRouter.
 if (!process.env.OPENROUTER_API_KEY && process.env.ANTHROPIC_API_KEY?.trim().startsWith("sk-or-")) {
@@ -35,90 +35,71 @@ function getClient() {
   return client;
 }
 
-function loadLore() {
+// The stable part of every prompt: GM rules + the whole lore codex. It's sent first and marked
+// cacheable, so repeated calls (especially live chat) only pay full price for it occasionally.
+function lore() {
+  if (loreText !== null) return loreText;
+  let files = "";
   try {
-    return fs.readdirSync(LORE_DIR)
+    files = fs.readdirSync(LORE_DIR)
       .filter((f) => f.endsWith(".md") && f !== "sources.md")
       .sort()
       .map((f) => `<lore_file name="${f}">\n${fs.readFileSync(path.join(LORE_DIR, f), "utf8")}\n</lore_file>`)
       .join("\n\n");
   } catch {
-    return "";
+    // Lore folder missing: the GM still works, just with less canon to draw on.
   }
+  loreText =
+    "You are the Game Master for a Star Citizen roleplay community. The current in-universe year is 2956. " +
+    "You write in-character transmissions, origin stories, missions and scenes that players act out inside the " +
+    "real game. Stay consistent with the canon lore below and with the story so far you are given. Never invent " +
+    "game mechanics, locations or mission types beyond those in the structure you are handed. Keep NPC names and " +
+    "facts from the input exactly as given. Use the pronouns given for each character.\n\n" + files;
+  return loreText;
 }
 
-function getSystem() {
-  systemPrompt ??= [
-    {
-      type: "text",
-      text:
-        "You are the Game Master for a Star Citizen roleplay community. The current in-universe year is 2956. " +
-        "You write in-character transmissions, origin stories, chapter briefings and finales that players act out " +
-        "inside the real game. Stay consistent with the canon lore below and with the story so far you are given. " +
-        "Never invent game mechanics, locations or mission types beyond those in the structure you are handed. " +
-        "Write vivid, grounded sci-fi prose in short paragraphs that read well in Discord. Keep NPC names and facts " +
-        "from the input exactly as given. Use the pronouns given for each character.\n\n" +
-        loadLore(),
-      cache_control: { type: "ephemeral" },
-    },
-  ];
-  return systemPrompt;
+// ── Transport ────────────────────────────────────────────────────────────────
+// system: [stableText, variableText]. messages: [{role: "user"|"assistant", content}].
+async function complete({ system, messages, schema, maxTokens = 4000 }) {
+  return provider() === "openrouter"
+    ? openRouter({ system, messages, schema, maxTokens })
+    : anthropic({ system, messages, schema });
 }
 
-// Returns parsed JSON matching `schema`, or null if AI is off or the call fails.
-async function generate(task, payload, schema) {
-  const which = provider();
-  if (!which) return null;
-  const prompt = `${task}\n\n<input>\n${JSON.stringify(payload, null, 2)}\n</input>`;
-  try {
-    const out = which === "openrouter" ? await viaOpenRouter(prompt, schema) : await viaAnthropic(prompt, schema);
-    return matchesSchema(out, schema) ? out : null;
-  } catch (err) {
-    const where = which === "openrouter" ? "OpenRouter" : "Anthropic";
-    if (err.status === 401) console.warn(`[ai] ${where} rejected the API key (401). Check the key in your .env file. Using built-in text for now.`);
-    else if (err instanceof Anthropic.APIError) console.warn(`[ai] Anthropic call failed: ${err.status} ${err.message}`);
-    else console.warn(`[ai] ${where} call failed:`, err.message);
-    return null;
-  }
-}
-
-async function viaAnthropic(prompt, schema) {
+async function anthropic({ system, messages, schema }) {
+  const blocks = [{ type: "text", text: system[0], cache_control: { type: "ephemeral" } }];
+  if (system[1]) blocks.push({ type: "text", text: system[1] });
   const response = await getClient().beta.messages.create({
     model: MODEL,
     max_tokens: 16000,
     betas: ["server-side-fallback-2026-07-01"],
     fallbacks: "default",
-    output_config: { effort: "medium", format: { type: "json_schema", schema } },
-    system: getSystem(),
-    messages: [{ role: "user", content: prompt }],
+    output_config: schema ? { effort: "medium", format: { type: "json_schema", schema } } : { effort: "medium" },
+    system: blocks,
+    messages,
   });
   if (response.stop_reason === "refusal" || response.stop_reason === "max_tokens") return null;
-  const text = response.content.find((b) => b.type === "text")?.text;
-  return text ? JSON.parse(text) : null;
+  return response.content.filter((b) => b.type === "text").map((b) => b.text).join("").trim() || null;
 }
 
-// OpenRouter speaks the OpenAI chat-completions format. Structured output is requested with
-// response_format; models that don't support it get the schema in the prompt instead.
-async function viaOpenRouter(prompt, schema) {
-  const call = async (structured) => {
-    const body = {
-      model: OPENROUTER_MODEL,
-      max_tokens: 4000,
-      messages: [
-        { role: "system", content: getSystem()[0].text },
-        {
-          role: "user",
-          content: structured
-            ? prompt
-            : `${prompt}\n\nReply with only a JSON object (no code fences, no commentary) matching this JSON schema:\n${JSON.stringify(schema)}`,
-        },
-      ],
-    };
-    if (structured) body.response_format = { type: "json_schema", json_schema: { name: "dm_output", strict: true, schema } };
+// OpenRouter speaks the OpenAI chat-completions format. First attempt: cacheable system block and
+// structured output. Models/providers that reject either get a plain retry (schema in the prompt).
+async function openRouter({ system, messages, schema, maxTokens }) {
+  const request = async (fancy) => {
+    const sys = fancy
+      ? [{ type: "text", text: system[0], cache_control: { type: "ephemeral" } }, ...(system[1] ? [{ type: "text", text: system[1] }] : [])]
+      : system.filter(Boolean).join("\n\n");
+    const msgs = messages.map((m) => ({ ...m }));
+    if (schema && !fancy) {
+      const last = msgs[msgs.length - 1];
+      last.content += `\n\nReply with only a JSON object (no code fences, no commentary) matching this JSON schema:\n${JSON.stringify(schema)}`;
+    }
+    const body = { model: OPENROUTER_MODEL, max_tokens: maxTokens, messages: [{ role: "system", content: sys }, ...msgs] };
+    if (schema && fancy) body.response_format = { type: "json_schema", json_schema: { name: "dm_output", strict: true, schema } };
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY.trim()}`,
         "Content-Type": "application/json",
         "X-Title": "Star Citizen DM Bot",
       },
@@ -129,14 +110,36 @@ async function viaOpenRouter(prompt, schema) {
     if (!res.ok) throw Object.assign(new Error(`OpenRouter ${res.status}: ${json.error?.message ?? res.statusText}`), { status: res.status });
     const choice = json.choices?.[0];
     if (!choice || choice.finish_reason === "length") return null;
-    return parseJson(choice.message?.content);
+    return choice.message?.content?.trim() || null;
   };
   try {
-    return await call(true);
+    return await request(true);
   } catch (err) {
-    // 400/422 usually means this model doesn't support structured output: retry with the schema in the prompt.
-    if (err.status === 400 || err.status === 422) return call(false);
+    if (err.status === 400 || err.status === 422) return request(false);
     throw err;
+  }
+}
+
+function logFailure(what, err) {
+  const where = provider() === "openrouter" ? "OpenRouter" : "Anthropic";
+  if (err.status === 401) console.warn(`[ai] ${where} rejected the API key (401). Check the key in your .env file. Using built-in text for now.`);
+  else console.warn(`[ai] ${what} failed (${where}):`, err.status ?? "", err.message);
+}
+
+// Returns parsed JSON matching `schema`, or null if AI is off or the call fails.
+async function generate(task, payload, schema, extraSystem = "") {
+  if (!aiEnabled()) return null;
+  try {
+    const text = await complete({
+      system: [lore(), extraSystem],
+      messages: [{ role: "user", content: `${task}\n\n<input>\n${JSON.stringify(payload, null, 2)}\n</input>` }],
+      schema,
+    });
+    const out = parseJson(text);
+    return matchesSchema(out, schema) ? out : null;
+  } catch (err) {
+    logFailure(task.slice(0, 40), err);
+    return null;
   }
 }
 
@@ -157,17 +160,29 @@ function parseJson(text) {
   const cleaned = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/```$/, "");
   const start = cleaned.indexOf("{");
   const end = cleaned.lastIndexOf("}");
-  return start >= 0 && end > start ? JSON.parse(cleaned.slice(start, end + 1)) : null;
+  if (start < 0 || end <= start) return null;
+  try {
+    return JSON.parse(cleaned.slice(start, end + 1));
+  } catch {
+    return null;
+  }
 }
 
 const str = { type: "string" };
 const obj = (properties) => ({ type: "object", properties, required: Object.keys(properties), additionalProperties: false });
 
+const charBrief = (c) => ({
+  name: c.name, pronouns: c.pronouns, origin: c.origin, career: c.careerLabel || c.career,
+  open_hooks: c.hooks.filter((h) => h.status === "open").map((h) => h.text),
+  recent_journal: c.journal.slice(-6).map((j) => j.text),
+});
+
+// ── Narration (one-shot JSON) ────────────────────────────────────────────────
 export async function narrateOrigin(character) {
   const out = await generate(
     "Write this character's origin story as 3–5 short paragraphs. Use every fact and both hooks (the hooks are " +
       "threads that later stories will pull on, so end with them unresolved). If the player wrote a seed in their " +
-      "own words, honour it.",
+      "own words, honour it. Use the full name once, then the short name or pronouns.",
     {
       name: character.name, pronouns: character.pronouns, origin: character.origin, career: character.career,
       home: character.home, player_seed: character.seed, draft: character.story, hooks: character.hooks.map((h) => h.text),
@@ -186,7 +201,7 @@ export async function narrateChapter({ campaign, chapter, characters, worldLog }
       "story so far.",
     {
       campaign: { title: campaign.title, end_goal: campaign.endGoal, act: chapter.title, beat: chapter.briefing, choices_so_far: campaign.tones },
-      characters: characters.map((c) => ({ name: c.name, pronouns: c.pronouns, origin: c.origin, career: c.career, open_hooks: c.hooks.filter((h) => h.status === "open").map((h) => h.text), recent_journal: c.journal.slice(-6).map((j) => j.text) })),
+      characters: characters.map(charBrief),
       skeleton: { transmission_from: chapter.transmission.from, transmission: chapter.transmission.text, objectives: chapter.objectives.map((o) => ({ for: o.characterName, activity: o.activity, place: o.place, text: o.text })), rp_prompt: chapter.rpPrompt },
       world_log: worldLog.slice(-8).map((w) => w.text),
     },
@@ -206,10 +221,44 @@ export async function narrateFinale({ campaign, finale, characters }) {
     "Write the finale of this campaign. The ending's tone was decided by the players' choices and must stay as given. " +
       "Write a dramatic finale scene and a short epilogue for each character.",
     {
-      campaign: { title: campaign.title, end_goal: campaign.endGoal, chapters: campaign.chapters.map((c) => ({ title: c.title, outcome: c.result?.outcome })) },
+      campaign: { title: campaign.title, end_goal: campaign.endGoal, chapters: campaign.chapters.map((c) => ({ title: c.title, outcome: c.result?.outcome, recap: c.result?.recap })) },
       ending: finale,
       characters: characters.map((c) => ({ name: c.name, pronouns: c.pronouns, origin: c.origin })),
     },
     obj({ finale: str, epilogue: str }),
+  );
+}
+
+export async function narrateMission({ mission, characters, worldLog, persona }) {
+  return generate(
+    "Design a memorable one-shot mission around this skeleton. Make it cool: a strong hook, a named NPC with a " +
+      "motive, and a twist the crew won't see coming (only hint at the twist in the briefing; keep the full twist " +
+      "secret in its own field). Keep every objective's activity and place exactly. You only write flavour for " +
+      "them. 'briefing' is spoken in the persona's voice, addressed to the crew (2–3 short paragraphs). " +
+      "'opening_scene' sets the first scene in present tense for the crew to roleplay in voice chat, ending with a " +
+      "question about what they do. 'rp_prompts' are 2–3 short in-character situations to act out during the mission.",
+    {
+      persona,
+      mission: { type: mission.typeLabel, system: mission.system, patron: mission.patron, antagonist: mission.antagonist, objectives: mission.objectives.map((o) => ({ for: o.characterName, activity: o.activity, place: o.place, text: o.text })) },
+      characters: characters.map(charBrief),
+      world_log: worldLog.slice(-8).map((w) => w.text),
+    },
+    obj({ title: str, briefing: str, objective_flavour: { type: "array", items: str }, twist: str, opening_scene: str, rp_prompts: { type: "array", items: str } }),
+  );
+}
+
+export async function narrateMissionEnd({ mission, success, notes, characters, persona }) {
+  return generate(
+    "The crew has finished this mission. In the persona's voice, reveal the twist (if it hasn't come out already) " +
+      "and write a short epilogue (one or two paragraphs) on what it means for them. Base it on the outcome and on " +
+      "the players' notes about what they actually did. Don't contradict the notes. Then write one journal line per character.",
+    {
+      persona,
+      mission: { title: mission.title, briefing: mission.briefing, twist: mission.twist, patron: mission.patron, antagonist: mission.antagonist },
+      outcome: success ? "success" : "failure",
+      player_notes: notes || "(none)",
+      characters: characters.map((c) => ({ name: c.name, pronouns: c.pronouns })),
+    },
+    obj({ epilogue: str, journal: { type: "array", items: obj({ name: str, entry: str }) } }),
   );
 }

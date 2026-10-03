@@ -5,7 +5,7 @@
 
 import {
   ORIGINS, NAME_POOLS, NPC_POOL, RELICS, LOCATIONS, CARGO, ORES, EVIDENCE,
-  OBJECTIVES, ACTIVITY_TAGS, CAMPAIGN_GOALS, THREADS, CAREERS,
+  OBJECTIVES, ACTIVITY_TAGS, CAMPAIGN_GOALS, THREADS, CAREERS, MISSION_TYPES, MISSION_TWISTS,
 } from "../lore/data.js";
 import { pick, pickN, randInt, fill } from "./util.js";
 import { newId } from "../store.js";
@@ -172,6 +172,8 @@ export function buildObjective(campaign, char, activities) {
   const v = campaign.vars;
   const objVars = {
     ...v,
+    npc: v.npc || v.patron || "your contact",
+    antagonist: v.antagonist || "the opposition",
     place: locationFor(v.system, activity),
     qty: pick([8, 16, 24, 32, 48]),
     cargo: pick(CARGO),
@@ -328,4 +330,52 @@ export function buildCrossover(g, a, b) {
     objectives: [buildObjective(fakeCampaign, a, actsA), buildObjective(fakeCampaign, b, actsB)],
     rpPrompt: `Meet in person at ${meet}. Each of you asks the other one question about your past. Answer honestly, or don't, but remember what you said.`,
   };
+}
+
+// ── One-shot missions ────────────────────────────────────────────────────────
+export function buildMission(g, characters, typeId) {
+  const type = MISSION_TYPES[typeId] || pick(Object.values(MISSION_TYPES));
+  const lead = characters[0];
+  const located = PLAYABLE_SYSTEMS.find((s) => lead.location?.includes(s));
+  const system = located || (PLAYABLE_SYSTEMS.includes(lead.system) ? lead.system : pick(PLAYABLE_SYSTEMS));
+  const patron = createNpc(g, pick(NPC_POOL.roles));
+  const antagonist = createNpc(g, "antagonist");
+  const vars = { patron: patron.name, antagonist: antagonist.name, system };
+  const fake = { vars };
+  const objectives = characters.map((c) => buildObjective(fake, c, type.activities));
+  const hook = fill(pick(type.hooks), vars);
+  return {
+    id: newId(),
+    type: Object.keys(MISSION_TYPES).find((k) => MISSION_TYPES[k] === type),
+    typeLabel: type.label,
+    emoji: type.emoji,
+    title: `${type.label}: ${pick(["Dead Signal", "Cold Lanes", "The Quiet Job", "Ashes in the Black", "Last Light", "Burn Notice", "Static", "Blind Jump"])}`,
+    system,
+    patron: patron.name,
+    antagonist: antagonist.name,
+    objectives,
+    briefing:
+      `Listen up, spacers. ${hook} The job's in ${system}. Pay is good, questions are expensive, and I'd keep one eye on ${antagonist.name}. ` +
+      "Something about this one doesn't sit right with me.",
+    twist: fill(pick(MISSION_TWISTS), vars),
+    opening: `The comms line goes quiet. Somewhere in ${system}, ${antagonist.name} is already moving. What does the crew do first?`,
+    rpPrompts: [
+      `Decide as a crew: do you trust ${patron.name}? Say it in character.`,
+      "Halfway through, something goes wrong. Whoever is closest to it describes what they see.",
+    ],
+    characterIds: characters.map((c) => c.id),
+    status: "active",
+    createdAt: new Date().toISOString(),
+  };
+}
+
+export function missionEpilogue(mission, success) {
+  return success
+    ? `Job done. And the part I didn't tell you: ${lowerFirstWord(mission.twist)} Keep that in mind next time someone offers you easy money.`
+    : `Didn't go to plan, did it? Here's what I didn't tell you: ${lowerFirstWord(mission.twist)} Lick your wounds, spacers. ${mission.antagonist} will remember your faces.`;
+}
+
+// Lower-cases only a leading article/pronoun ("The cargo…" → "the cargo…"), never a name.
+function lowerFirstWord(s) {
+  return /^(The|Someone|A|An)\b/.test(s) ? s[0].toLowerCase() + s.slice(1) : s;
 }

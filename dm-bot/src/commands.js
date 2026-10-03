@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, PermissionFlagsBits, ChannelType } from "discord.js";
-import { CAMPAIGN_GOALS, LOCATIONS } from "./lore/data.js";
+import { CAMPAIGN_GOALS, LOCATIONS, MISSION_TYPES } from "./lore/data.js";
 
 export const commands = [
   new SlashCommandBuilder()
@@ -45,6 +45,15 @@ export const commands = [
     .addSubcommand((s) => s.setName("abandon").setDescription("Abandon your current campaign (campaign owner only)")),
 
   new SlashCommandBuilder()
+    .setName("mission")
+    .setDescription("Get a one-shot mission from the DM to play in game and in voice")
+    .addStringOption((o) => o.setName("type").setDescription("Kind of job (default: surprise me)")
+      .addChoices(...Object.entries(MISSION_TYPES).map(([k, v]) => ({ name: `${v.emoji} ${v.label}`, value: k }))))
+    .addUserOption((o) => o.setName("with1").setDescription("Crew member"))
+    .addUserOption((o) => o.setName("with2").setDescription("Crew member"))
+    .addUserOption((o) => o.setName("with3").setDescription("Crew member")),
+
+  new SlashCommandBuilder()
     .setName("story")
     .setDescription("Story chapters and crossovers")
     .addSubcommand((s) => s.setName("next").setDescription("Get your current chapter, or the next one"))
@@ -84,6 +93,7 @@ export const commands = [
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .addSubcommand((s) => s.setName("comms-channel").setDescription("Channel where story transmissions are posted")
       .addChannelOption((o) => o.setName("channel").setDescription("Channel").setRequired(true).addChannelTypes(ChannelType.GuildText)))
+    .addSubcommand((s) => s.setName("persona").setDescription("Change the DM's name and personality"))
     .addSubcommand((s) => s.setName("dms").setDescription("DM story transmissions to players?")
       .addBooleanOption((o) => o.setName("enabled").setDescription("On or off").setRequired(true))),
 

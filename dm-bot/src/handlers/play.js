@@ -389,6 +389,7 @@ export async function help(interaction) {
     .setDescription(
       `Your personal Game Master for the 'Verse (year ${CURRENT_YEAR}, ${CURRENT_PATCH}).\n\n` +
       "**1. Make a character:** `/character create` (pick an origin, career, pronouns and name; the DM writes your origin story and its hooks).\n" +
+      "**Quick job:** `/mission` gives your crew a one-shot mission in the DM's voice. Play it in game and in voice, then click ✅ or 💀.\n" +
       "**2. Start a story:** `/campaign start` (solo or with your org). Each act gives you real **in-game objectives** and a **roleplay prompt**.\n" +
       "**3. Play it in game**, then click how your crew handled it. Your choices (🕊️ clean / 🤝 deal / 🔥 ruthless) decide the **finale**.\n" +
       "**4. Keep going:** `/story next` for the next act. `/log` to record what you did. `/character location` when you travel.\n" +

@@ -423,3 +423,46 @@ export const NEWS = [
   "ALIEN AFFAIRS: Xi'an trade delegations report harassment near Stanton. XenoThreat sympathisers suspected.",
   "CASTRA: Sherman's fortress city prepares for an influx of civilians as Castra opens wider to traffic.",
 ];
+
+// ── One-shot missions (/mission) ─────────────────────────────────────────────
+export const MISSION_TYPES = {
+  heist: { label: "Heist", emoji: "💼", activities: ["fps", "delivery", "investigate"], hooks: [
+    "{patron} needs something stolen from {antagonist}, and it has to be gone before the next shift change.",
+    "{antagonist} is sitting on a vault of evidence. {patron} wants it emptied, quietly.",
+  ] },
+  bounty: { label: "Bounty Hunt", emoji: "🎯", activities: ["bounty", "combat", "investigate"], hooks: [
+    "{antagonist} skipped out on {patron}. Alive is worth more, but dead still pays.",
+    "{patron} has a name and a price: {antagonist}. Nobody who went after them has come back.",
+  ] },
+  salvage: { label: "Salvage Mystery", emoji: "🔧", activities: ["salvage", "investigate", "fps"], hooks: [
+    "A wreck turned up where no wreck should be. {patron} wants to know who it belonged to before {antagonist} gets there.",
+    "{patron} picked up a beacon from a ship that was reported destroyed years ago. {antagonist} wants it silenced.",
+  ] },
+  rescue: { label: "Rescue", emoji: "🩺", activities: ["rescue", "fps", "escort"], hooks: [
+    "{patron}'s people are pinned down, and {antagonist} is closing in. Time is the enemy.",
+    "Someone {patron} cares about is being held by {antagonist}. Get them out.",
+  ] },
+  smuggle: { label: "Smuggling Run", emoji: "🕶️", activities: ["delivery", "haul", "escort"], hooks: [
+    "{patron} has cargo that can't be scanned and a buyer who won't wait. {antagonist} is watching the lanes.",
+    "Get {patron}'s package through. Don't open it. {antagonist} would kill to know what's inside.",
+  ] },
+  defense: { label: "Hold the Line", emoji: "🛡️", activities: ["combat", "patrol", "escort"], hooks: [
+    "{antagonist} is about to hit {patron}'s operation. The crew is the only thing standing in the way.",
+    "{patron} needs the convoy to make it. {antagonist} has other plans.",
+  ] },
+};
+
+export const MISSION_TWISTS = [
+  "{patron} set the whole thing up and was using the crew as bait.",
+  "{antagonist} is not the real enemy. They were trying to warn someone.",
+  "The cargo or target is alive, and it's asking for help.",
+  "Someone close to the crew has been selling their position to {antagonist}.",
+  "The job is a test. A bigger player is watching who survives.",
+];
+
+// The DM's voice. Server admins can rewrite it with /dm-admin persona.
+export const DEFAULT_PERSONA =
+  "You are \"Relay\", an information broker nobody has ever seen in person. You run jobs over encrypted comms from " +
+  "somewhere in the Keeger Belt. Your voice is gravelly, dry and amused, the voice of someone who has seen a hundred crews " +
+  "come and go. You call the players \"spacers\", you know everyone's business, and you never quite say whose side you're on. " +
+  "You care about the crews you hire more than you'll admit.";

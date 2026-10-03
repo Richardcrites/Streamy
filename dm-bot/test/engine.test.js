@@ -83,6 +83,10 @@ test("crossovers find links between characters", () => {
   const g = store.guild("t4");
   const a = story.buildCharacter(g, { ownerId: "a", originId: "tevarin", career: "pilot", name: "Kehl'Varo of House Vael", pronouns: "she" });
   const b = story.buildCharacter(g, { ownerId: "b", originId: "banu_trader", career: "smuggler", name: "Soren Dray", pronouns: "he" });
+  for (let i = 0; i < 50; i++) {
+    const y = story.buildCrossover(g, a, b);
+    for (const o of y.objectives) assert.ok(!unfilled(o.text), o.text);
+  }
   const x = story.buildCrossover(g, a, b);
   assert.ok(x.links.length > 0, "both are hostile to XenoThreat");
   assert.equal(x.objectives.length, 2);
@@ -92,4 +96,18 @@ test("crossovers find links between characters", () => {
 test("slash command definitions build", () => {
   assert.ok(commands.length >= 9);
   for (const c of commands) assert.match(c.name, /^[a-z-]{1,32}$/);
+});
+
+test("missions give every crew member an objective and keep a secret twist", async () => {
+  const { MISSION_TYPES } = await import("../src/lore/data.js");
+  const g = store.guild("t5");
+  const crew = ["smuggler", "pilot"].map((career, i) =>
+    story.buildCharacter(g, { ownerId: `u${i}`, originId: "pyro_outlaw", career, name: `Crew ${i}`, pronouns: "they" }));
+  for (const type of Array(15).fill([...Object.keys(MISSION_TYPES), undefined]).flat()) {
+    const m = story.buildMission(g, crew, type);
+    assert.equal(m.objectives.length, 2);
+    for (const s of [m.title, m.briefing, m.twist, m.opening, ...m.rpPrompts, ...m.objectives.map((o) => o.text), story.missionEpilogue(m, true), story.missionEpilogue(m, false)]) {
+      assert.ok(!unfilled(s), `${type}: ${s}`);
+    }
+  }
 });

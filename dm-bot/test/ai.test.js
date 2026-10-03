@@ -17,7 +17,8 @@ test("OpenRouter: structured request, fenced JSON is parsed", async () => {
   };
   assert.deepEqual(await ai.narrateOrigin(char), ["One.", "Two."]);
   assert.equal(body.response_format.type, "json_schema");
-  assert.match(body.messages[0].content, /Game Master/);
+  assert.match(JSON.stringify(body.messages[0].content), /Game Master/);
+  assert.equal(body.messages[0].content[0].cache_control.type, "ephemeral");
   assert.match(ai.aiLabel(), /OpenRouter/);
 });
 

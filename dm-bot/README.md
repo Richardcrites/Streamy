@@ -18,6 +18,8 @@ Built on the lore codex in [`../lore`](../lore) (year 2956, Alpha 4.10).
 | `/campaign start` | Start a story with an **end goal**: Uncover, Build, Rise, Hunt or Protect. Solo or **org-wide**. It's built from your character's hooks. |
 | `/story next` | Get the current act: a transmission from your patron, an in-game objective for **each** crew member (fitting their career), and an RP prompt. |
 | Choice buttons | After playing it out, click how you handled it: 🕊️ clean, 🤝 deal or 🔥 ruthless. Your choices decide the **finale** and your renown (Trust / Connections / Fear). |
+| `/mission` | A **one-shot mission** in the DM's voice: a hook, an NPC with a motive, an in-game objective for each crew member, and a hidden twist. Play it in game and in **voice chat**, then click ✅ complete or 💀 failed (add a note about what happened). The DM reveals the twist, writes an epilogue, and updates everyone's journal. |
+| `/dm-admin persona` | Admin: give the DM a name and personality (default: "Relay", a gravelly information broker). |
 | `/story crossover @player` | Links two characters' stories through shared history, rivalries or hooks, with a joint job and a meet-up scene. |
 | `/org create/join/leave/info/list/relation` | Multiple orgs per server, with alliances and rivalries. |
 | `/comms send @player` / `broadcast` | In-character transmissions, DMed like incoming comms. |
