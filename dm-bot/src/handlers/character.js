@@ -4,7 +4,7 @@ import {
 } from "discord.js";
 import { ORIGINS, CAREERS } from "../lore/data.js";
 import { PRONOUNS } from "../engine/util.js";
-import { suggestNames, buildCharacter } from "../engine/story.js";
+import { suggestNames, buildCharacter, linkKin } from "../engine/story.js";
 import { narrateOrigin } from "../ai.js";
 import * as store from "../store.js";
 import { dossierEmbed, broadcast, COLORS, clip } from "../comms.js";
@@ -62,11 +62,11 @@ export async function onPronouns(interaction, g, key) {
   if (!draft) return expired(interaction);
   draft.pronouns = key;
   store.save();
-  await showNames(interaction, draft);
+  await showNames(interaction, draft, g);
 }
 
-async function showNames(interaction, draft) {
-  draft.names = suggestNames(draft.originId, 6);
+async function showNames(interaction, draft, g) {
+  draft.names = suggestNames(draft.originId, 6, g);
   store.save();
   const nameButtons = draft.names.map((n, i) => new ButtonBuilder().setCustomId(`cc:name:${i}`).setLabel(clip(n, 80)).setStyle(ButtonStyle.Primary));
   await interaction.update({
@@ -85,7 +85,7 @@ async function showNames(interaction, draft) {
 export async function onReroll(interaction, g) {
   const draft = g.drafts[interaction.user.id];
   if (!draft) return expired(interaction);
-  await showNames(interaction, draft);
+  await showNames(interaction, draft, g);
 }
 
 export async function onCustom(interaction, g) {
@@ -124,9 +124,11 @@ async function finish(interaction, g, draft, name) {
 
   g.characters[char.id] = char;
   g.activeChar[interaction.user.id] = char.id;
+  const kin = linkKin(g, char);
   delete g.drafts[interaction.user.id];
   store.addJournal(char, { kind: "origin", text: `${char.name} entered the 'Verse: ${char.origin}, ${char.careerLabel}.` });
   store.logWorld(g, `${char.name} (${char.origin}) arrived in the 'Verse.`);
+  for (const k of kin) store.logWorld(g, `Rumour has it ${char.name} and ${k.with} are blood: ${k.relation}s.`);
   store.save();
 
   await interaction.editReply({

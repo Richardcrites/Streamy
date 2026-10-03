@@ -136,7 +136,9 @@ async function generate(task, payload, schema, extraSystem = "") {
       schema,
     });
     const out = parseJson(text);
-    return matchesSchema(out, schema) ? out : null;
+    if (matchesSchema(out, schema)) return out;
+    console.warn(`[ai] ${task.slice(0, 40)}… the model's answer was ${text ? "missing fields" : "empty"}; using built-in text. Try a different OPENROUTER_MODEL if this keeps happening.`);
+    return null;
   } catch (err) {
     logFailure(task.slice(0, 40), err);
     return null;
@@ -231,30 +233,35 @@ export async function narrateFinale({ campaign, finale, characters }) {
 
 export async function narrateMission({ mission, characters, worldLog, persona }) {
   return generate(
-    "Design a memorable one-shot mission around this skeleton. Make it cool: a strong hook, a named NPC with a " +
-      "motive, and a twist the crew won't see coming (only hint at the twist in the briefing; keep the full twist " +
-      "secret in its own field). Keep every objective's activity and place exactly. You only write flavour for " +
-      "them. 'briefing' is spoken in the persona's voice, addressed to the crew (2–3 short paragraphs). " +
-      "'opening_scene' sets the first scene in present tense for the crew to roleplay in voice chat, ending with a " +
-      "question about what they do. 'rp_prompts' are 2–3 short in-character situations to act out during the mission.",
+    "Write this one-shot mission in the persona's voice. It is played in Star Citizen and roleplayed in voice chat, " +
+      "so DO NOT script scenes, dialogue or what the players do: give them a situation, stakes and a reason to care, and " +
+      "let the play happen naturally. The heart of it is how the crew's personal stories intertwine: use the crossing " +
+      "facts and the characters' hooks so each player has a personal reason to be there. Hard rules: the only named " +
+      "people you may mention are the crew and the names in `allowed_names`. Never invent other named characters. " +
+      "Keep every objective's activity and place exactly; you only write one line of flavour for each. 'briefing' is " +
+      "2 short paragraphs spoken by the persona. 'crossing' explains in 2–4 sentences how the crew's stories connect. " +
+      "'stakes' is 1–2 sentences. 'twist' is a secret revealed only at the end; make it land on the crossing.",
     {
       persona,
-      mission: { type: mission.typeLabel, system: mission.system, patron: mission.patron, antagonist: mission.antagonist, objectives: mission.objectives.map((o) => ({ for: o.characterName, activity: o.activity, place: o.place, text: o.text })) },
+      mission: { type: mission.typeLabel, system: mission.system, antagonist: mission.antagonist, person_at_the_centre: mission.target, draft_briefing: mission.briefing, draft_stakes: mission.stakes, objectives: mission.objectives.map((o) => ({ for: o.characterName, activity: o.activity, place: o.place, text: o.text })) },
+      crossing_facts: mission.crossings,
+      allowed_names: mission.names,
       characters: characters.map(charBrief),
       world_log: worldLog.slice(-8).map((w) => w.text),
     },
-    obj({ title: str, briefing: str, objective_flavour: { type: "array", items: str }, twist: str, opening_scene: str, rp_prompts: { type: "array", items: str } }),
+    obj({ title: str, briefing: str, crossing: str, objective_flavour: { type: "array", items: str }, stakes: str, twist: str }),
   );
 }
 
 export async function narrateMissionEnd({ mission, success, notes, characters, persona }) {
   return generate(
-    "The crew has finished this mission. In the persona's voice, reveal the twist (if it hasn't come out already) " +
+    "The crew has finished this mission. Only mention the crew and the allowed names. In the persona's voice, reveal the twist (if it hasn't come out already) " +
       "and write a short epilogue (one or two paragraphs) on what it means for them. Base it on the outcome and on " +
       "the players' notes about what they actually did. Don't contradict the notes. Then write one journal line per character.",
     {
       persona,
-      mission: { title: mission.title, briefing: mission.briefing, twist: mission.twist, patron: mission.patron, antagonist: mission.antagonist },
+      mission: { title: mission.title, briefing: mission.briefing, crossing: mission.crossings, twist: mission.twist, antagonist: mission.antagonist, person_at_the_centre: mission.target },
+      allowed_names: mission.names,
       outcome: success ? "success" : "failure",
       player_notes: notes || "(none)",
       characters: characters.map((c) => ({ name: c.name, pronouns: c.pronouns })),

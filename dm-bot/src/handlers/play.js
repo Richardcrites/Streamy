@@ -1,5 +1,5 @@
 import { EmbedBuilder, MessageFlags, ModalBuilder, ActionRowBuilder, TextInputBuilder, TextInputStyle } from "discord.js";
-import { CAMPAIGN_GOALS, NEWS, CURRENT_PATCH, CURRENT_YEAR } from "../lore/data.js";
+import { CAMPAIGN_GOALS, NEWS, CURRENT_PATCH, CURRENT_YEAR, GAME_RULES } from "../lore/data.js";
 import { buildCampaign, buildChapter, buildFinale, buildCrossover } from "../engine/story.js";
 import { pickN } from "../engine/util.js";
 import { narrateChapter, narrateFinale, aiEnabled, aiLabel } from "../ai.js";
@@ -454,4 +454,16 @@ export async function voiceCommand(interaction, g, sub) {
     voice.say(channel, "Comms check. This is your DM. Loud and clear, spacers? Good. Let's get to work.", g.settings.voiceName);
     return interaction.editReply(`Speaking now with the ${voice.ttsLabel()}. If you hear nothing, check the bot's window for a line starting with [voice].`);
   }
+}
+
+export async function rpRules(interaction) {
+  const embed = new EmbedBuilder()
+    .setColor(COLORS.news)
+    .setTitle("🎲 The game is part of the story")
+    .setDescription(
+      "Star Citizen is an alpha. Things break. Don't fight it, play it:\n\n" +
+      GAME_RULES.map((r) => `• ${r.text}`).join("\n") +
+      "\n\n**Failure is story too.** Report what really happened, and the DM builds on it.",
+    );
+  return interaction.reply({ embeds: [embed] });
 }

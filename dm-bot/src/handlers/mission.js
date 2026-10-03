@@ -35,9 +35,9 @@ export async function start(interaction, g) {
   if (ai) {
     mission.title = ai.title;
     mission.briefing = ai.briefing;
+    mission.crossings = [ai.crossing];
+    mission.stakes = ai.stakes;
     mission.twist = ai.twist;
-    mission.opening = ai.opening_scene;
-    mission.rpPrompts = ai.rp_prompts;
     ai.objective_flavour.forEach((f, i) => { if (mission.objectives[i]) mission.objectives[i].flavour = f; });
   }
   mission.ownerId = interaction.user.id;
@@ -51,21 +51,22 @@ export async function start(interaction, g) {
     .setTitle(clip(mission.title, 250))
     .setDescription(clip(mission.briefing, 3000))
     .addFields(
+      ...(mission.crossings.length ? [{ name: "🧬 How your stories cross", value: clip(mission.crossings.join("\n"), 1024) }] : []),
       ...mission.objectives.map((o) => ({
         name: `🎮 ${o.characterName}`,
         value: clip(o.flavour ? `${o.text}\n*${o.flavour}*` : o.text, 1024),
       })),
-      { name: "🎬 Opening scene", value: clip(mission.opening, 1024) },
-      { name: "🎭 In voice", value: clip(mission.rpPrompts.map((p) => `• ${p}`).join("\n"), 1024) },
+      { name: "⚖️ Stakes", value: clip(mission.stakes, 1024) },
+      { name: "🎲 If the game fights back", value: clip(mission.rules.map((r) => `• ${r}`).join("\n"), 1024) },
     )
-    .setFooter({ text: "Play it out in game and in voice. When you're done, report how it went." });
+    .setFooter({ text: "No script. Play it in game and in voice, let it happen, then report how it went." });
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(`ms:${mission.id}:win`).setLabel("Mission complete").setEmoji("✅").setStyle(ButtonStyle.Success),
     new ButtonBuilder().setCustomId(`ms:${mission.id}:fail`).setLabel("Mission failed").setEmoji("💀").setStyle(ButtonStyle.Danger),
   );
 
   await interaction.editReply({ content: `${crew.map((c) => `<@${c.ownerId}>`).join(" ")} you have a job.`, embeds: [embed], components: [row] });
-  voice.narrate(interaction, g, `${mission.title}. ${mission.briefing} ${mission.opening}`);
+  voice.narrate(interaction, g, `${mission.title}. ${mission.briefing} ${mission.crossings.join(" ")} ${mission.stakes}`);
 }
 
 export async function onButton(interaction, g, missionId, result) {

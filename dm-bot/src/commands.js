@@ -111,5 +111,7 @@ export const commands = [
     .addSubcommand((s) => s.setName("dms").setDescription("DM story transmissions to players?")
       .addBooleanOption((o) => o.setName("enabled").setDescription("On or off").setRequired(true))),
 
+  new SlashCommandBuilder().setName("rp-rules").setDescription("How the game's bugs and limits become part of the story"),
+
   new SlashCommandBuilder().setName("dm-help").setDescription("How to use the Star Citizen DM"),
 ].map((c) => c.toJSON());

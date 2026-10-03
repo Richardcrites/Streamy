@@ -6,6 +6,8 @@ import * as play from "./handlers/play.js";
 import * as mission from "./handlers/mission.js";
 import * as voice from "./voice.js";
 import { aiLabel } from "./ai.js";
+import { linkKin } from "./engine/story.js";
+import { registerName } from "./engine/names.js";
 
 if (!process.env.DISCORD_TOKEN) {
   console.error("Missing DISCORD_TOKEN in .env (see README).");
@@ -13,6 +15,14 @@ if (!process.env.DISCORD_TOKEN) {
 }
 
 store.load();
+// Tie together existing characters whose surnames match (only ever done once per pair).
+for (const g of Object.values(store.load().guilds)) {
+  for (const x of [...Object.values(g.npcs || {}), ...Object.values(g.characters || {})]) registerName(g, x.name);
+  for (const c of Object.values(g.characters || {})) {
+    for (const k of linkKin(g, c)) console.log(`Family tie: ${c.name} & ${k.with} (${k.relation})`);
+  }
+}
+store.saveNow();
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates] });
 
 client.once(Events.ClientReady, (c) => {
@@ -63,6 +73,7 @@ async function route(interaction) {
         if (sub === "persona") return mission.editPersona(interaction, g);
         return play.admin(interaction, g, sub);
       case "dm-help": return play.help(interaction);
+      case "rp-rules": return play.rpRules(interaction);
     }
     return;
   }

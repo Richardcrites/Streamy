@@ -98,16 +98,129 @@ test("slash command definitions build", () => {
   for (const c of commands) assert.match(c.name, /^[a-z-]{1,32}$/);
 });
 
-test("missions give every crew member an objective and keep a secret twist", async () => {
+
+test("missions: objectives for everyone, crossings, rules, no scripted scenes, no unfilled text", async () => {
   const { MISSION_TYPES } = await import("../src/lore/data.js");
   const g = store.guild("t5");
-  const crew = ["smuggler", "pilot"].map((career, i) =>
-    story.buildCharacter(g, { ownerId: `u${i}`, originId: "pyro_outlaw", career, name: `Crew ${i}`, pronouns: "they" }));
+  const crew = ["smuggler", "pilot"].map((career, i) => {
+    const c = story.buildCharacter(g, { ownerId: `u${i}`, originId: i ? "navy_veteran" : "pyro_outlaw", career, name: i ? "Mara Calder" : "RJ Oressian", pronouns: "they" });
+    g.characters[c.id] = c;
+    return c;
+  });
   for (const type of Array(15).fill([...Object.keys(MISSION_TYPES), undefined]).flat()) {
     const m = story.buildMission(g, crew, type);
     assert.equal(m.objectives.length, 2);
-    for (const s of [m.title, m.briefing, m.twist, m.opening, ...m.rpPrompts, ...m.objectives.map((o) => o.text), story.missionEpilogue(m, true), story.missionEpilogue(m, false)]) {
+    assert.ok(m.crossings.length >= 1, "the crew's stories must cross");
+    assert.ok(m.rules.length >= 2);
+    assert.equal(m.opening, undefined);
+    assert.equal(m.rpPrompts, undefined);
+    for (const s of [m.title, m.briefing, m.stakes, m.twist, ...m.crossings, ...m.rules, ...m.objectives.map((o) => o.text), story.missionEpilogue(m, true)]) {
       assert.ok(!unfilled(s), `${type}: ${s}`);
     }
   }
+});
+
+test("NPC names are never reused, and recent ones never even nearly", async () => {
+  const names = await import("../src/engine/names.js");
+  const g = { usedNames: ["Ysolde Pike"], characters: { x: { name: "RJ Oressian" } } };
+  const made = Array.from({ length: 300 }, () => names.freshName(g));
+  assert.equal(new Set(made).size, made.length, "no full name repeats");
+  const window = made.slice(0, 79);
+  for (let i = 0; i < window.length; i++) {
+    assert.ok(!names.similar(names.firstName(window[i]), "Ysolde"), window[i]);
+    for (let j = i + 1; j < window.length; j++) {
+      assert.ok(!names.similar(names.firstName(window[i]), names.firstName(window[j])), `${window[i]} ~ ${window[j]}`);
+    }
+  }
+  assert.ok(made.every((n) => !names.similar(names.lastName(n), "Oressian")), "no accidental kin with players");
+  assert.ok(names.similar("Ysolda", "Ysolde") && names.similar("Pike", "Pyke") && !names.similar("Pike", "Vance"));
+});
+
+test("similar surnames become family, with an NPC or another player", () => {
+  const g = store.guild("t6");
+  const rj = story.buildCharacter(g, { ownerId: "a", originId: "pyro_outlaw", career: "smuggler", name: "RJ Oressian", pronouns: "he" });
+  g.characters[rj.id] = rj;
+  const enemy = g.npcs[rj.hooks[0].npcId];
+  enemy.name = "Ysolde Pike";
+  const yp = story.buildCharacter(g, { ownerId: "b", originId: "navy_veteran", career: "pilot", name: "Ysloda Pyke", pronouns: "she" });
+  g.characters[yp.id] = yp;
+  const ties = story.linkKin(g, yp);
+  assert.ok(ties.some((t) => t.with === "Ysolde Pike"), JSON.stringify(ties));
+  assert.ok(yp.hooks.some((h) => h.type === "kin" && h.npcId === enemy.id));
+  assert.equal(story.linkKin(g, yp).length, 0, "links are only made once");
+  const sib = story.buildCharacter(g, { ownerId: "c", originId: "levski_born", career: "medic", name: "Tess Pike", pronouns: "they" });
+  g.characters[sib.id] = sib;
+  story.linkKin(g, sib);
+  assert.ok(yp.hooks.some((h) => h.kinCharId === sib.id), "player-player kin is linked both ways");
+  assert.ok(ties.find((t) => t.with === "Ysolde Pike").text.includes("the Headhunters"), "kin keeps the NPC's existing side");
+  for (let i = 0; i < 30; i++) {
+    const both = story.buildMission(g, [rj, yp], "bounty");
+    assert.ok(both.crossings.some((c) => c.startsWith("Ysolde Pike is in both your stories")), both.crossings.join(" | "));
+    assert.ok(!both.crossings.some((c) => /Ysolde Pike and Ysolde Pike/.test(c)));
+  }
+  const m = story.buildMission(g, [yp, sib], "rescue");
+  assert.ok(m.crossings.some((c) => /Blood says family/.test(c)), m.crossings.join(" | "));
+});
+
+test("missions: objectives for everyone, crossings, rules, no scripted scenes, no unfilled text", async () => {
+  const { MISSION_TYPES } = await import("../src/lore/data.js");
+  const g = store.guild("t5");
+  const crew = ["smuggler", "pilot"].map((career, i) => {
+    const c = story.buildCharacter(g, { ownerId: `u${i}`, originId: i ? "navy_veteran" : "pyro_outlaw", career, name: i ? "Mara Calder" : "RJ Oressian", pronouns: "they" });
+    g.characters[c.id] = c;
+    return c;
+  });
+  for (const type of Array(15).fill([...Object.keys(MISSION_TYPES), undefined]).flat()) {
+    const m = story.buildMission(g, crew, type);
+    assert.equal(m.objectives.length, 2);
+    assert.ok(m.crossings.length >= 1, "the crew's stories must cross");
+    assert.ok(m.rules.length >= 2);
+    assert.equal(m.opening, undefined);
+    assert.equal(m.rpPrompts, undefined);
+    for (const s of [m.title, m.briefing, m.stakes, m.twist, ...m.crossings, ...m.rules, ...m.objectives.map((o) => o.text), story.missionEpilogue(m, true)]) {
+      assert.ok(!unfilled(s), `${type}: ${s}`);
+    }
+  }
+});
+
+test("NPC names are never reused, and recent ones never even nearly", async () => {
+  const names = await import("../src/engine/names.js");
+  const g = { usedNames: ["Ysolde Pike"], characters: { x: { name: "RJ Oressian" } } };
+  const made = Array.from({ length: 300 }, () => names.freshName(g));
+  assert.equal(new Set(made).size, made.length, "no full name repeats");
+  const window = made.slice(0, 79);
+  for (let i = 0; i < window.length; i++) {
+    assert.ok(!names.similar(names.firstName(window[i]), "Ysolde"), window[i]);
+    for (let j = i + 1; j < window.length; j++) {
+      assert.ok(!names.similar(names.firstName(window[i]), names.firstName(window[j])), `${window[i]} ~ ${window[j]}`);
+    }
+  }
+  assert.ok(made.every((n) => !names.similar(names.lastName(n), "Oressian")), "no accidental kin with players");
+  assert.ok(names.similar("Ysolda", "Ysolde") && names.similar("Pike", "Pyke") && !names.similar("Pike", "Vance"));
+});
+
+test("similar surnames become family, with an NPC or another player", () => {
+  const g = store.guild("t6");
+  const rj = story.buildCharacter(g, { ownerId: "a", originId: "pyro_outlaw", career: "smuggler", name: "RJ Oressian", pronouns: "he" });
+  g.characters[rj.id] = rj;
+  const enemy = g.npcs[rj.hooks[0].npcId];
+  enemy.name = "Ysolde Pike";
+  const yp = story.buildCharacter(g, { ownerId: "b", originId: "navy_veteran", career: "pilot", name: "Ysloda Pyke", pronouns: "she" });
+  g.characters[yp.id] = yp;
+  const ties = story.linkKin(g, yp);
+  assert.ok(ties.some((t) => t.with === "Ysolde Pike"), JSON.stringify(ties));
+  assert.ok(yp.hooks.some((h) => h.type === "kin" && h.npcId === enemy.id));
+  assert.equal(story.linkKin(g, yp).length, 0, "links are only made once");
+  const sib = story.buildCharacter(g, { ownerId: "c", originId: "levski_born", career: "medic", name: "Tess Pike", pronouns: "they" });
+  g.characters[sib.id] = sib;
+  story.linkKin(g, sib);
+  assert.ok(yp.hooks.some((h) => h.kinCharId === sib.id), "player-player kin is linked both ways");
+  assert.ok(ties.find((t) => t.with === "Ysolde Pike").text.includes("the Headhunters"), "kin keeps the NPC's existing side");
+  for (let i = 0; i < 30; i++) {
+    const both = story.buildMission(g, [rj, yp], "bounty");
+    assert.ok(both.crossings.some((c) => c.startsWith("Ysolde Pike is in both your stories")), both.crossings.join(" | "));
+    assert.ok(!both.crossings.some((c) => /Ysolde Pike and Ysolde Pike/.test(c)));
+  }
+  const m = story.buildMission(g, [yp, sib], "rescue");
+  assert.ok(m.crossings.some((c) => /Blood says family/.test(c)), m.crossings.join(" | "));
 });

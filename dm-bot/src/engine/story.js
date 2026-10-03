@@ -6,23 +6,26 @@
 import {
   ORIGINS, NAME_POOLS, NPC_POOL, RELICS, LOCATIONS, CARGO, ORES, EVIDENCE,
   OBJECTIVES, ACTIVITY_TAGS, CAMPAIGN_GOALS, THREADS, CAREERS, MISSION_TYPES, MISSION_TWISTS,
+  GAME_RULES, NPC_LINKS, KIN_RELATIONS, SIDES, MISSION_STAKES, TITLE_WORDS,
 } from "../lore/data.js";
 import { pick, pickN, randInt, fill } from "./util.js";
+import { freshName, registerName, isTaken, similar, lastName } from "./names.js";
 import { newId } from "../store.js";
 
 const PLAYABLE_SYSTEMS = Object.keys(LOCATIONS);
 
 // ── Names ────────────────────────────────────────────────────────────────────
-export function suggestNames(originId, count = 6) {
+export function suggestNames(originId, count = 6, g = null) {
   const pool = NAME_POOLS[ORIGINS[originId]?.names] || NAME_POOLS.common;
   const names = new Set();
   let guard = 0;
-  while (names.size < count && guard++ < 100) {
+  while (names.size < count && guard++ < 300) {
     let name = `${pick(pool.first)} ${pick(pool.last)}`;
     if (pool.callsigns && Math.random() < 0.5) {
       const [first, ...rest] = name.split(" ");
       name = `${first} "${pick(pool.callsigns)}" ${rest.join(" ")}`;
     }
+    if (g && guard < 250 && isTaken(g, name)) continue;
     names.add(name);
   }
   return [...names];
@@ -32,7 +35,7 @@ export function suggestNames(originId, count = 6) {
 export function createNpc(g, role, extra = {}) {
   const npc = {
     id: newId(),
-    name: `${pick(NPC_POOL.first)} ${pick(NPC_POOL.last)}`,
+    name: freshName(g),
     role: role || pick(NPC_POOL.roles),
     ...extra,
   };
@@ -45,6 +48,7 @@ const npcName = (g, id) => g.npcs[id]?.name || "someone";
 // ── Origin story ─────────────────────────────────────────────────────────────
 export function buildCharacter(g, { ownerId, originId, career, name, pronouns, seed }) {
   const origin = ORIGINS[originId];
+  registerName(g, name);
   const surname = name.replace(/".*?"\s*/, "").split(" ").slice(-1)[0];
   const relic = pick(RELICS);
   const npcA = createNpc(g);
@@ -332,37 +336,167 @@ export function buildCrossover(g, a, b) {
   };
 }
 
+// ── Family ties: similar surnames mean blood ────────────────────────────────
+// When a character's surname matches (or nearly matches) another character's or an NPC's, they're
+// family, usually on opposite sides of something. Links are stored so they're only made once.
+export function linkKin(g, char) {
+  g.kinLinks ??= {};
+  const made = [];
+  const mine = lastName(char.name);
+  if (!mine) return made;
+  const others = [
+    ...Object.values(g.characters).filter((c) => c.id !== char.id).map((c) => ({ kind: "char", id: c.id, name: c.name, ref: c })),
+    ...Object.values(g.npcs).map((n) => ({ kind: "npc", id: n.id, name: n.name, ref: n })),
+  ];
+  for (const o of others) {
+    const key = [char.id, o.id].sort().join("|");
+    if (g.kinLinks[key] || !similar(mine, lastName(o.name))) continue;
+    const relation = pick(KIN_RELATIONS);
+    const sides = SIDES[char.system] || SIDES.Pyro;
+    const known = o.kind === "npc" ? npcSide(g, o.ref) : o.ref.kinSide || null;
+    const theirSide = known || pick(sides);
+    const mySide = pick(sides.filter((x) => x !== theirSide));
+    const text = `${o.name} is ${char.name}'s ${relation}. ${o.name} runs with ${theirSide}, and ${shortName(char.name)}'s path keeps crossing ${mySide}. Blood says family; the 'Verse says enemies.`;
+    g.kinLinks[key] = { a: char.id, b: o.id, relation, text };
+    char.hooks.push({ id: newId(), type: "kin", text, thread: "kin", npcId: o.kind === "npc" ? o.id : null, kinCharId: o.kind === "char" ? o.id : null, status: "open" });
+    char.relationships.push({ charId: o.kind === "char" ? o.id : null, npcId: o.kind === "npc" ? o.id : null, name: o.name, note: `${relation} (${theirSide})` });
+    if (o.kind === "char") {
+      const back = `${char.name} is ${o.name}'s ${relation}. ${char.name}'s path keeps crossing ${mySide}, and ${shortName(o.name)} runs with ${theirSide}. Blood says family; the 'Verse says enemies.`;
+      o.ref.hooks.push({ id: newId(), type: "kin", text: back, thread: "kin", npcId: null, kinCharId: char.id, status: "open" });
+      o.ref.relationships.push({ charId: char.id, name: char.name, note: `${relation} (${mySide})` });
+    } else {
+      o.ref.kinOf = char.id;
+      o.ref.affiliation = theirSide;
+    }
+    made.push({ with: o.name, relation, text });
+  }
+  return made;
+}
+
+// The side an NPC is already on in someone's story (so family ties don't contradict it).
+const THREAD_SIDES = {
+  headhunters: "the Headhunters", frontier: "a Frontier Fighter cell", ninetails: "the Nine Tails", asd: "ASD's cleanup crews",
+  molina: "a corrupt contractor ring", hurston: "Hurston Security", xenothreat: "XenoThreat", shattered: "the Shattered Blade",
+  terra: "Earth-loyalist operatives", vanduul: "UEE Navy intelligence", vanduul_nyx: "the People's Alliance militia",
+};
+function npcSide(g, npc) {
+  if (npc.affiliation) return npc.affiliation;
+  for (const c of Object.values(g.characters)) {
+    const h = c.hooks.find((x) => x.npcId === npc.id && x.type !== "kin");
+    if (h && THREAD_SIDES[h.thread] && ["enemy", "debt"].includes(h.type)) return (npc.affiliation = THREAD_SIDES[h.thread]);
+  }
+  return null;
+}
+
+// ── Crossings: how the crew's stories intertwine ─────────────────────────────
+// Kin first, then a link between NPCs from different crew members' hooks. NPC links are stored,
+// so if two NPCs were rivals last mission, they're still rivals now.
+function hookNpcs(g, char) {
+  return char.hooks.filter((h) => h.status === "open" && h.npcId && g.npcs[h.npcId]).map((h) => ({ npc: g.npcs[h.npcId], hook: h, char }));
+}
+
+function npcLink(g, x, y) {
+  g.npcLinks ??= {};
+  const key = [x.id, y.id].sort().join("|");
+  g.npcLinks[key] ??= fill(pick(NPC_LINKS), { x: x.name, y: y.name });
+  return g.npcLinks[key];
+}
+
+export function findCrossings(g, crew) {
+  const crossings = [];
+  const ids = new Set(crew.map((c) => c.id));
+  for (const link of Object.values(g.kinLinks || {})) {
+    if (ids.has(link.a) && ids.has(link.b)) crossings.push({ kind: "kin", text: link.text });
+  }
+  const pools = crew.map((c) => hookNpcs(g, c));
+  let focus = null;
+  let foil = null;
+  // Strongest link: one NPC who appears in two crew members' stories.
+  const seen = new Map();
+  for (const p of pools.flat()) {
+    const prev = seen.get(p.npc.id);
+    if (prev && prev.char.id !== p.char.id && !focus) {
+      crossings.push({ kind: "shared", text: `${p.npc.name} is in both your stories. For ${prev.char.name}: ${prev.hook.text} For ${p.char.name}: ${p.hook.text}` });
+      focus = prev.hook.type === "enemy" ? prev : p;
+      foil = pick(pools.flat().filter((q) => q.npc.id !== p.npc.id)) || null;
+    }
+    seen.set(p.npc.id, prev || p);
+  }
+  if (!focus && crew.length > 1) {
+    const [pa, pb] = pickN(pools.filter((p) => p.length), 2);
+    const x = pa && pick(pa);
+    const y = pb && pick(pb.filter((q) => q.npc.id !== x.npc.id));
+    if (x && y) {
+      crossings.push({ kind: "npc", text: `${npcLink(g, x.npc, y.npc)} ${x.npc.name} is tied to ${x.char.name}'s past; ${y.npc.name} to ${y.char.name}'s.` });
+      [focus, foil] = Math.random() < 0.5 ? [x, y] : [y, x];
+    }
+  }
+  if (!focus) {
+    const all = pools.flat();
+    const kinNpc = all.find((p) => p.hook.type === "kin");
+    focus = kinNpc || pick(all) || null;
+    foil = pick(all.filter((p) => p.npc.id !== focus?.npc.id)) || null;
+    if (focus && foil) crossings.push({ kind: "npc", text: `${npcLink(g, focus.npc, foil.npc)} Both of them are part of ${focus.char.name}'s story.` });
+  }
+  return { crossings, focus, foil };
+}
+
 // ── One-shot missions ────────────────────────────────────────────────────────
+function missionTitle(g) {
+  g.usedTitles ??= [];
+  for (let i = 0; i < 50; i++) {
+    const t = `${pick(TITLE_WORDS.a)} ${pick(TITLE_WORDS.b)}`;
+    if (!g.usedTitles.includes(t)) {
+      g.usedTitles.push(t);
+      return t;
+    }
+  }
+  return `${pick(TITLE_WORDS.a)} ${pick(TITLE_WORDS.b)} ${g.usedTitles.length}`;
+}
+
+export function rulesFor(activities, n = 3) {
+  const relevant = GAME_RULES.filter((r) => r.tags.some((t) => activities.includes(t)));
+  const general = GAME_RULES.filter((r) => r.tags.includes("all"));
+  return [...pickN(relevant, n - 1), pick(general)].filter(Boolean);
+}
+
 export function buildMission(g, characters, typeId) {
-  const type = MISSION_TYPES[typeId] || pick(Object.values(MISSION_TYPES));
+  const typeKey = MISSION_TYPES[typeId] ? typeId : pick(Object.keys(MISSION_TYPES));
+  const type = MISSION_TYPES[typeKey];
+  const { crossings, focus, foil } = findCrossings(g, characters);
+
+  // The antagonist and the person at the centre come from the crew's own stories when possible.
+  const pair = [focus, foil].filter(Boolean);
+  const enemyFirst = [...pair.filter((p) => p.hook.type === "enemy"), ...pair.filter((p) => p.hook.type !== "enemy")];
+  const antagonist = enemyFirst[0]?.npc || createNpc(g, "antagonist");
+  const target = (enemyFirst[1]?.npc) || createNpc(g, pick(NPC_POOL.roles));
+
   const lead = characters[0];
+  const threadSystems = THREADS[enemyFirst[0]?.hook.thread]?.systems?.filter((s) => PLAYABLE_SYSTEMS.includes(s)) || [];
   const located = PLAYABLE_SYSTEMS.find((s) => lead.location?.includes(s));
-  const system = located || (PLAYABLE_SYSTEMS.includes(lead.system) ? lead.system : pick(PLAYABLE_SYSTEMS));
-  const patron = createNpc(g, pick(NPC_POOL.roles));
-  const antagonist = createNpc(g, "antagonist");
-  const vars = { patron: patron.name, antagonist: antagonist.name, system };
-  const fake = { vars };
-  const objectives = characters.map((c) => buildObjective(fake, c, type.activities));
-  const hook = fill(pick(type.hooks), vars);
+  const system = located || pick(threadSystems) || (PLAYABLE_SYSTEMS.includes(lead.system) ? lead.system : pick(PLAYABLE_SYSTEMS));
+
+  const vars = { patron: target.name, target: target.name, antagonist: antagonist.name, system };
+  const objectives = characters.map((c) => buildObjective({ vars }, c, type.activities));
+  const activities = objectives.map((o) => o.activity);
+
   return {
     id: newId(),
-    type: Object.keys(MISSION_TYPES).find((k) => MISSION_TYPES[k] === type),
+    type: typeKey,
     typeLabel: type.label,
     emoji: type.emoji,
-    title: `${type.label}: ${pick(["Dead Signal", "Cold Lanes", "The Quiet Job", "Ashes in the Black", "Last Light", "Burn Notice", "Static", "Blind Jump"])}`,
+    title: missionTitle(g),
     system,
-    patron: patron.name,
     antagonist: antagonist.name,
+    target: target.name,
+    patron: target.name,
+    names: [antagonist.name, target.name],
+    crossings: crossings.map((c) => c.text),
     objectives,
-    briefing:
-      `Listen up, spacers. ${hook} The job's in ${system}. Pay is good, questions are expensive, and I'd keep one eye on ${antagonist.name}. ` +
-      "Something about this one doesn't sit right with me.",
+    briefing: `Spacers. ${fill(pick(type.hooks), vars)} It's going down in ${system}. Pay's decent. The story's better.`,
+    stakes: fill(pick(MISSION_STAKES[typeKey]), vars),
+    rules: rulesFor(activities).map((r) => r.text),
     twist: fill(pick(MISSION_TWISTS), vars),
-    opening: `The comms line goes quiet. Somewhere in ${system}, ${antagonist.name} is already moving. What does the crew do first?`,
-    rpPrompts: [
-      `Decide as a crew: do you trust ${patron.name}? Say it in character.`,
-      "Halfway through, something goes wrong. Whoever is closest to it describes what they see.",
-    ],
     characterIds: characters.map((c) => c.id),
     status: "active",
     createdAt: new Date().toISOString(),

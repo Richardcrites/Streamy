@@ -200,7 +200,7 @@ export const NAME_POOLS = {
 
 // NPCs the engine invents. Persisted per guild once created, so they recur.
 export const NPC_POOL = {
-  first: ["Dorian", "Kessa", "Varn", "Lio", "Maddox", "Ysolde", "Grig", "Teodora", "Hank", "Saffi", "Oskar", "Renata", "Cobb", "Liesl", "Ambrose", "Fen", "Mirela", "Tycho", "Brigid", "Zane"],
+  first: ["Dorian", "Kessa", "Varn", "Lio", "Maddox", "Grig", "Teodora", "Hank", "Saffi", "Oskar", "Renata", "Cobb", "Liesl", "Ambrose", "Fen", "Mirela", "Tycho", "Brigid", "Zane"],
   last: ["Krell", "Ashworth", "Vey", "Malloy", "Sorensen", "Duquesne", "Pike", "Varga", "Oyelaran", "Hask", "Morrigan", "Teague", "Lund", "Castell", "Rook", "Imbert"],
   roles: ["fixer", "informant", "smuggler", "CDF liaison", "Hockrow investigator", "Alliance assembly delegate", "Headhunter lieutenant", "corporate auditor", "bartender at Ruin Station", "salvage boss", "ASD lab tech", "Terra Gazette journalist", "Navy intelligence officer", "Banu envoy", "Intersec contractor", "Shattered Blade go-between"],
 };
@@ -466,3 +466,54 @@ export const DEFAULT_PERSONA =
   "somewhere in the Keeger Belt. Your voice is gravelly, dry and amused, the voice of someone who has seen a hundred crews " +
   "come and go. You call the players \"spacers\", you know everyone's business, and you never quite say whose side you're on. " +
   "You care about the crews you hire more than you'll admit.";
+
+// ── The game is part of the story (see /lore/06-game-as-rp.md) ───────────────
+// Each rule turns a Star Citizen limitation into fiction. `tags` = activities it's most relevant to.
+export const GAME_RULES = [
+  { tags: ["all"], short: "30k / disconnect", text: "**30k or disconnect?** You were pulled off-grid by a comms blackout. When you're back, tell the crew where you were." },
+  { tags: ["fps", "combat", "bounty", "rescue"], short: "Death", text: "**Died?** That's regen, and it costs your imprint. Give your character a small echo (a twitch, a lost memory). Three deaths on one job leave a lasting scar." },
+  { tags: ["combat", "escort", "patrol", "bounty"], short: "Desync", text: "**Desync or ships teleporting?** The enemy is spoofing your sensors. Call it out in character." },
+  { tags: ["haul", "delivery", "salvage", "mining"], short: "Freight elevator", text: "**Freight elevator broken?** Customs hold or sabotage. Someone talks to the dockmaster (a bribe or a shouting match), or you reroute to another station." },
+  { tags: ["haul", "delivery", "fps"], short: "Item banks", text: "**Gear stuck at another station?** Gear is physical. Plan the supply run, or borrow from a crewmate." },
+  { tags: ["combat", "escort", "bounty", "patrol"], short: "Insurance claim", text: "**Ship blown up?** It's \"in the shop\" with a suspicious insurer. Fly a loaner and owe someone a favour." },
+  { tags: ["bounty", "fps", "delivery", "combat"], short: "CrimeStat", text: "**Got a CrimeStat?** You're a fugitive now. Lie low at GrimHEX or Ruin Station, or get smuggled in by the crew." },
+  { tags: ["fps", "investigate", "bounty", "salvage"], short: "Bugged objective", text: "**Target didn't spawn or the objective bugged?** Bad intel, or someone got there first. Report it; it becomes part of the twist." },
+  { tags: ["haul", "delivery", "escort", "patrol", "exploration"], short: "Quantum travel", text: "**Long quantum jump?** That's the time to talk in character: plans, doubts, old stories." },
+  { tags: ["all"], short: "Other players", text: "**Random players showed up?** They're in the story now. Hostile ones were hired by the other side; helpful ones become contacts." },
+  { tags: ["fps", "combat", "rescue"], short: "Dumb NPCs", text: "**T-posing or clueless guards?** Cheap hired guns on bargain stims. Mock them, but cheap guns still kill." },
+  { tags: ["all"], short: "Mission contracts", text: "**Which contract counts?** Any contract or activity that matches your objective. The mobiGlas listing is the cover; the real job is this one." },
+];
+
+// How two NPCs from different players' stories turn out to be connected.
+export const NPC_LINKS = [
+  "{x} and {y} used to fly together, until one of them sold the other out.",
+  "{x} owes {y} a debt that can't be paid in credits.",
+  "{x} has been quietly paying {y} to keep a secret.",
+  "{x} and {y} are working together, and neither of you knew.",
+  "{y} is the only person {x} has ever been afraid of.",
+  "{x} and {y} were lovers once. It ended badly enough that people still talk about it.",
+  "{y} saved {x}'s life years ago, and {x} hasn't forgiven them for it.",
+];
+
+export const KIN_RELATIONS = ["older sibling", "younger sibling", "twin", "half-sibling", "cousin", "estranged sibling"];
+
+// Factions that can put family members on opposite sides, by system.
+export const SIDES = {
+  Stanton: ["the Nine Tails", "Crusader Security", "the CDF", "Hurston Security"],
+  Pyro: ["the Headhunters", "Rough & Ready", "the Citizens for Prosperity", "a Frontier Fighter cell"],
+  Nyx: ["the People's Alliance militia", "the Shattered Blade", "Intersec Defense Solutions", "Keeger Belt smugglers"],
+};
+
+export const MISSION_STAKES = {
+  heist: ["If it works, {antagonist} loses their leverage. If it fails, they'll know exactly who came for it.", "Get it out clean and the crew owns a secret worth a fortune. Get caught and {antagonist} owns you."],
+  bounty: ["Bring {antagonist} down and {target} stops looking over their shoulder. Miss, and {antagonist} goes to ground and comes back angry.", "The bounty pays well. What {antagonist} knows might be worth more."],
+  salvage: ["Whatever's in that wreck, {antagonist} wants it buried. Get to it first.", "The wreck has answers about {target}. Somebody doesn't want them found."],
+  rescue: ["{target} is out of time. Every minute you spend arguing is one they don't have.", "Get {target} out and they'll owe the crew everything. Leave them, and {antagonist} gets whatever they know."],
+  smuggle: ["Deliver and the crew is trusted on this route. Get scanned and {antagonist} learns what you're carrying.", "The cargo matters to {target} more than they'll say. Don't open it. Probably."],
+  defense: ["Hold, and {target} owes the crew. Break, and {antagonist} takes everything.", "This is the line. {antagonist} is counting on you not to hold it."],
+};
+
+export const TITLE_WORDS = {
+  a: ["Cold", "Dead", "Quiet", "Burning", "Broken", "Silent", "Last", "Red", "Hollow", "Blind", "Long", "Iron", "Black", "Pale", "Bitter", "Lost", "Crooked", "Sunken"],
+  b: ["Lanes", "Signal", "Ledger", "Harbour", "Debt", "Light", "Orbit", "Contract", "Ashes", "Static", "Vault", "Tide", "Wake", "Promise", "Cargo", "Frontier", "Echo", "Margin"],
+};
