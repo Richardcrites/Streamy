@@ -28,6 +28,8 @@ async function route(interaction) {
         if (sub === "sheet") return character.sheet(interaction, g);
         if (sub === "story") return character.sheet(interaction, g, { full: true });
         if (sub === "list") return character.list(interaction, g);
+        if (sub === "backstory") return character.backstory(interaction, g);
+        if (sub === "delete") return character.remove(interaction, g);
         if (sub === "switch") return character.switchChar(interaction, g);
         if (sub === "location") return character.location(interaction, g);
         break;
@@ -62,6 +64,7 @@ async function route(interaction) {
     if (action === "reroll") return character.onReroll(interaction, g);
     if (action === "custom") return character.onCustom(interaction, g);
     if (action === "modal") return character.onCustomName(interaction, g);
+    if (action === "bs") return character.onBackstory(interaction, g);
   }
   if (kind === "ch") return play.onChoice(interaction, g, args[0], args[1], Number(args[2]));
   if (kind === "chm") return play.onReport(interaction, g, args[0], args[1], Number(args[2]));

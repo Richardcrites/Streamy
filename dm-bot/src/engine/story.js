@@ -49,7 +49,7 @@ export function buildCharacter(g, { ownerId, originId, career, name, pronouns, s
   const relic = pick(RELICS);
   const npcA = createNpc(g);
   const npcB = createNpc(g);
-  const vars = { name, surname, home: origin.home, relic, npc: npcA.name, npc2: npcB.name };
+  const vars = { name, short: shortName(name), surname, home: origin.home, relic, npc: npcA.name, npc2: npcB.name };
 
   const hooks = origin.hooks.map((h, i) => ({
     id: newId(),
@@ -62,8 +62,9 @@ export function buildCharacter(g, { ownerId, originId, career, name, pronouns, s
   npcA.role = roleForHook(hooks[0].type);
   npcB.role = roleForHook(hooks[1].type);
 
+  // The player's seed isn't pasted into the story (it rarely fits the template). It's stored,
+  // the AI narrator weaves it in, and players can write their own with /character backstory.
   const story = origin.story.map((p) => fill(p, vars, pronouns));
-  if (seed) story.push(`*In {name}'s own words:* "${seed}"`.replace("{name}", name));
 
   return {
     id: newId(),
@@ -87,6 +88,13 @@ export function buildCharacter(g, { ownerId, originId, career, name, pronouns, s
     journal: [],
     createdAt: new Date().toISOString(),
   };
+}
+
+// What the story calls someone after the first mention: callsign if they have one, else first name.
+export function shortName(name) {
+  const callsign = name.match(/"([^"]+)"/);
+  if (callsign) return callsign[1];
+  return name.trim().split(/\s+/)[0];
 }
 
 function roleForHook(type) {

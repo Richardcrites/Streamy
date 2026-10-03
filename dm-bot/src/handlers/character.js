@@ -204,3 +204,45 @@ export async function journal(interaction, g) {
   const embed = new EmbedBuilder().setColor(COLORS.dossier).setTitle(`${char.name}'s journal`).setDescription(lines.join("\n") || "Nothing yet.");
   await interaction.reply({ embeds: [embed] });
 }
+
+// ── /character backstory: the player writes (or rewrites) the story ─────────
+export async function backstory(interaction, g) {
+  const char = store.activeCharacter(g, interaction.user.id);
+  if (!char) return interaction.reply({ content: "Create a character first: `/character create`.", flags: ephemeral });
+  const input = new TextInputBuilder()
+    .setCustomId("story")
+    .setLabel(clip(`${char.name}'s backstory`, 45))
+    .setStyle(TextInputStyle.Paragraph)
+    .setMinLength(20)
+    .setMaxLength(4000)
+    .setRequired(true)
+    .setValue(clip(char.story.join("\n\n"), 4000));
+  await interaction.showModal(
+    new ModalBuilder().setCustomId("cc:bs").setTitle("Your backstory").addComponents(new ActionRowBuilder().addComponents(input)),
+  );
+}
+
+export async function onBackstory(interaction, g) {
+  const char = store.activeCharacter(g, interaction.user.id);
+  if (!char) return interaction.reply({ content: "Create a character first: `/character create`.", flags: ephemeral });
+  char.story = interaction.fields.getTextInputValue("story").split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+  char.customStory = true;
+  store.addJournal(char, { kind: "origin", text: "Rewrote their backstory." });
+  store.save();
+  await interaction.reply({ content: "Backstory saved. Your story hooks are unchanged, so the DM will keep pulling on them.", embeds: [dossierEmbed(char, { full: true })], flags: ephemeral });
+}
+
+export async function remove(interaction, g) {
+  const q = interaction.options.getString("name").toLowerCase();
+  const char = store.charactersOf(g, interaction.user.id).find((c) => c.name.toLowerCase().includes(q));
+  if (!char) return interaction.reply({ content: "No character of yours matches that name.", flags: ephemeral });
+  if (store.activeCampaignFor(g, char.id)) return interaction.reply({ content: `${char.name} is in an active campaign. Finish or \`/campaign abandon\` it first.`, flags: ephemeral });
+  delete g.characters[char.id];
+  if (g.activeChar[interaction.user.id] === char.id) {
+    const next = store.charactersOf(g, interaction.user.id)[0];
+    if (next) g.activeChar[interaction.user.id] = next.id;
+    else delete g.activeChar[interaction.user.id];
+  }
+  store.save();
+  await interaction.reply({ content: `**${char.name}** has been deleted.`, flags: ephemeral });
+}

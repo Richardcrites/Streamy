@@ -28,7 +28,14 @@ test("every origin x career x pronoun builds a complete character", () => {
       for (const pronouns of ["she", "he", "they"]) {
         const c = story.buildCharacter(g, { ownerId: "u", originId, career, name: "Test Pilot", pronouns, seed: "I fly." });
         assert.equal(c.hooks.length, 2);
-        for (const p of [...c.story, ...c.hooks.map((h) => h.text)]) assert.ok(!unfilled(p), `${originId}: ${p}`);
+        for (const p of [...c.story, ...c.hooks.map((h) => h.text)]) {
+          assert.ok(!unfilled(p), `${originId}: ${p}`);
+          // Catch pronoun/verb agreement slips like "he fly" or "she haven't".
+          assert.ok(!/\b(he|she|He|She) (fly|have|haven't|are|were|do|don't|keep|work|remember)\b/.test(p), `${originId}/${pronouns}: ${p}`);
+          assert.ok(!/\b(they|They) (flies|has|hasn't|is|was|does|keeps|works)\b/.test(p), `${originId}/${pronouns}: ${p}`);
+        }
+        // The full name appears once; after that the story uses the short name.
+        assert.equal(c.story.join(" ").split("Test Pilot").length - 1, 1, originId);
       }
     }
   }
@@ -64,6 +71,12 @@ test("org campaigns give each crew member their own objective", () => {
   const camp = story.buildCampaign(g, { goalId: "rise", characters: crew, ownerId: "u0", scope: "org", orgId: "o" });
   const ch = story.buildChapter(g, camp, crew);
   assert.deepEqual(ch.objectives.map((o) => o.characterName), ["Crew 0", "Crew 1", "Crew 2"]);
+});
+
+test("short names use callsign or first name", () => {
+  assert.equal(story.shortName('Rook "Flare" Vance'), "Flare");
+  assert.equal(story.shortName("RJ Oressian"), "RJ");
+  assert.equal(story.shortName("Kehl'Varo of House Vael"), "Kehl'Varo");
 });
 
 test("crossovers find links between characters", () => {
