@@ -19,6 +19,8 @@ Built on the lore codex in [`../lore`](../lore) (year 2956, Alpha 4.10).
 | `/story next` | Get the current act: a transmission from your patron, an in-game objective for **each** crew member (fitting their career), and an RP prompt. |
 | Choice buttons | After playing it out, click how you handled it: 🕊️ clean, 🤝 deal or 🔥 ruthless. Your choices decide the **finale** and your renown (Trust / Connections / Fear). |
 | `/mission` | A **one-shot mission** in the DM's voice: a hook, an NPC with a motive, an in-game objective for each crew member, and a hidden twist. Play it in game and in **voice chat**, then click ✅ complete or 💀 failed (add a note about what happened). The DM reveals the twist, writes an epilogue, and updates everyone's journal. |
+| `/voice join` / `test` / `replay` / `leave` | The DM **speaks aloud** in your voice channel. When you're in voice, missions, chapter transmissions, twists and finales are read out automatically. It speaks only; it doesn't listen. |
+| `/dm-admin voice` / `voice-name` | Admin: turn the spoken voice on or off, and pick one of 11 free voices. |
 | `/dm-admin persona` | Admin: give the DM a name and personality (default: "Relay", a gravelly information broker). |
 | `/story crossover @player` | Links two characters' stories through shared history, rivalries or hooks, with a joint job and a meet-up scene. |
 | `/org create/join/leave/info/list/relation` | Multiple orgs per server, with alliances and rivalries. |
@@ -37,7 +39,7 @@ Built on the lore codex in [`../lore`](../lore) (year 2956, Alpha 4.10).
    - Go to **Bot**, click **Reset Token**, and copy the token. That's your `DISCORD_TOKEN`. **Keep it secret.**
 2. **Invite it to your server**
    - Go to **OAuth2 → URL Generator**. Tick scopes `bot` and `applications.commands`. For bot permissions, tick
-     *Send Messages*, *Embed Links* and *Read Message History*.
+     *Send Messages*, *Embed Links*, *Read Message History*, *Connect* and *Speak*.
    - Open the generated URL and pick your server.
    - To get your server ID (`GUILD_ID`): in Discord, turn on **Settings → Advanced → Developer Mode**, then right-click your server and choose **Copy Server ID**.
 3. **Configure and run**
@@ -68,6 +70,13 @@ Built on the lore codex in [`../lore`](../lore) (year 2956, Alpha 4.10).
 - **Chapter → chapter:** chapters pull in open hooks, your `/log` entries and earlier choices.
 - **Player → player:** crossovers create connections. Org campaigns give everyone a role.
 - **Story → world:** finales, new orgs and rivalries go into the **world log**, which feeds the news and the AI narrator, so one crew's ending becomes another crew's rumour.
+
+## The DM's voice
+
+- **Free by default:** Microsoft Edge's online voices, no key needed. It's an unofficial service, so it could change or stop working someday.
+- **ElevenLabs:** put `ELEVENLABS_API_KEY=` (and optionally `ELEVENLABS_VOICE_ID=`) in `.env` and restart. Nothing else changes.
+- The bot needs the **Connect** and **Speak** permissions in your voice channel. If you invited it before voice existed,
+  either re-invite it with those permissions ticked, or give its role Connect and Speak in Server Settings → Roles.
 
 ## Data
 

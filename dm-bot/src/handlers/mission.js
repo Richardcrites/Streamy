@@ -11,6 +11,7 @@ import { buildMission, missionEpilogue } from "../engine/story.js";
 import { narrateMission, narrateMissionEnd } from "../ai.js";
 import * as store from "../store.js";
 import { broadcast, COLORS, clip } from "../comms.js";
+import * as voice from "../voice.js";
 
 const ephemeral = MessageFlags.Ephemeral;
 export const persona = (g) => g.settings.persona || DEFAULT_PERSONA;
@@ -64,6 +65,7 @@ export async function start(interaction, g) {
   );
 
   await interaction.editReply({ content: `${crew.map((c) => `<@${c.ownerId}>`).join(" ")} you have a job.`, embeds: [embed], components: [row] });
+  voice.narrate(interaction, g, `${mission.title}. ${mission.briefing} ${mission.opening}`);
 }
 
 export async function onButton(interaction, g, missionId, result) {
@@ -110,6 +112,7 @@ export async function onReport(interaction, g, missionId, result) {
     .setTitle(clip(mission.title, 250))
     .setDescription(clip(`${mission.epilogue}${notes ? `\n\n**Crew report:** ${notes}` : ""}`, 4000))
     .setFooter({ text: "Logged to everyone's journal. Run /mission for the next job." });
+  voice.narrate(interaction, g, mission.epilogue);
   await broadcast(interaction, g, { embeds: [embed], userIds: [] });
 }
 

@@ -5,6 +5,7 @@ import { pickN } from "../engine/util.js";
 import { narrateChapter, narrateFinale, aiEnabled, aiLabel } from "../ai.js";
 import * as store from "../store.js";
 import { chapterMessage, transmissionEmbed, broadcast, COLORS, clip } from "../comms.js";
+import * as voice from "../voice.js";
 
 const ephemeral = MessageFlags.Ephemeral;
 const RENOWN = { honor: "Trust", pragmatic: "Connections", ruthless: "Fear" };
@@ -41,6 +42,7 @@ async function startChapter(interaction, g, campaign) {
 
 async function postChapter(interaction, g, campaign, chapter) {
   const chars = campaignChars(g, campaign);
+  voice.narrate(interaction, g, `${chapter.title}. Incoming transmission from ${chapter.transmission.from}. ${chapter.transmission.text}`);
   await broadcast(interaction, g, {
     content: chars.map((c) => `<@${c.ownerId}>`).join(" "),
     ...chapterMessage(campaign, chapter),
@@ -228,6 +230,7 @@ async function runFinale(interaction, g, campaign) {
       { name: "Title earned", value: `**${finale.awardTitle}**: ${chars.map((c) => c.name).join(", ")}` },
     )
     .setFooter({ text: "This story is now in the world log. Start your next one with /campaign start." });
+  voice.narrate(interaction, g, `${finale.title}. ${finale.setup} ${finale.text}`);
   await broadcast(interaction, g, { content: chars.map((c) => `<@${c.ownerId}>`).join(" "), embeds: [embed], userIds: chars.map((c) => c.ownerId) });
 }
 
@@ -369,6 +372,18 @@ export async function comms(interaction, g, sub) {
 
 // ── /dm-admin, /dm-help ──────────────────────────────────────────────────────
 export async function admin(interaction, g, sub) {
+  if (sub === "voice") {
+    g.settings.voice = interaction.options.getBoolean("enabled");
+    store.save();
+    if (!g.settings.voice) voice.leave(interaction.guildId);
+    return interaction.reply({ content: `The DM's spoken voice is now **${g.settings.voice ? "on" : "off"}**.`, flags: ephemeral });
+  }
+  if (sub === "voice-name") {
+    g.settings.voiceName = interaction.options.getString("voice");
+    store.save();
+    const note = process.env.ELEVENLABS_API_KEY ? " (ElevenLabs is active, so ELEVENLABS_VOICE_ID in .env decides the voice.)" : "";
+    return interaction.reply({ content: `Voice set to **${voice.EDGE_VOICES[g.settings.voiceName]}**. Try \`/voice test\`.${note}`, flags: ephemeral });
+  }
   if (sub === "comms-channel") {
     const channel = interaction.options.getChannel("channel");
     g.settings.commsChannelId = channel.id;
@@ -393,6 +408,7 @@ export async function help(interaction) {
       "**2. Start a story:** `/campaign start` (solo or with your org). Each act gives you real **in-game objectives** and a **roleplay prompt**.\n" +
       "**3. Play it in game**, then click how your crew handled it. Your choices (🕊️ clean / 🤝 deal / 🔥 ruthless) decide the **finale**.\n" +
       "**4. Keep going:** `/story next` for the next act. `/log` to record what you did. `/character location` when you travel.\n" +
+      "**Voice:** join a voice channel and the DM reads briefings, twists and finales aloud. `/voice join`, `/voice test`, `/voice leave`.\n" +
       "**Link up:** `/story crossover @player` ties two characters' stories together. Orgs share campaigns (`/org`), and `/comms` sends in-character transmissions.\n" +
       "**The world remembers:** finales, rivalries and new orgs go into the world log and show up in `/comms news`.",
     )
@@ -400,3 +416,34 @@ export async function help(interaction) {
   return interaction.reply({ embeds: [embed], flags: ephemeral });
 }
 
+
+// ── /voice ───────────────────────────────────────────────────────────────────
+export async function voiceCommand(interaction, g, sub) {
+  if (sub === "leave") {
+    voice.leave(interaction.guildId);
+    return interaction.reply({ content: "The DM has left voice.", flags: ephemeral });
+  }
+  const channel = interaction.member?.voice?.channel;
+  if (!channel) return interaction.reply({ content: "Join a voice channel first, then try again.", flags: ephemeral });
+  if (g.settings.voice === false) return interaction.reply({ content: "The DM's voice is turned off. An admin can enable it with `/dm-admin voice`.", flags: ephemeral });
+  await interaction.deferReply({ flags: ephemeral });
+  try {
+    await voice.join(channel);
+  } catch (err) {
+    console.warn("[voice] join failed:", err.message);
+    return interaction.editReply("I couldn't join that channel. Check that I have the **Connect** and **Speak** permissions there.");
+  }
+  if (sub === "join") {
+    return interaction.editReply(`Joined **${channel.name}**. I'll read briefings, transmissions and twists aloud. (${voice.ttsLabel()})`);
+  }
+  if (sub === "replay") {
+    const last = voice.lastSpoken(interaction.guildId);
+    if (!last) return interaction.editReply("I haven't said anything yet.");
+    voice.say(channel, last, g.settings.voiceName);
+    return interaction.editReply("Replaying.");
+  }
+  if (sub === "test") {
+    voice.say(channel, "Comms check. This is your DM. Loud and clear, spacers? Good. Let's get to work.", g.settings.voiceName);
+    return interaction.editReply(`Speaking now with the ${voice.ttsLabel()}. If you hear nothing, check the bot's window for a line starting with [voice].`);
+  }
+}

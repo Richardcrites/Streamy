@@ -4,6 +4,7 @@ import * as store from "./store.js";
 import * as character from "./handlers/character.js";
 import * as play from "./handlers/play.js";
 import * as mission from "./handlers/mission.js";
+import * as voice from "./voice.js";
 import { aiLabel } from "./ai.js";
 
 if (!process.env.DISCORD_TOKEN) {
@@ -12,10 +13,10 @@ if (!process.env.DISCORD_TOKEN) {
 }
 
 store.load();
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates] });
 
 client.once(Events.ClientReady, (c) => {
-  console.log(`Star Citizen DM online as ${c.user.tag}. Narration: ${aiLabel()}.`);
+  console.log(`Star Citizen DM online as ${c.user.tag}. Narration: ${aiLabel()}. Voice: ${voice.ttsLabel()}.`);
 });
 
 async function route(interaction) {
@@ -49,6 +50,7 @@ async function route(interaction) {
       case "org": return play.org(interaction, g, sub);
       case "comms": return play.comms(interaction, g, sub);
       case "mission": return mission.start(interaction, g);
+      case "voice": return play.voiceCommand(interaction, g, sub);
       case "dm-admin":
         if (sub === "persona") return mission.editPersona(interaction, g);
         return play.admin(interaction, g, sub);

@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, PermissionFlagsBits, ChannelType } from "discord.js";
 import { CAMPAIGN_GOALS, LOCATIONS, MISSION_TYPES } from "./lore/data.js";
+import { EDGE_VOICES } from "./voice.js";
 
 export const commands = [
   new SlashCommandBuilder()
@@ -54,6 +55,14 @@ export const commands = [
     .addUserOption((o) => o.setName("with3").setDescription("Crew member")),
 
   new SlashCommandBuilder()
+    .setName("voice")
+    .setDescription("The DM's spoken voice in your voice channel")
+    .addSubcommand((s) => s.setName("join").setDescription("DM joins your voice channel"))
+    .addSubcommand((s) => s.setName("leave").setDescription("DM leaves voice"))
+    .addSubcommand((s) => s.setName("replay").setDescription("Say the last thing again"))
+    .addSubcommand((s) => s.setName("test").setDescription("Hear the DM's voice")),
+
+  new SlashCommandBuilder()
     .setName("story")
     .setDescription("Story chapters and crossovers")
     .addSubcommand((s) => s.setName("next").setDescription("Get your current chapter, or the next one"))
@@ -94,6 +103,11 @@ export const commands = [
     .addSubcommand((s) => s.setName("comms-channel").setDescription("Channel where story transmissions are posted")
       .addChannelOption((o) => o.setName("channel").setDescription("Channel").setRequired(true).addChannelTypes(ChannelType.GuildText)))
     .addSubcommand((s) => s.setName("persona").setDescription("Change the DM's name and personality"))
+    .addSubcommand((s) => s.setName("voice").setDescription("Turn the DM's spoken voice on or off")
+      .addBooleanOption((o) => o.setName("enabled").setDescription("On or off").setRequired(true)))
+    .addSubcommand((s) => s.setName("voice-name").setDescription("Choose the DM's voice (free voices)")
+      .addStringOption((o) => o.setName("voice").setDescription("Voice").setRequired(true)
+        .addChoices(...Object.entries(EDGE_VOICES).map(([value, name]) => ({ name, value })))))
     .addSubcommand((s) => s.setName("dms").setDescription("DM story transmissions to players?")
       .addBooleanOption((o) => o.setName("enabled").setDescription("On or off").setRequired(true))),
 

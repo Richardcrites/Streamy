@@ -27,11 +27,9 @@ if not exist ".env" (
   call :writeenv
 )
 
-if not exist "node_modules" (
-  echo Installing... this only happens once.
-  call npm install --omit=dev
-  if errorlevel 1 goto failed
-)
+echo Checking for updates to the bot's parts...
+call npm install --omit=dev --no-audit --no-fund
+if errorlevel 1 goto failed
 
 echo Registering slash commands with Discord...
 call npm run deploy
