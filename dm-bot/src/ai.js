@@ -60,7 +60,7 @@ function lore() {
 
 // ── Transport ────────────────────────────────────────────────────────────────
 // system: [stableText, variableText]. messages: [{role: "user"|"assistant", content}].
-async function complete({ system, messages, schema, maxTokens = 4000 }) {
+async function complete({ system, messages, schema, maxTokens = 8000 }) {
   return provider() === "openrouter"
     ? openRouter({ system, messages, schema, maxTokens })
     : anthropic({ system, messages, schema });
@@ -85,7 +85,8 @@ async function anthropic({ system, messages, schema }) {
 // OpenRouter speaks the OpenAI chat-completions format. First attempt: cacheable system block and
 // structured output. Models/providers that reject either get a plain retry (schema in the prompt).
 async function openRouter({ system, messages, schema, maxTokens }) {
-  const request = async (fancy) => {
+  // fancy = cacheable system block + structured output. plain = one system string, schema in the prompt.
+  const request = async (fancy, tokens) => {
     const sys = fancy
       ? [{ type: "text", text: system[0], cache_control: { type: "ephemeral" } }, ...(system[1] ? [{ type: "text", text: system[1] }] : [])]
       : system.filter(Boolean).join("\n\n");
@@ -94,7 +95,7 @@ async function openRouter({ system, messages, schema, maxTokens }) {
       const last = msgs[msgs.length - 1];
       last.content += `\n\nReply with only a JSON object (no code fences, no commentary) matching this JSON schema:\n${JSON.stringify(schema)}`;
     }
-    const body = { model: OPENROUTER_MODEL, max_tokens: maxTokens, messages: [{ role: "system", content: sys }, ...msgs] };
+    const body = { model: OPENROUTER_MODEL, max_tokens: tokens, messages: [{ role: "system", content: sys }, ...msgs] };
     if (schema && fancy) body.response_format = { type: "json_schema", json_schema: { name: "dm_output", strict: true, schema } };
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -109,15 +110,30 @@ async function openRouter({ system, messages, schema, maxTokens }) {
     const json = await res.json().catch(() => ({}));
     if (!res.ok) throw Object.assign(new Error(`OpenRouter ${res.status}: ${json.error?.message ?? res.statusText}`), { status: res.status });
     const choice = json.choices?.[0];
-    if (!choice || choice.finish_reason === "length") return null;
-    return choice.message?.content?.trim() || null;
+    const raw = choice?.message?.content;
+    // Some providers return content as an array of parts.
+    const text = (Array.isArray(raw) ? raw.map((p) => p?.text ?? "").join("") : raw ?? "").trim();
+    return {
+      text: choice?.finish_reason === "length" ? "" : text,
+      why: `model ${json.model ?? OPENROUTER_MODEL}, finish "${choice?.finish_reason ?? choice?.native_finish_reason ?? "none"}"` +
+        (choice?.message?.reasoning ? ", it spent its answer on reasoning" : "") +
+        (json.error ? `, error: ${json.error.message ?? JSON.stringify(json.error)}` : ""),
+    };
   };
+
+  let first;
   try {
-    return await request(true);
+    first = await request(true, maxTokens);
   } catch (err) {
-    if (err.status === 400 || err.status === 422) return request(false);
-    throw err;
+    if (err.status !== 400 && err.status !== 422) throw err;
+    first = { text: "", why: `rejected the request format (${err.status})` };
   }
+  if (first.text) return first.text;
+  // Empty or cut off: retry once in plain mode with more room.
+  console.warn(`[ai] OpenRouter gave an empty answer (${first.why}). Retrying in simple mode…`);
+  const second = await request(false, Math.min(maxTokens * 2, 16000));
+  if (!second.text) console.warn(`[ai] Still empty (${second.why}). Set OPENROUTER_MODEL in .env to a specific model (see README).`);
+  return second.text || null;
 }
 
 function logFailure(what, err) {

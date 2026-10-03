@@ -78,6 +78,18 @@ Built on the lore codex in [`../lore`](../lore) (year 2956, Alpha 4.10).
 - **Player → player:** crossovers create connections. Org campaigns give everyone a role.
 - **Story → world:** finales, new orgs and rivalries go into the **world log**, which feeds the news and the AI narrator, so one crew's ending becomes another crew's rumour.
 
+## Picking an AI model (OpenRouter)
+
+`OPENROUTER_MODEL=openrouter/auto` lets OpenRouter choose, but it sometimes picks a "thinking" model that returns
+nothing, and the writing style changes from call to call. For reliable stories, pick one model:
+
+1. Go to https://openrouter.ai/models and search for a model (Claude Sonnet is a strong, affordable storyteller).
+2. Copy its **ID** exactly as shown on its page (it looks like `provider/model-name`).
+3. In `.env`, set `OPENROUTER_MODEL=` to that ID and restart the bot.
+
+If the bot window shows `[ai] OpenRouter gave an empty answer (model …)`, the bot retries automatically; if it says
+`Still empty`, switch to a different model.
+
 ## Scribe channel setup
 
 1. `/dm-admin scribe-channel #scribe`

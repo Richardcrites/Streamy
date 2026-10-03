@@ -56,3 +56,27 @@ test("an OpenRouter key on the ANTHROPIC_API_KEY line is routed to OpenRouter", 
   assert.equal(auth, "Bearer sk-or-v1-mixup");
   assert.match(fresh.aiLabel(), /OpenRouter/);
 });
+
+test("OpenRouter: an empty answer (reasoning model) is retried in simple mode with more room", async () => {
+  process.env.OPENROUTER_API_KEY = "test-key";
+  delete process.env.ANTHROPIC_API_KEY;
+  const fresh = await import(`../src/ai.js?empty=${Date.now()}`);
+  const calls = [];
+  globalThis.fetch = async (url, opts) => {
+    const b = JSON.parse(opts.body);
+    calls.push(b);
+    if (calls.length === 1) return new Response(JSON.stringify({ model: "some/thinker", choices: [{ finish_reason: "length", message: { content: "", reasoning: "hmm..." } }] }));
+    return new Response(JSON.stringify({ choices: [{ finish_reason: "stop", message: { content: [{ type: "text", text: '{"paragraphs":["Recovered."]}' }] } }] }));
+  };
+  assert.deepEqual(await fresh.narrateOrigin(char), ["Recovered."]);
+  assert.equal(calls.length, 2);
+  assert.ok(calls[1].max_tokens > calls[0].max_tokens, "retry gets more room");
+  assert.equal(calls[1].response_format, undefined, "retry is plain mode");
+  assert.equal(typeof calls[1].messages[0].content, "string");
+});
+
+test("OpenRouter: still empty after the retry falls back to built-in text", async () => {
+  const fresh = await import(`../src/ai.js?empty2=${Date.now()}`);
+  globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ finish_reason: "stop", message: { content: null } }] }));
+  assert.equal(await fresh.narrateOrigin(char), null);
+});
