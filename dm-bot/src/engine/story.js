@@ -52,24 +52,39 @@ export function buildCharacter(g, { ownerId, originId, career, name, pronouns, s
   registerName(g, name);
   const surname = name.replace(/".*?"\s*/, "").split(" ").slice(-1)[0];
   const relic = pick(RELICS);
-  const npcA = createNpc(g);
-  const npcB = createNpc(g);
-  const vars = { name, short: shortName(name), surname, home: origin.home, relic, npc: npcA.name, npc2: npcB.name };
+  const vars = { name, short: shortName(name), surname, home: origin.home, relic };
 
-  const hooks = origin.hooks.map((h, i) => ({
-    id: newId(),
-    type: h.type,
-    text: fill(h.text, vars, pronouns),
-    thread: h.thread,
-    npcId: i === 0 ? npcA.id : npcB.id,
-    status: "open",
-  }));
-  npcA.role = roleForHook(hooks[0].type);
-  npcB.role = roleForHook(hooks[1].type);
+  // Other characters on this server with the same origin: avoid giving them the same life.
+  const siblings = Object.values(g.characters || {}).filter((c) => c.originId === originId);
+  const usedBeats = new Set(siblings.map((c) => (c.storyBeats || []).join("-")));
+  const beatsUsed = (part, i) => siblings.filter((c) => c.storyBeats?.[part] === i).length;
+  const leastUsed = (list, part) => {
+    const counts = list.map((_, i) => beatsUsed(part, i));
+    const min = Math.min(...counts);
+    return pick(list.map((_, i) => i).filter((i) => counts[i] === min));
+  };
+  let beats = [leastUsed(origin.openings, 0), leastUsed(origin.turns, 1), leastUsed(origin.nows, 2)];
+  for (let tries = 0; usedBeats.has(beats.join("-")) && tries < 20; tries++) {
+    beats = [randInt(0, origin.openings.length - 1), randInt(0, origin.turns.length - 1), randInt(0, origin.nows.length - 1)];
+  }
+
+  // Two hooks of different types, preferring ones no same-origin character already has.
+  const hookUse = origin.hooks.map((_, i) => siblings.filter((c) => (c.hookKeys || []).includes(i)).length);
+  const order = origin.hooks.map((_, i) => i).sort((a, b) => hookUse[a] - hookUse[b] || Math.random() - 0.5);
+  const chosen = [];
+  for (const i of order) {
+    if (chosen.length < 2 && !chosen.some((j) => origin.hooks[j].type === origin.hooks[i].type)) chosen.push(i);
+  }
+
+  const hooks = chosen.map((i) => {
+    const h = origin.hooks[i];
+    const npc = createNpc(g, roleForHook(h.type));
+    return { id: newId(), type: h.type, text: fill(h.text, { ...vars, npc: npc.name }, pronouns), thread: h.thread, npcId: npc.id, status: "open" };
+  });
 
   // The player's seed isn't pasted into the story (it rarely fits the template). It's stored,
   // the AI narrator weaves it in, and players can write their own with /character backstory.
-  const story = origin.story.map((p) => fill(p, vars, pronouns));
+  const story = [origin.openings[beats[0]], origin.turns[beats[1]], origin.nows[beats[2]]].map((p) => fill(p, vars, pronouns));
 
   return {
     id: newId(),
@@ -86,6 +101,8 @@ export function buildCharacter(g, { ownerId, originId, career, name, pronouns, s
     ties: origin.ties,
     seed: seed || null,
     story,
+    storyBeats: beats,
+    hookKeys: chosen,
     hooks,
     renown: {},
     relationships: [],

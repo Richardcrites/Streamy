@@ -30,14 +30,26 @@ export const ORIGINS = {
     system: "Stanton",
     citizenship: "civilian",
     ties: { friendly: ["Citizens for Prosperity"], hostile: ["Hurston Dynamics"] },
-    story: [
+    openings: [
       "{name} was born under the smog of Lorville, two levels below the Teasa Spaceport, to parents who built rifles on the Hurston Dynamics line. In a company town your contract is your life, and it's paid in company scrip.",
+      "{name} grew up in the worker blocks on the edge of Lorville, where the sky is the colour of rust and the lights go out when Hurston says so. {Their} mother ran a noodle stall for the night shift; {their} father ran up debts.",
+      "{name} came to Hurston as a kid, when {their} family signed a ten-year labour contract for passage off a dying colony. Ten years became twenty. In Lorville, contracts have a way of growing.",
+    ],
+    turns: [
       "{short} was on the line by sixteen. By twenty {they} owed Hurston more than {they} could earn in a lifetime: housing, medical care, \"training fees\". Every shift made the debt bigger, not smaller.",
-      "So one night {short} stole a shift-pass and took a seat on an outbound shuttle. Hurston calls that contract abandonment. {short} calls it the first free breath {they} ever took.",
+      "An accident on the munitions floor took three fingers from {short}'s best friend and nothing from the company's profits. When {short} filed a complaint, Hurston Security filed one back: theft of company property.",
+      "{short} learned to fix the security drones that patrol the worker blocks, and learned their blind spots in the process. That knowledge became a side business, and the side business became a problem.",
+    ],
+    nows: [
+      "So one night {short} stole a shift-pass and took a seat on an outbound shuttle. Hurston calls that contract abandonment. {short} calls it the first free breath of {their} life.",
+      "{short} left Hurston in the back of a cargo hauler, under a crate of medical gel, with a forged discharge chit. It held up long enough. Now the 'Verse is big, and Lorville feels small and far away, most days.",
+      "These days {short} works anywhere that isn't Hurston. The debt is still on the books, and somewhere in Lorville a ledger still has {their} name on it.",
     ],
     hooks: [
       { type: "debt", text: "Hurston Dynamics still holds {name}'s labour contract, and a collections agent named {npc} has been asking around the Stanton stations.", thread: "hurston" },
-      { type: "lost", text: "{name}'s younger sibling {npc2} is still on the Lorville line, and the company is using them as leverage.", thread: "hurston" },
+      { type: "lost", text: "{name}'s younger sibling, who took their mother's name ({npc}), is still on the Lorville line, and the company is using them as leverage.", thread: "hurston" },
+      { type: "enemy", text: "{npc}, the Hurston Security sergeant who made {short}'s last year in Lorville hell, has just been put in charge of the outbound docks.", thread: "hurston" },
+      { type: "secret", text: "{short} walked out with a datapad of Hurston safety reports the company swore were destroyed. {npc}, a union organiser in hiding, wants it.", thread: "hurston" },
     ],
   },
   terran_noble: {
@@ -48,68 +60,117 @@ export const ORIGINS = {
     system: "Terra",
     citizenship: "citizen",
     ties: { friendly: ["UEE Senate (Transitionalists)"], hostile: ["Earth loyalists"] },
-    story: [
+    openings: [
       "{name} grew up among the glass towers of Prime on Terra, where families count their wealth in Senate seats. For three generations the {surname} name has stood for one idea: the Empire's future belongs to Terra, not tired old Earth.",
+      "{name} was raised in a sea-cliff estate on Terra, taught by tutors and shaped by the motto carved over the door: Terra First. The {surname}s funded half the Transitionalist movement and expected their children to finish the job.",
+      "{name} was the spare heir of the {surname} family, the one nobody expected to inherit anything but a title and good manners. Childhood was galas in Prime and summers on the family yacht in orbit.",
+    ],
+    turns: [
       "When Senator Mira Ngo lost the 2950 election, {short}'s father lost a fortune backing her. A year later he lost his life too. The family calls it an accident. {short} never has.",
+      "Then the money stopped: accounts frozen, the yacht seized, and the family name dragged through the Terra Gazette over a bribery scandal {short} is sure was manufactured by Earth-loyalist rivals.",
+      "At twenty, {short} found the letters. The {surname} fortune was built on Messer-era contracts, and some of those contracts had bodies attached. The family had spent a lifetime making sure nobody would ever read them.",
+    ],
+    nows: [
       "{short} left Prime with a family ship, an inheritance frozen by auditors, and one question: who profited when the {surname}s fell?",
+      "Now {short} flies {their} own ship, takes work under a borrowed name, and is learning how the rest of the Empire lives. It's harder than the tutors said, and more honest.",
+      "{short} walked away from the estate with one ship and a crate of letters, and still hasn't decided whether to burn the letters or publish them.",
     ],
     hooks: [
-      { type: "secret", text: "{name}'s father was writing to a Terra Gazette journalist, {npc}, about Earth-loyalist money moving through Stanton megacorps.", thread: "terra" },
-      { type: "enemy", text: "A family rival, {npc2}, bought the {surname} estate at auction and wants {name} out of the picture before the audit closes.", thread: "terra" },
+      { type: "secret", text: "Before the fall, {name}'s family was feeding a Terra Gazette journalist, {npc}, evidence of Earth-loyalist money moving through Stanton megacorps.", thread: "terra" },
+      { type: "enemy", text: "A family rival, {npc}, bought the {surname} estate at auction and wants {short} out of the picture before the audit closes.", thread: "terra" },
+      { type: "debt", text: "{short} owes {npc}, a Prime moneylender with Senate friends, for the loan that keeps the family ship flying.", thread: "terra" },
+      { type: "lost", text: "{short}'s older sibling vanished from Prime the week everything fell apart, and has been living under the name {npc}. The last message came from somewhere in Stanton.", thread: "terra" },
     ],
   },
   pyro_outlaw: {
     label: "Pyro-Born Outlaw",
     emoji: "🔥",
     names: "pyro",
-    home: "Ruin Station, Pyro",
+    home: "Pyro (Ruin Station, Patch City, or a freighter that never docked)",
     system: "Pyro",
     citizenship: "none",
     ties: { friendly: ["Rough & Ready"], hostile: ["Headhunters"] },
-    story: [
+    openings: [
       "{name} was born on Ruin Station, under a dying flare star, in a system the Empire forgot. In Pyro you learn early that the law is whoever has the most guns this week.",
-      "{short} was running cargo for Rough & Ready before {they} could legally fly in the UEE. Then the Headhunters came to collect a debt the crew didn't owe, and burned their ship to make the point.",
-      "{short} was the only one who walked away. These days {short} flies between the gangs, the Citizens for Prosperity and the odd Stanton job, and has never forgotten a single face from that night.",
+      "{name} grew up in Patch City, in a hab built from three different wrecks welded together. The first toy was a broken multitool; the first job was stripping scrap for whoever paid in food.",
+      "{name} was born on a freighter that never docked anywhere long enough to call it home, running between Pyro's stations ahead of whatever debt was chasing the family that month.",
+    ],
+    turns: [
+      "{short} was running cargo for Rough & Ready before {they} could legally fly in the UEE. Then the Headhunters came to collect a debt the crew didn't owe, and burned their ship to make the point. {short} was the only one who walked away.",
+      "At fifteen, {short} watched {their} father lose the family ship in a card game at Checkmate, then lose his life arguing about it. The winner kept the ship. {short} kept the grudge.",
+      "When the Frontier Fighters rolled into Pyro promising order, {short} believed them, right up until the day {they} saw what they did to a settlement that wouldn't pick a side.",
+    ],
+    nows: [
+      "These days {short} flies between the gangs, the Citizens for Prosperity and the odd Stanton job, and has never forgotten a face.",
+      "Now {short} runs jobs for whoever pays, and trusts nobody who smiles too much. In Pyro, that's a survival skill.",
+      "{short} keeps moving: Pyro's lanes, Stanton's back doors, anywhere the past is a few jumps behind.",
     ],
     hooks: [
-      { type: "enemy", text: "The Headhunter who burned {name}'s crew, {npc}, rose in the gang after Amelia Boyd's execution.", thread: "headhunters" },
-      { type: "oath", text: "{name} swore to get the last survivor of the old crew, {npc2}, out of a Headhunter debt cell.", thread: "headhunters" },
+      { type: "enemy", text: "{npc}, a Headhunter enforcer with an old grudge against {short}, rose in the gang after Amelia Boyd's execution.", thread: "headhunters" },
+      { type: "oath", text: "{name} swore to get an old friend, {npc}, out of a Headhunter debt cell.", thread: "headhunters" },
+      { type: "debt", text: "{short} owes {npc}, a Rough & Ready quartermaster, for the ship {short} flies. Interest is paid in favours.", thread: "headhunters" },
+      { type: "secret", text: "{short} knows where a Frontier Fighter cell buried its weapons cache. So does {npc}, and only one of them is still loyal to the cause.", thread: "frontier" },
+      { type: "lost", text: "{short}'s little brother, who goes by {npc} these days, joined a Pyro gang last year, and {short} still doesn't know which one.", thread: "headhunters" },
     ],
   },
   navy_veteran: {
     label: "UEE Navy Veteran",
     emoji: "🎖️",
     names: "common",
-    home: "Vega (served on the western front)",
+    home: "Wherever the Navy sent them (last posting: the western front)",
     system: "Vega",
     citizenship: "citizen",
     ties: { friendly: ["UEE Navy", "Civilian Defense Force"], hostile: ["Vanduul"] },
-    story: [
-      "{name} enlisted at eighteen to earn {their} citizenship, and earned it at Vega in 2945, the day the Vanduul fell on Vega II and the sky burned.",
+    openings: [
+      "{name} enlisted at eighteen to earn citizenship, and earned it at Vega in 2945, the day the Vanduul fell on Vega II and the sky burned.",
+      "{name} grew up on a Navy base in Kilian, the child of a carrier mechanic, and could name every ship in the fleet before learning to read.",
+      "{name} joined the UEE Navy to get off a farming world in Ellis and see the 'Verse. The Navy showed {them} the 'Verse: mostly the parts on fire.",
+    ],
+    turns: [
       "For three days straight {short} flew escort for evacuation transports. Not all of them made it out. Some nights the comms chatter still plays in {their} head.",
+      "On a border patrol near Tiber, {short}'s wing found a Vanduul wreck that wasn't in any report. Command classified it within the hour and transferred everyone who had seen it.",
+      "{short} was decorated for a rescue that went wrong in ways the citation leaves out. Two names didn't make it into the report, and {short} has never stopped saying them.",
+    ],
+    nows: [
       "Now {short} has a medal, a citizenship chit and no patience for desk work. CDF call-ups, escort contracts, anything that keeps {their} hands on a stick.",
+      "Discharged with honours and a pension that barely covers fuel, {short} flies private now, and still salutes the carriers when they pass.",
+      "{short} left the Navy quietly, but the Navy never quite left: the habits, the nightmares, and the friends still in uniform who call when they need a favour off the books.",
     ],
     hooks: [
-      { type: "lost", text: "{name}'s wingmate {npc} was listed MIA at Vega. Last month a transmission arrived on a dead Navy channel, signed with their callsign.", thread: "vanduul" },
-      { type: "secret", text: "{name} saw something at Vega the Navy redacted: a Vanduul ship that didn't fire, as if it were waiting. Officer {npc2} told {them} to forget it.", thread: "vanduul" },
+      { type: "lost", text: "{name}'s wingmate, {npc}, was listed MIA on the front. Last month a transmission arrived on a dead Navy channel, signed with that callsign.", thread: "vanduul" },
+      { type: "secret", text: "{name} saw something the Navy redacted: a Vanduul ship that didn't fire, as if it were waiting. Officer {npc} said to forget it.", thread: "vanduul" },
+      { type: "enemy", text: "{npc}, a former commanding officer, signed the report that buried the squadron's mistakes, and is now a rising name in Navy intelligence.", thread: "vanduul" },
+      { type: "oath", text: "{short} promised a dying crewmate to look after their kid, {npc}, who has since run off to Nyx.", thread: "vanduul_nyx" },
     ],
   },
   tevarin: {
     label: "Tevarin Descendant",
     emoji: "🌀",
     names: "tevarin",
-    home: "Elysium IV (Kaleeth), the lost homeworld",
+    home: "The Tevarin diaspora (ancestral home: Elysium IV, Kaleeth)",
     system: "Elysium",
     citizenship: "civilian",
     ties: { friendly: ["Tevarin diaspora"], hostile: ["XenoThreat"] },
-    story: [
+    openings: [
       "{name} carries a Tevarin name in a human empire. {Their} people lost two wars, and their homeworld Kaleeth with them. Humans call it Elysium IV now.",
-      "{short}'s grandmother told the story of the last fleet at Elysium, which flew into the planet's shield rather than surrender. To humans it's a footnote in a history lesson. To the Tevarin it's a vow.",
-      "{short} keeps the old honour code, which says a debt of honour outlives the one who made it. Then word came that a war-relic, the {relic}, had turned up in a collector's hands somewhere in the 'Verse.",
+      "{name} was raised in a Tevarin enclave on the edge of a human city, where the old songs were sung quietly and the old blades were kept wrapped in cloth.",
+      "{name} is half Tevarin by blood and wholly Tevarin by choice, raised by a grandmother on the honour code and the stories of the lost fleet.",
+    ],
+    turns: [
+      "{short}'s grandmother told the story of the last fleet at Elysium, which flew into the planet's shield rather than surrender. To humans it's a footnote. To the Tevarin it's a vow.",
+      "When {short} was a teenager, a human gang torched the enclave's shrine. The UEE called it vandalism. The elders called it a test of patience, and {short} failed it, loudly.",
+      "{short} flew for an Esperia test team, rebuilding old Tevarin warships for human collectors, until it became clear the job was selling {their} people's history piece by piece.",
+    ],
+    nows: [
+      "{short} keeps the old code, which says a debt of honour outlives the one who made it. Then word came that a war-relic, the {relic}, had turned up in a collector's hands.",
+      "Now {short} takes work across the Empire, with a Tevarin blade at {their} hip and a list of relics that should be home.",
+      "These days {short} walks between two peoples, trusted fully by neither, and keeps the code anyway, because someone has to.",
     ],
     hooks: [
       { type: "oath", text: "The {relic}, a Tevarin war-relic, has surfaced in the hands of {npc}, a dealer who sells to the highest bidder.", thread: "tevarin" },
-      { type: "enemy", text: "XenoThreat survivors have marked {name} as a target. Their cell leader {npc2} is still out there.", thread: "xenothreat" },
+      { type: "enemy", text: "XenoThreat survivors have marked {name} as a target. Their cell leader, {npc}, is still out there.", thread: "xenothreat" },
+      { type: "lost", text: "{short}'s cousin, {npc}, left the enclave to join a Tevarin separatist group and stopped answering messages.", thread: "tevarin" },
+      { type: "debt", text: "{short} owes a debt of honour to {npc}, a human who once saved {their} life. Debts of honour must be paid.", thread: "tevarin" },
     ],
   },
   levski_born: {
@@ -120,14 +181,26 @@ export const ORIGINS = {
     system: "Nyx",
     citizenship: "none",
     ties: { friendly: ["People's Alliance"], hostile: ["Intersec Defense Solutions"] },
-    story: [
+    openings: [
       "{name} was born inside an asteroid. Levski, in the Glaciem Ring of Nyx, was founded by people fleeing the Messer dictatorship who swore never to kneel to an Imperator again.",
-      "{short} grew up on Alliance assemblies, air recyclers and the idea that you share what you have. Then the Molina Mold came in through the failing Gyson filters, and {short} watched neighbours cough themselves to death while the Assembly argued.",
-      "Now {short} works the routes in and out of Nyx. Still loyal, but no longer sure the Alliance's ideals can survive the Mold, the UEE's cold shoulder and the Vanduul gathering at the Virgil jump.",
+      "{name} grew up in Levski's lower tunnels, where the air tastes of recycled metal and everyone votes on everything, including whose turn it is to fix the recyclers.",
+      "{name}'s parents were UEE deserters who found sanctuary in Levski. Childhood was Alliance assemblies, ice-mining shifts, and knowing the Empire would arrest the whole family on sight.",
+    ],
+    turns: [
+      "{short} grew up believing you share what you have. Then the Molina Mold came in through the failing Gyson filters, and {short} watched neighbours cough themselves to death while the Assembly argued.",
+      "At seventeen, {short} joined a Glaciem Ring patrol and saw what the belt's outlaws do to miners who don't pay. The Assembly voted to negotiate. {short} voted with a rifle.",
+      "When a UEE agent was caught inside Levski, {short} was the one who found them, and the one who argued against what the Assembly decided to do with them. {short} lost the vote. The agent lost more.",
+    ],
+    nows: [
+      "Now {short} works the routes in and out of Nyx: still loyal, but no longer sure the Alliance's ideals can survive the Mold, the UEE's cold shoulder and the Vanduul gathering at the Virgil jump.",
+      "These days {short} runs supplies for Levski and asks uncomfortable questions at Assembly meetings, which has made {them} both popular and watched.",
+      "{short} left Levski to see the Empire everyone back home fears, and found it full of ordinary people. That's made coming home complicated.",
     ],
     hooks: [
       { type: "secret", text: "{name} found a shipping manifest showing the faulty Gyson filters were swapped in by a contractor, {npc}, a year before the outbreak.", thread: "molina" },
-      { type: "lost", text: "{name}'s mentor {npc2} went out to scout the Virgil jump point and hasn't checked in.", thread: "vanduul_nyx" },
+      { type: "lost", text: "{name}'s mentor, {npc}, went out to scout the Virgil jump point and hasn't checked in.", thread: "vanduul_nyx" },
+      { type: "enemy", text: "{npc}, an Intersec Defense Solutions captain, has been squeezing Levski's traders for \"protection\" and has marked {short} as a troublemaker.", thread: "molina" },
+      { type: "oath", text: "{short} swore to the Assembly to find out who has been selling Levski's patrol routes to the Shattered Blade. {npc} is the only lead.", thread: "shattered" },
     ],
   },
   microtech_engineer: {
@@ -138,32 +211,56 @@ export const ORIGINS = {
     system: "Stanton",
     citizenship: "citizen",
     ties: { friendly: ["microTech"], hostile: ["Associated Sciences & Development"] },
-    story: [
+    openings: [
       "{name} was a rising engineer at microTech in New Babbage, building the subsystems that make regen work.",
-      "When the regen failures began, {short} filed an internal report linking them to data from an ASD partner lab called Onyx. The report disappeared. So did {their} security clearance.",
+      "{name} grew up in New Babbage's glass towers, a scholarship kid in a city of executives, and graduated top of the class in imprint engineering.",
+      "{name} was a microTech field technician: the one who flew out to fix regen stations on frozen outposts nobody else wanted to visit.",
+    ],
+    turns: [
+      "When the regen failures began, {short} filed an internal report linking them to data from an ASD partner lab called Onyx. The report disappeared. So did {short}'s security clearance.",
+      "{short} was on the team that tried to revive a patient whose imprint wouldn't load. The family was told it was a hardware fault. {short} had read the logs, and it wasn't.",
+      "One night {short} found an unlisted data link between a microTech med-bed network and an ASD server. A supervisor said to forget it. The next morning the supervisor was gone.",
+    ],
+    nows: [
       "{short} freelances now, and knows more than is healthy about what happened inside ASD's Onyx facilities and about the missing Dr. Logan Jorrit.",
+      "Now {short} fixes ships for cash and keeps a backup of everything on a drive that never leaves {their} sight.",
+      "These days {short} works outside the corporate world and sleeps lightly, because people who ask questions about regen tend to have accidents.",
     ],
     hooks: [
       { type: "secret", text: "{name}'s buried report contains an Onyx facility code that the Hockrow Agency investigator {npc} would kill to see.", thread: "asd" },
-      { type: "enemy", text: "An ASD fixer, {npc2}, has been told to make sure {name} never testifies.", thread: "asd" },
+      { type: "enemy", text: "An ASD fixer, {npc}, has been told to make sure {name} never testifies.", thread: "asd" },
+      { type: "lost", text: "{short}'s old lab partner, {npc}, went to work for ASD and hasn't been seen since the Onyx sites were abandoned.", thread: "asd" },
+      { type: "debt", text: "{short} owes {npc}, a data broker at GrimHEX, for a new identity that isn't paid off yet.", thread: "asd" },
     ],
   },
   banu_trader: {
     label: "Raised Among Banu Traders",
     emoji: "🪙",
     names: "trader",
-    home: "a Banu trading Souli (the Protectorate)",
+    home: "A Banu trading Souli (the Protectorate)",
     system: "Banu space",
     citizenship: "civilian",
     ties: { friendly: ["Banu traders", "Wikelo"], hostile: ["XenoThreat"] },
-    story: [
+    openings: [
       "{name} was raised by human traders who settled in a Banu Souli, where everything has a price and everyone is a potential partner.",
-      "{short} could haggle in three languages before {they} could fly. {They} also learned that the Banu see contracts and ownership very differently from humans.",
+      "{name} was born on a Banu trade barge, the only human child among a crew of merchants who treated {them} as a lucky charm and a junior partner at once.",
+      "{name}'s family ran the human end of a Banu trade route for three generations, ferrying goods nobody could quite name between the Protectorate and UEE space.",
+    ],
+    turns: [
+      "{short} could haggle in three languages before learning to fly, and learned early that the Banu see contracts and ownership very differently from humans.",
+      "A deal went sour when a UEE customs officer seized a cargo the Banu considered sacred. {short}'s family took the blame, and lost the route and their good name with it.",
+      "{short} once traded a broken ship for a Banu artefact that turned out to be worth more than a station. To this day, nobody knows who it really belongs to.",
+    ],
+    nows: [
       "Back in human space, {short} trades in the gaps: exotic goods, odd favours, and barter with Banu merchants like Wikelo, who always wants one more strange thing.",
+      "Now {short} works the borders of three kinds of law: human, Banu and Pyro's. {They're} good at it, and that worries people.",
+      "These days {short} runs a small trading ship and a large network of people who owe favours.",
     ],
     hooks: [
       { type: "debt", text: "{name} owes a Banu Souli a \"favour of equal weight\", and a Banu envoy, {npc}, has come to collect.", thread: "banu" },
-      { type: "secret", text: "{name} brokered a sale that ended up arming the Frontier Fighters. Only {npc2} knows.", thread: "frontier" },
+      { type: "secret", text: "{name} once brokered a sale that ended up arming the Frontier Fighters. Only {npc} knows.", thread: "frontier" },
+      { type: "enemy", text: "{npc}, a UEE customs officer, has made it a personal mission to put {short} out of business.", thread: "banu" },
+      { type: "lost", text: "{short}'s trading partner, {npc}, vanished with half their shared cargo and a Banu artefact that wasn't theirs to take.", thread: "banu" },
     ],
   },
 };

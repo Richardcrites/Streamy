@@ -23,7 +23,7 @@ export function dossierEmbed(char, { full = false } = {}) {
       { name: "Pronouns", value: char.pronounsLabel || char.pronouns, inline: true },
       { name: "Home", value: char.home, inline: true },
       { name: "Last known location", value: char.location || "Unknown", inline: true },
-      { name: "Status", value: char.citizenship, inline: true },
+      { name: "Status", value: { citizen: "UEE citizen", civilian: "UEE civilian (no vote)", none: "Outside UEE law" }[char.citizenship] || char.citizenship, inline: true },
     );
   const hooks = char.hooks.map((h) => `${h.status === "open" ? "◻️" : "✅"} ${h.text}`).join("\n");
   if (hooks) e.addFields({ name: "Story hooks", value: clip(hooks, 1024) });

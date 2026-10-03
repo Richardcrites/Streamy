@@ -198,14 +198,19 @@ const charBrief = (c) => ({
 });
 
 // ── Narration (one-shot JSON) ────────────────────────────────────────────────
-export async function narrateOrigin(character) {
+export async function narrateOrigin(character, otherStories = []) {
   const out = await generate(
-    "Write this character's origin story as 3–5 short paragraphs. Use every fact and both hooks (the hooks are " +
-      "threads that later stories will pull on, so end with them unresolved). If the player wrote a seed in their " +
-      "own words, honour it. Use the full name once, then the short name or pronouns.",
+    "Write this character's origin story as 3–5 short paragraphs. The draft is only a rough sketch of facts: write a " +
+      "fresh, original story, not a polish of the draft. Invent specific, personal details (a family member, a first " +
+      "ship, a place, a habit, a scar) and a turning point that belongs to this character alone. If the player wrote " +
+      "their own idea (player_seed), it comes first: where it conflicts with the draft, follow the player. Weave in both " +
+      "hooks and end with them unresolved; later stories pull on them. Do NOT reuse the plots, events or phrasing of " +
+      "the other characters' stories listed in other_characters_on_this_server. Use the full name once, then the short " +
+      "name or pronouns.",
     {
-      name: character.name, pronouns: character.pronouns, origin: character.origin, career: character.career,
+      name: character.name, pronouns: character.pronouns, origin: character.origin, career: character.careerLabel || character.career,
       home: character.home, player_seed: character.seed, draft: character.story, hooks: character.hooks.map((h) => h.text),
+      other_characters_on_this_server: otherStories,
     },
     obj({ paragraphs: { type: "array", items: str } }),
   );

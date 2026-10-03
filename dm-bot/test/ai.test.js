@@ -88,3 +88,17 @@ test("mission AI rewrites stop reasons only when the count matches; zero stops i
   const out = await fresh.narrateMission({ mission, characters: [], worldLog: [], persona: "p" });
   assert.equal(out?.title, "T", "an empty stop list must not throw the mission away");
 });
+
+test("origin AI is told to write something new and shown the other characters' stories", async () => {
+  const fresh = await import(`../src/ai.js?origin=${Date.now()}`);
+  let input;
+  globalThis.fetch = async (u, o) => {
+    const t = JSON.parse(o.body).messages.at(-1).content;
+    input = { task: t.split("<input>")[0], data: JSON.parse(t.split("<input>")[1].split("</input>")[0]) };
+    return new Response(JSON.stringify({ choices: [{ message: { content: '{"paragraphs":["New."]}' } }] }));
+  };
+  await fresh.narrateOrigin(char, ["RJ Oressian: born on Ruin Station..."]);
+  assert.match(input.task, /fresh, original story/);
+  assert.match(input.task, /Do NOT reuse/);
+  assert.deepEqual(input.data.other_characters_on_this_server, ["RJ Oressian: born on Ruin Station..."]);
+});

@@ -119,7 +119,12 @@ async function finish(interaction, g, draft, name) {
   const char = buildCharacter(g, { ownerId: interaction.user.id, originId: draft.originId, career: draft.career, name, pronouns: draft.pronouns, seed: draft.seed });
   char.careerLabel = CAREERS[char.career].label;
   char.pronounsLabel = PRONOUNS[char.pronouns].label;
-  const prose = await narrateOrigin(char);
+  // Other characters' stories (same origin first), so the AI doesn't hand out the same life twice.
+  const others = Object.values(g.characters)
+    .sort((x, y) => (y.originId === char.originId) - (x.originId === char.originId))
+    .slice(0, 8)
+    .map((c) => `${c.name}: ${c.story.join(" ").slice(0, 400)}`);
+  const prose = await narrateOrigin(char, others);
   if (prose) char.story = prose;
 
   g.characters[char.id] = char;

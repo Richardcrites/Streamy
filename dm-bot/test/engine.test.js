@@ -140,76 +140,12 @@ test("NPC names are never reused, and recent ones never even nearly", async () =
 });
 
 test("similar surnames become family, with an NPC or another player", () => {
-  const g = store.guild("t6");
-  const rj = story.buildCharacter(g, { ownerId: "a", originId: "pyro_outlaw", career: "smuggler", name: "RJ Oressian", pronouns: "he" });
+  const g = store.guild(`t6-${Math.random()}`);
+  let rj;
+  do rj = story.buildCharacter(g, { ownerId: "a", originId: "pyro_outlaw", career: "smuggler", name: "RJ Oressian", pronouns: "he" });
+  while (!rj.hooks.some((h) => h.type === "enemy"));
   g.characters[rj.id] = rj;
-  const enemy = g.npcs[rj.hooks[0].npcId];
-  enemy.name = "Ysolde Pike";
-  const yp = story.buildCharacter(g, { ownerId: "b", originId: "navy_veteran", career: "pilot", name: "Ysloda Pyke", pronouns: "she" });
-  g.characters[yp.id] = yp;
-  const ties = story.linkKin(g, yp);
-  assert.ok(ties.some((t) => t.with === "Ysolde Pike"), JSON.stringify(ties));
-  assert.ok(yp.hooks.some((h) => h.type === "kin" && h.npcId === enemy.id));
-  assert.equal(story.linkKin(g, yp).length, 0, "links are only made once");
-  const sib = story.buildCharacter(g, { ownerId: "c", originId: "levski_born", career: "medic", name: "Tess Pike", pronouns: "they" });
-  g.characters[sib.id] = sib;
-  story.linkKin(g, sib);
-  assert.ok(yp.hooks.some((h) => h.kinCharId === sib.id), "player-player kin is linked both ways");
-  assert.ok(ties.find((t) => t.with === "Ysolde Pike").text.includes("the Headhunters"), "kin keeps the NPC's existing side");
-  for (let i = 0; i < 30; i++) {
-    const both = story.buildMission(g, [rj, yp], "bounty");
-    assert.ok(both.crossings.some((c) => c.startsWith("Ysolde Pike is in both your stories")), both.crossings.join(" | "));
-    assert.ok(!both.crossings.some((c) => /Ysolde Pike and Ysolde Pike/.test(c)));
-  }
-  const m = story.buildMission(g, [yp, sib], "rescue");
-  assert.ok(m.crossings.some((c) => /Blood says family/.test(c)), m.crossings.join(" | "));
-});
-
-test("missions: objectives for everyone, crossings, rules, no scripted scenes, no unfilled text", async () => {
-  const { MISSION_TYPES } = await import("../src/lore/data.js");
-  const g = store.guild("t5");
-  const crew = ["smuggler", "pilot"].map((career, i) => {
-    const c = story.buildCharacter(g, { ownerId: `u${i}`, originId: i ? "navy_veteran" : "pyro_outlaw", career, name: i ? "Mara Calder" : "RJ Oressian", pronouns: "they" });
-    g.characters[c.id] = c;
-    return c;
-  });
-  for (const type of Array(15).fill([...Object.keys(MISSION_TYPES), undefined]).flat()) {
-    const m = story.buildMission(g, crew, type);
-    assert.equal(m.objectives.length, 2);
-    assert.ok(m.crossings.length >= 1, "the crew's stories must cross");
-    assert.ok(m.rules.length >= 2);
-    assert.match(m.anchor.contract, /\*\*(Mercenary|Investigation|Bounty Hunter|Search|ECN|Hauling|Delivery)\*\*|salvage contract/, m.anchor.contract);
-    assert.match(m.anchor.share, /Share/);
-    assert.ok(m.rendezvous && !unfilled(m.anchor.standIn), m.anchor.standIn);
-    assert.equal(m.opening, undefined);
-    assert.equal(m.rpPrompts, undefined);
-    for (const s of [m.title, m.briefing, m.stakes, m.twist, ...m.crossings, ...m.rules, ...m.objectives.map((o) => o.text), story.missionEpilogue(m, true)]) {
-      assert.ok(!unfilled(s), `${type}: ${s}`);
-    }
-  }
-});
-
-test("NPC names are never reused, and recent ones never even nearly", async () => {
-  const names = await import("../src/engine/names.js");
-  const g = { usedNames: ["Ysolde Pike"], characters: { x: { name: "RJ Oressian" } } };
-  const made = Array.from({ length: 300 }, () => names.freshName(g));
-  assert.equal(new Set(made).size, made.length, "no full name repeats");
-  const window = made.slice(0, 79);
-  for (let i = 0; i < window.length; i++) {
-    assert.ok(!names.similar(names.firstName(window[i]), "Ysolde"), window[i]);
-    for (let j = i + 1; j < window.length; j++) {
-      assert.ok(!names.similar(names.firstName(window[i]), names.firstName(window[j])), `${window[i]} ~ ${window[j]}`);
-    }
-  }
-  assert.ok(made.every((n) => !names.similar(names.lastName(n), "Oressian")), "no accidental kin with players");
-  assert.ok(names.similar("Ysolda", "Ysolde") && names.similar("Pike", "Pyke") && !names.similar("Pike", "Vance"));
-});
-
-test("similar surnames become family, with an NPC or another player", () => {
-  const g = store.guild("t6");
-  const rj = story.buildCharacter(g, { ownerId: "a", originId: "pyro_outlaw", career: "smuggler", name: "RJ Oressian", pronouns: "he" });
-  g.characters[rj.id] = rj;
-  const enemy = g.npcs[rj.hooks[0].npcId];
+  const enemy = g.npcs[rj.hooks.find((h) => h.type === "enemy").npcId];
   enemy.name = "Ysolde Pike";
   const yp = story.buildCharacter(g, { ownerId: "b", originId: "navy_veteran", career: "pilot", name: "Ysloda Pyke", pronouns: "she" });
   g.characters[yp.id] = yp;
@@ -275,4 +211,34 @@ test("dice expressions", () => {
   assert.ok(r.total >= 5 && r.total <= 20);
   assert.equal(story.rollDice("d20").rolls.length, 1);
   assert.equal(story.rollDice("banana"), null);
+});
+
+test("every story fragment and hook reads right with every pronoun", async () => {
+  const { ORIGINS } = await import("../src/lore/data.js");
+  const { fill } = await import("../src/engine/util.js");
+  for (const [id, o] of Object.entries(ORIGINS)) {
+    for (const pr of ["he", "she", "they"]) {
+      for (const t of [...o.openings, ...o.turns, ...o.nows, ...o.hooks.map((h) => h.text)]) {
+        const p = fill(t, { name: "Test Pilot", short: "Test", surname: "Pilot", relic: "Relic", npc: "Someone Else" }, pr);
+        assert.ok(!unfilled(p), `${id}: ${p}`);
+        assert.ok(!/\b(he|she|He|She) (fly|have|haven't|are|were|do|don't|keep|work|remember|realise|realize)\b/.test(p), `${id}/${pr}: ${p}`);
+        assert.ok(!/\b(they|They) (flies|has|hasn't|is|was|does|doesn't|keeps|works)\b/.test(p), `${id}/${pr}: ${p}`);
+      }
+    }
+  }
+});
+
+test("characters with the same origin get different lives and different hooks", () => {
+  const g = store.guild("t8");
+  const made = [];
+  for (let i = 0; i < 9; i++) {
+    const c = story.buildCharacter(g, { ownerId: `u${i}`, originId: "pyro_outlaw", career: "bounty", name: `Pilot${i} Person${i}`, pronouns: "he" });
+    g.characters[c.id] = c;
+    made.push(c);
+  }
+  assert.equal(new Set(made.map((c) => c.storyBeats.join("-"))).size, 9, "nine Pyro outlaws, nine different stories");
+  for (const c of made) assert.notEqual(c.hooks[0].type, c.hooks[1].type);
+  const hookUse = {};
+  for (const c of made) for (const k of c.hookKeys) hookUse[k] = (hookUse[k] || 0) + 1;
+  assert.ok(Object.keys(hookUse).length >= 4, `hooks are spread out: ${JSON.stringify(hookUse)}`);
 });
