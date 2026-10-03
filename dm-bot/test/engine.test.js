@@ -230,3 +230,25 @@ test("similar surnames become family, with an NPC or another player", () => {
   const m = story.buildMission(g, [yp, sib], "rescue");
   assert.ok(m.crossings.some((c) => /Blood says family/.test(c)), m.crossings.join(" | "));
 });
+
+test("scrapping a mission rolls the server back to exactly how it was", () => {
+  const g = store.guild("t7");
+  const crew = [["a", "RJ Oressian", "pyro_outlaw"], ["b", "Mara Calder", "navy_veteran"]].map(([u, n, o]) => {
+    const c = story.buildCharacter(g, { ownerId: u, originId: o, career: "pilot", name: n, pronouns: "he" });
+    g.characters[c.id] = c;
+    return c;
+  });
+  story.buildMission(g, crew, "heist"); // an earlier mission that stays
+  g.missions = {};
+  const before = JSON.stringify({ npcs: g.npcs, names: g.usedNames, links: g.npcLinks, titles: g.usedTitles, journals: crew.map((c) => c.journal) });
+  const snap = story.snapshot(g);
+  const m = story.buildMission(g, crew, "bounty");
+  m.created = story.createdSince(g, snap);
+  g.missions[m.id] = m;
+  for (const c of crew) store.addJournal(c, { kind: "mission", text: `Took the job "${m.title}" from Relay.` });
+  assert.ok(m.created.npcIds.length + m.created.titles.length > 0);
+  story.rollbackMission(g, m);
+  const after = JSON.stringify({ npcs: g.npcs, names: g.usedNames, links: g.npcLinks, titles: g.usedTitles, journals: crew.map((c) => c.journal) });
+  assert.equal(after, before);
+  assert.equal(g.missions[m.id], undefined);
+});

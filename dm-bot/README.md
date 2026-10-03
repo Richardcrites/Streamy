@@ -27,6 +27,7 @@ Built on the lore codex in [`../lore`](../lore) (year 2956, Alpha 4.10).
 | `/archive list` / `read` / `export` | Finished missions and campaigns, saved as readable stories. Export downloads everything as a file. |
 | **Scribe channel** | One player types quick, messy updates while you play, like *"beat 2 vanduul, rj hull shredded, landing nyx 2"*. The DM records injuries, ship damage, locations, journal entries and lore, and replies with a short ✅ summary. No commands needed. Mission report notes are read the same way. |
 | `/dm-admin scribe-channel` | Admin: pick the scribe channel. |
+| 🎲 Reroll / 🗑️ Scrap / `/mission-cancel` | Don't like a mission? **Reroll** replaces it with a new one (same crew and type). **Scrap** or `/mission-cancel` throws it away. Either way it's fully rolled back: its new NPCs, names, NPC links, title and "took the job" journal lines are removed, as if it never happened. |
 | `/dm-admin persona` | Admin: give the DM a name and personality (default: "Relay", a gravelly information broker). |
 | `/story crossover @player` | Links two characters' stories through shared history, rivalries or hooks, with a joint job and a meet-up scene. |
 | `/org create/join/leave/info/list/relation` | Multiple orgs per server, with alliances and rivalries. |

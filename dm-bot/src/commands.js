@@ -55,6 +55,10 @@ export const commands = [
     .addUserOption((o) => o.setName("with3").setDescription("Crew member")),
 
   new SlashCommandBuilder()
+    .setName("mission-cancel")
+    .setDescription("Scrap your current mission, as if it never happened"),
+
+  new SlashCommandBuilder()
     .setName("voice")
     .setDescription("The DM's spoken voice in your voice channel")
     .addSubcommand((s) => s.setName("join").setDescription("DM joins your voice channel"))

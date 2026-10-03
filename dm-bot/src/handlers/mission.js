@@ -7,7 +7,7 @@ import {
   ModalBuilder, TextInputBuilder, TextInputStyle,
 } from "discord.js";
 import { DEFAULT_PERSONA } from "../lore/data.js";
-import { buildMission, missionEpilogue } from "../engine/story.js";
+import { buildMission, missionEpilogue, snapshot, createdSince, rollbackMission } from "../engine/story.js";
 import { narrateMission, narrateMissionEnd } from "../ai.js";
 import * as store from "../store.js";
 import { broadcast, COLORS, clip } from "../comms.js";
@@ -30,9 +30,16 @@ export async function start(interaction, g) {
     if (c && !crew.includes(c)) crew.push(c);
   }
   await interaction.deferReply();
+  const { mission, message } = await createMission(g, crew, interaction.options.getString("type"), interaction.user.id);
+  await interaction.editReply(message);
+  voice.narrate(interaction, g, `${mission.title}. ${mission.briefing} ${mission.crossings.join(" ")} ${mission.stakes}`);
+}
 
+async function createMission(g, crew, type, ownerId) {
   g.missions ??= {};
-  const mission = buildMission(g, crew, interaction.options.getString("type"));
+  const snap = snapshot(g);
+  const mission = buildMission(g, crew, type);
+  mission.requestedType = type || null;
   const ai = await narrateMission({ mission, characters: crew, worldLog: g.worldLog, persona: persona(g), canon: canonText(g) });
   if (ai) {
     mission.title = ai.title;
@@ -42,11 +49,15 @@ export async function start(interaction, g) {
     mission.twist = ai.twist;
     ai.objective_flavour.forEach((f, i) => { if (mission.objectives[i]) mission.objectives[i].flavour = f; });
   }
-  mission.ownerId = interaction.user.id;
+  mission.created = createdSince(g, snap);
+  mission.ownerId = ownerId;
   g.missions[mission.id] = mission;
   for (const c of crew) store.addJournal(c, { kind: "mission", text: `Took the job "${mission.title}" from ${personaName(g)}.` });
   store.save();
+  return { mission, message: missionMessage(g, mission, crew) };
+}
 
+function missionMessage(g, mission, crew) {
   const carrying = crew.flatMap((c) => activeConditions(c).map((x) => `**${c.name}:** ${conditionLine(x)}`));
   const embed = new EmbedBuilder()
     .setColor(COLORS.transmission)
@@ -68,21 +79,48 @@ export async function start(interaction, g) {
       { name: "⚖️ Stakes", value: clip(mission.stakes, 1024) },
       { name: "🎲 If the game fights back", value: clip(mission.rules.map((r) => `• ${r}`).join("\n"), 1024) },
     )
-    .setFooter({ text: "No script. Play it in game and in voice, let it happen, then report how it went." });
+    .setFooter({ text: "No script. Play it in game and in voice, let it happen, then report how it went. Don't like it? Reroll or scrap it." });
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(`ms:${mission.id}:win`).setLabel("Mission complete").setEmoji("✅").setStyle(ButtonStyle.Success),
     new ButtonBuilder().setCustomId(`ms:${mission.id}:fail`).setLabel("Mission failed").setEmoji("💀").setStyle(ButtonStyle.Danger),
+    new ButtonBuilder().setCustomId(`ms:${mission.id}:reroll`).setLabel("Reroll").setEmoji("🎲").setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(`ms:${mission.id}:scrap`).setLabel("Scrap").setEmoji("🗑️").setStyle(ButtonStyle.Secondary),
   );
+  return { content: `${crew.map((c) => `<@${c.ownerId}>`).join(" ")} you have a job.`, embeds: [embed], components: [row] };
+}
 
-  await interaction.editReply({ content: `${crew.map((c) => `<@${c.ownerId}>`).join(" ")} you have a job.`, embeds: [embed], components: [row] });
-  voice.narrate(interaction, g, `${mission.title}. ${mission.briefing} ${mission.crossings.join(" ")} ${mission.stakes}`);
+// ── Scrap / reroll: undo the mission as if it never happened ──────────────────
+async function scrapOrReroll(interaction, g, mission, reroll) {
+  await interaction.deferUpdate();
+  const crew = mission.characterIds.map((id) => g.characters[id]).filter(Boolean);
+  const title = mission.title;
+  rollbackMission(g, mission);
+  store.save();
+  if (!reroll || !crew.length) {
+    return interaction.editReply({ content: `🗑️ *"${title}" was scrapped. It never happened.*`, embeds: [], components: [] });
+  }
+  const { mission: fresh, message } = await createMission(g, crew, mission.requestedType, mission.ownerId);
+  await interaction.editReply(message);
+  voice.narrate(interaction, g, `Scratch that. ${fresh.title}. ${fresh.briefing}`);
+}
+
+export async function cancelLatest(interaction, g) {
+  const char = store.activeCharacter(g, interaction.user.id);
+  const mission = Object.values(g.missions || {})
+    .filter((m) => m.status === "active" && char && m.characterIds.includes(char.id))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+  if (!mission) return interaction.reply({ content: "You have no active mission to cancel.", flags: ephemeral });
+  rollbackMission(g, mission);
+  store.save();
+  return interaction.reply({ content: `🗑️ *"${mission.title}" was scrapped. It never happened.* (Its post's buttons won't do anything now.)` });
 }
 
 export async function onButton(interaction, g, missionId, result) {
   const mission = g.missions?.[missionId];
-  if (!mission || mission.status !== "active") return interaction.reply({ content: "That mission is already over.", flags: ephemeral });
+  if (!mission || mission.status !== "active") return interaction.reply({ content: "That mission is already over (or was scrapped).", flags: ephemeral });
   const isCrew = mission.characterIds.some((id) => g.characters[id]?.ownerId === interaction.user.id);
   if (!isCrew) return interaction.reply({ content: "Only the crew on this job can report it.", flags: ephemeral });
+  if (result === "scrap" || result === "reroll") return scrapOrReroll(interaction, g, mission, result === "reroll");
   await interaction.showModal(
     new ModalBuilder()
       .setCustomId(`msm:${missionId}:${result}`)

@@ -525,3 +525,45 @@ export function missionEpilogue(mission, success) {
 function lowerFirstWord(s) {
   return /^(The|Someone|A|An)\b/.test(s) ? s[0].toLowerCase() + s.slice(1) : s;
 }
+
+// ── Rolling a mission back ───────────────────────────────────────────────────
+// Snapshot what exists before building a mission, so a scrapped mission can undo exactly what it
+// created: its new NPCs, their names, the NPC links it invented, and its title.
+export function snapshot(g) {
+  return {
+    npcIds: new Set(Object.keys(g.npcs)),
+    linkKeys: new Set(Object.keys(g.npcLinks || {})),
+    names: (g.usedNames || []).length,
+    titles: (g.usedTitles || []).length,
+  };
+}
+
+export function createdSince(g, snap) {
+  return {
+    npcIds: Object.keys(g.npcs).filter((id) => !snap.npcIds.has(id)),
+    linkKeys: Object.keys(g.npcLinks || {}).filter((k) => !snap.linkKeys.has(k)),
+    names: (g.usedNames || []).slice(snap.names),
+    titles: (g.usedTitles || []).slice(snap.titles),
+  };
+}
+
+export function rollbackMission(g, mission) {
+  const made = mission.created || { npcIds: [], linkKeys: [], names: [], titles: [] };
+  // Only remove NPCs nothing else has started using since.
+  const inUse = new Set(Object.values(g.characters).flatMap((c) => c.hooks.map((h) => h.npcId)));
+  for (const m of Object.values(g.missions || {})) if (m.id !== mission.id) for (const n of m.names || []) inUse.add(n);
+  for (const id of made.npcIds) {
+    const npc = g.npcs[id];
+    if (npc && !inUse.has(id) && !inUse.has(npc.name)) {
+      delete g.npcs[id];
+      g.usedNames = (g.usedNames || []).filter((n) => n !== npc.name);
+    }
+  }
+  for (const k of made.linkKeys) delete g.npcLinks?.[k];
+  g.usedTitles = (g.usedTitles || []).filter((t) => !made.titles.includes(t));
+  for (const id of mission.characterIds) {
+    const c = g.characters[id];
+    if (c) c.journal = c.journal.filter((j) => !(j.kind === "mission" && j.text.includes(`"${mission.title}"`)));
+  }
+  delete g.missions[mission.id];
+}
