@@ -3,7 +3,7 @@ import { Client, Events, GatewayIntentBits, MessageFlags } from "discord.js";
 import * as store from "./store.js";
 import * as character from "./handlers/character.js";
 import * as play from "./handlers/play.js";
-import { aiEnabled } from "./ai.js";
+import { aiLabel } from "./ai.js";
 
 if (!process.env.DISCORD_TOKEN) {
   console.error("Missing DISCORD_TOKEN in .env (see README).");
@@ -14,7 +14,7 @@ store.load();
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
 client.once(Events.ClientReady, (c) => {
-  console.log(`Star Citizen DM online as ${c.user.tag}. Narration: ${aiEnabled() ? "Claude AI + lore engine" : "built-in lore engine"}.`);
+  console.log(`Star Citizen DM online as ${c.user.tag}. Narration: ${aiLabel()}.`);
 });
 
 async function route(interaction) {

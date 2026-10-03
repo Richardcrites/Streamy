@@ -21,6 +21,9 @@ if not exist ".env" (
   set /p TOKEN=Paste your BOT TOKEN and press Enter:
   set /p CLIENT=Paste your APPLICATION ID and press Enter:
   set /p GUILD=Paste your SERVER ID and press Enter:
+  echo.
+  echo Optional: an OpenRouter key makes the AI write the stories. Press Enter to skip.
+  set /p ORKEY=Paste your OPENROUTER KEY, or just press Enter: 
   call :writeenv
 )
 
@@ -45,6 +48,8 @@ exit /b 0
 > .env echo DISCORD_TOKEN=%TOKEN%
 >> .env echo CLIENT_ID=%CLIENT%
 >> .env echo GUILD_ID=%GUILD%
+>> .env echo OPENROUTER_API_KEY=%ORKEY%
+>> .env echo OPENROUTER_MODEL=openrouter/auto
 >> .env echo ANTHROPIC_API_KEY=
 echo Saved your settings to .env
 exit /b 0

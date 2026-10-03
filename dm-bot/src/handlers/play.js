@@ -2,7 +2,7 @@ import { EmbedBuilder, MessageFlags, ModalBuilder, ActionRowBuilder, TextInputBu
 import { CAMPAIGN_GOALS, NEWS, CURRENT_PATCH, CURRENT_YEAR } from "../lore/data.js";
 import { buildCampaign, buildChapter, buildFinale, buildCrossover } from "../engine/story.js";
 import { pickN } from "../engine/util.js";
-import { narrateChapter, narrateFinale, aiEnabled } from "../ai.js";
+import { narrateChapter, narrateFinale, aiEnabled, aiLabel } from "../ai.js";
 import * as store from "../store.js";
 import { chapterMessage, transmissionEmbed, broadcast, COLORS, clip } from "../comms.js";
 
@@ -395,7 +395,7 @@ export async function help(interaction) {
       "**Link up:** `/story crossover @player` ties two characters' stories together. Orgs share campaigns (`/org`), and `/comms` sends in-character transmissions.\n" +
       "**The world remembers:** finales, rivalries and new orgs go into the world log and show up in `/comms news`.",
     )
-    .setFooter({ text: aiEnabled() ? "Narration: Claude AI + lore engine" : "Narration: built-in lore engine (add an Anthropic API key for AI-written prose)" });
+    .setFooter({ text: aiEnabled() ? `Narration: ${aiLabel()} + lore engine` : "Narration: built-in lore engine (add an OpenRouter or Anthropic key for AI-written prose)" });
   return interaction.reply({ embeds: [embed], flags: ephemeral });
 }
 

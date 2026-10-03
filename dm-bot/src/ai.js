@@ -1,7 +1,8 @@
-// Optional Claude-powered narrator. If ANTHROPIC_API_KEY is set, the DM's prose (origin stories,
-// transmissions, chapter briefings, finales) is rewritten by Claude using the full lore codex
-// and the stored story so far. The engine's structure (objectives, places, hooks) stays fixed so
-// quests remain playable. If the key is missing or a call fails, the procedural text is used.
+// Optional AI narrator. With an OPENROUTER_API_KEY (any model on openrouter.ai) or an
+// ANTHROPIC_API_KEY (Claude directly), the DM's prose (origin stories, transmissions, chapter
+// briefings, finales) is rewritten by the model using the full lore codex and the stored story
+// so far. The engine's structure (objectives, places, hooks) stays fixed so quests remain
+// playable. If no key is set or a call fails, the procedural text is used.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -9,12 +10,19 @@ import { fileURLToPath } from "node:url";
 import Anthropic from "@anthropic-ai/sdk";
 
 const MODEL = process.env.CLAUDE_MODEL || "claude-opus-5-5";
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "openrouter/auto";
 const LORE_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../lore");
 
 let client = null;
 let systemPrompt = null;
 
-export const aiEnabled = () => Boolean(process.env.ANTHROPIC_API_KEY);
+const provider = () =>
+  process.env.OPENROUTER_API_KEY ? "openrouter" : process.env.ANTHROPIC_API_KEY ? "anthropic" : null;
+
+export const aiEnabled = () => provider() !== null;
+
+export const aiLabel = () =>
+  ({ openrouter: `OpenRouter (${OPENROUTER_MODEL})`, anthropic: `Claude (${MODEL})` })[provider()] || "built-in lore engine";
 
 function getClient() {
   client ??= new Anthropic();
@@ -53,25 +61,95 @@ function getSystem() {
 
 // Returns parsed JSON matching `schema`, or null if AI is off or the call fails.
 async function generate(task, payload, schema) {
-  if (!aiEnabled()) return null;
+  const which = provider();
+  if (!which) return null;
+  const prompt = `${task}\n\n<input>\n${JSON.stringify(payload, null, 2)}\n</input>`;
   try {
-    const response = await getClient().beta.messages.create({
-      model: MODEL,
-      max_tokens: 16000,
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
-      output_config: { effort: "medium", format: { type: "json_schema", schema } },
-      system: getSystem(),
-      messages: [{ role: "user", content: `${task}\n\n<input>\n${JSON.stringify(payload, null, 2)}\n</input>` }],
-    });
-    if (response.stop_reason === "refusal" || response.stop_reason === "max_tokens") return null;
-    const text = response.content.find((b) => b.type === "text")?.text;
-    return text ? JSON.parse(text) : null;
+    const out = which === "openrouter" ? await viaOpenRouter(prompt, schema) : await viaAnthropic(prompt, schema);
+    return matchesSchema(out, schema) ? out : null;
   } catch (err) {
     if (err instanceof Anthropic.APIError) console.warn(`[ai] ${task.slice(0, 40)}… failed: ${err.status} ${err.message}`);
-    else console.warn("[ai] failed:", err.message);
+    else console.warn(`[ai] ${task.slice(0, 40)}… failed:`, err.message);
     return null;
   }
+}
+
+async function viaAnthropic(prompt, schema) {
+  const response = await getClient().beta.messages.create({
+    model: MODEL,
+    max_tokens: 16000,
+    betas: ["server-side-fallback-2026-07-01"],
+    fallbacks: "default",
+    output_config: { effort: "medium", format: { type: "json_schema", schema } },
+    system: getSystem(),
+    messages: [{ role: "user", content: prompt }],
+  });
+  if (response.stop_reason === "refusal" || response.stop_reason === "max_tokens") return null;
+  const text = response.content.find((b) => b.type === "text")?.text;
+  return text ? JSON.parse(text) : null;
+}
+
+// OpenRouter speaks the OpenAI chat-completions format. Structured output is requested with
+// response_format; models that don't support it get the schema in the prompt instead.
+async function viaOpenRouter(prompt, schema) {
+  const call = async (structured) => {
+    const body = {
+      model: OPENROUTER_MODEL,
+      max_tokens: 4000,
+      messages: [
+        { role: "system", content: getSystem()[0].text },
+        {
+          role: "user",
+          content: structured
+            ? prompt
+            : `${prompt}\n\nReply with only a JSON object (no code fences, no commentary) matching this JSON schema:\n${JSON.stringify(schema)}`,
+        },
+      ],
+    };
+    if (structured) body.response_format = { type: "json_schema", json_schema: { name: "dm_output", strict: true, schema } };
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+        "X-Title": "Star Citizen DM Bot",
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(180_000),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw Object.assign(new Error(`OpenRouter ${res.status}: ${json.error?.message ?? res.statusText}`), { status: res.status });
+    const choice = json.choices?.[0];
+    if (!choice || choice.finish_reason === "length") return null;
+    return parseJson(choice.message?.content);
+  };
+  try {
+    return await call(true);
+  } catch (err) {
+    // 400/422 usually means this model doesn't support structured output: retry with the schema in the prompt.
+    if (err.status === 400 || err.status === 422) return call(false);
+    throw err;
+  }
+}
+
+// Light shape check so a model that skips a field falls back to the procedural text.
+function matchesSchema(value, schema) {
+  if (!value || typeof value !== "object") return false;
+  return (schema.required || []).every((key) => {
+    const type = schema.properties[key]?.type;
+    const v = value[key];
+    if (type === "string") return typeof v === "string" && v.trim().length > 0;
+    if (type === "array") return Array.isArray(v) && v.length > 0;
+    return v !== undefined;
+  });
+}
+
+function parseJson(text) {
+  if (!text) return null;
+  const cleaned = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/```$/, "");
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+  return start >= 0 && end > start ? JSON.parse(cleaned.slice(start, end + 1)) : null;
 }
 
 const str = { type: "string" };

@@ -52,10 +52,12 @@ Built on the lore codex in [`../lore`](../lore) (year 2956, Alpha 4.10).
 
 - **Discord bots are free.** No cost to create or run one on Discord's side.
 - **The built-in story engine is free.** It writes everything from the lore data with no API needed.
-- **Optional AI narration (paid):** add an `ANTHROPIC_API_KEY` (from https://console.anthropic.com) and Claude
-  rewrites the prose (origin stories, transmissions, briefings, finales) using the full lore codex and each character's
-  history. It's pay-per-use, roughly a few cents per chapter. The objectives stay the same either way, so quests
-  are always things you can really do in game.
+- **Optional AI narration:** put an **OpenRouter** key (`OPENROUTER_API_KEY`, from https://openrouter.ai/keys) or an
+  Anthropic key (`ANTHROPIC_API_KEY`) in `.env`, and the AI rewrites the prose (origin stories, transmissions,
+  briefings, finales) using the full lore codex and each character's history. The cost depends on the model you pick.
+  Choose a model with `OPENROUTER_MODEL` (see https://openrouter.ai/models); the default `openrouter/auto` picks one
+  for you. The objectives stay the same either way, so quests are always things you can really do in game. If the AI
+  fails or returns something unusable, the bot falls back to the built-in text.
 - **Hosting:** running it on your own PC is free. For 24/7 uptime, a small host costs about $0–5/month.
 
 ## How stories link
