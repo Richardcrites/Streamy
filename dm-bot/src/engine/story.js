@@ -7,7 +7,7 @@ import {
   ORIGINS, NAME_POOLS, NPC_POOL, RELICS, LOCATIONS, CARGO, ORES, EVIDENCE,
   OBJECTIVES, ACTIVITY_TAGS, CAMPAIGN_GOALS, THREADS, CAREERS, MISSION_TYPES, MISSION_TWISTS,
   GAME_RULES, NPC_LINKS, KIN_RELATIONS, SIDES, MISSION_STAKES, TITLE_WORDS,
-  ANCHORS, ROLES, RENDEZVOUS, SHARE_HOW,
+  ANCHORS, ROLES, RENDEZVOUS, SHARE_HOW, STOP_PLACES, STOP_REASONS, STOP_ACTIONS, STOP_NEEDS,
 } from "../lore/data.js";
 import { pick, pickN, randInt, fill } from "./util.js";
 import { freshName, registerName, isTaken, similar, lastName } from "./names.js";
@@ -504,6 +504,7 @@ export function buildMission(g, characters, typeId) {
     crossings: crossings.map((c) => c.text),
     anchor,
     rendezvous: pick(RENDEZVOUS[system] || ["the nearest station"]),
+    ...rollStops(characters, system),
     objectives,
     briefing: `Spacers. ${fill(pick(type.hooks), vars)} It's going down in ${system}. Pay's decent. The story's better.`,
     stakes: fill(pick(MISSION_STAKES[typeKey]), vars),
@@ -566,4 +567,65 @@ export function rollbackMission(g, mission) {
     if (c) c.journal = c.journal.filter((j) => !(j.kind === "mission" && j.text.includes(`"${mission.title}"`)));
   }
   delete g.missions[mission.id];
+}
+
+// ── Dice and forced stops ────────────────────────────────────────────────────
+export const roll = (sides) => 1 + Math.floor(Math.random() * sides);
+
+// "2d6+1" → { total, rolls, text }. Returns null if it can't parse.
+export function rollDice(expr = "d20") {
+  const m = String(expr).replace(/\s+/g, "").toLowerCase().match(/^(\d*)d(\d+)([+-]\d+)?$/);
+  if (!m) return null;
+  const count = Math.min(Math.max(Number(m[1] || 1), 1), 20);
+  const sides = Math.min(Math.max(Number(m[2]), 2), 1000);
+  const mod = Number(m[3] || 0);
+  const rolls = Array.from({ length: count }, () => roll(sides));
+  const total = rolls.reduce((a, b) => a + b, 0) + mod;
+  return { total, rolls, sides, mod, text: `${count}d${sides}${mod ? (mod > 0 ? `+${mod}` : mod) : ""}` };
+}
+
+// A d20 decides how rough the road is. Damage or injuries the crew is carrying force a stop of their own.
+export function rollStops(characters, system) {
+  const d20 = roll(20);
+  const count = d20 <= 4 ? 2 : d20 <= 19 ? 1 : 0;
+  const hostileBias = d20 <= 8;
+  const places = STOP_PLACES[system] || STOP_PLACES.Stanton;
+  const stops = [];
+
+  const damaged = characters.find((c) => (c.conditions || []).some((x) => x.status === "active" && x.kind === "ship"));
+  const hurt = characters.find((c) => (c.conditions || []).some((x) => x.status === "active" && x.kind === "injury"));
+  if (damaged) stops.push(makeStop(places.filter((p) => p.kind !== "resupply"), fill(pick(STOP_REASONS.ship), { who: damaged.name }), "Patch the hull before anything else. The rest of the crew covers the repair.", damaged.name));
+  if (hurt && stops.length < 2) stops.push(makeStop(places.filter((p) => p.kind === "camp" || p.kind === "resupply"), fill(pick(STOP_REASONS.injury), { who: hurt.name }), null, hurt.name));
+
+  const used = new Set(stops.map((x) => x.place));
+  while (stops.length < count) {
+    const wantHostile = hostileBias && !stops.some((x) => x.kind === "hostile");
+    let pool = places.filter((p) => !used.has(p.place) && (!wantHostile || p.kind === "hostile"));
+    if (!pool.length) pool = places.filter((p) => !used.has(p.place));
+    const stop = makeStop(pool.length ? pool : places, pick(STOP_REASONS.any));
+    used.add(stop.place);
+    stops.push(stop);
+  }
+  return { roadRoll: d20, stops };
+}
+
+// `forcedBy` is the name of the character whose condition forces this stop (or null).
+function makeStop(pool, reason, action = null, forcedBy = null) {
+  const p = pick(pool);
+  return {
+    place: p.place,
+    kind: p.kind,
+    reason,
+    action: action || pick(STOP_ACTIONS[p.kind]),
+    need: pick(STOP_NEEDS),
+    forced: Boolean(forcedBy),
+    forcedBy,
+  };
+}
+
+export function roadRollLabel(d20) {
+  if (d20 <= 4) return "Rough road: two stops, and trouble at the first";
+  if (d20 <= 8) return "Trouble on the way";
+  if (d20 <= 19) return "One stop on the way";
+  return "Clean run: the lanes are clear";
 }

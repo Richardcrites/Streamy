@@ -81,6 +81,7 @@ async function route(interaction) {
       case "comms": return play.comms(interaction, g, sub);
       case "mission": return mission.start(interaction, g);
       case "mission-cancel": return mission.cancelLatest(interaction, g);
+      case "roll": return play.rollCommand(interaction, g);
       case "voice": return play.voiceCommand(interaction, g, sub);
       case "dm-admin":
         if (sub === "persona") return mission.editPersona(interaction, g);

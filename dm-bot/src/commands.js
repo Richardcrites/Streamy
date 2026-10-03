@@ -55,6 +55,12 @@ export const commands = [
     .addUserOption((o) => o.setName("with3").setDescription("Crew member")),
 
   new SlashCommandBuilder()
+    .setName("roll")
+    .setDescription("Roll dice for the story, e.g. 1d20 or 2d6+1")
+    .addStringOption((o) => o.setName("dice").setDescription("Dice to roll (default 1d20)").setMaxLength(20))
+    .addStringOption((o) => o.setName("for").setDescription("What's riding on it, e.g. finding a way past the guards").setMaxLength(200)),
+
+  new SlashCommandBuilder()
     .setName("mission-cancel")
     .setDescription("Scrap your current mission, as if it never happened"),
 

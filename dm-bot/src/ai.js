@@ -143,7 +143,7 @@ function logFailure(what, err) {
 }
 
 // Returns parsed JSON matching `schema`, or null if AI is off or the call fails.
-async function generate(task, payload, schema, extraSystem = "", { lenient = false } = {}) {
+async function generate(task, payload, schema, extraSystem = "", { lenient = false, allowEmpty = [] } = {}) {
   if (!aiEnabled()) return null;
   try {
     const text = await complete({
@@ -152,7 +152,7 @@ async function generate(task, payload, schema, extraSystem = "", { lenient = fal
       schema,
     });
     const out = parseJson(text);
-    if (matchesSchema(out, schema, lenient)) return out;
+    if (matchesSchema(out, schema, lenient, allowEmpty)) return out;
     console.warn(`[ai] ${task.slice(0, 40)}… the model's answer was ${text ? "missing fields" : "empty"}; using built-in text. Try a different OPENROUTER_MODEL if this keeps happening.`);
     return null;
   } catch (err) {
@@ -162,13 +162,14 @@ async function generate(task, payload, schema, extraSystem = "", { lenient = fal
 }
 
 // Light shape check so a model that skips a field falls back to the procedural text.
-function matchesSchema(value, schema, lenient = false) {
+function matchesSchema(value, schema, lenient = false, allowEmpty = []) {
   if (!value || typeof value !== "object") return false;
   return (schema.required || []).every((key) => {
     const type = schema.properties[key]?.type;
     const v = value[key];
-    if (type === "string") return typeof v === "string" && (lenient || v.trim().length > 0);
-    if (type === "array") return Array.isArray(v) && (lenient || v.length > 0);
+    const empty = lenient || allowEmpty.includes(key);
+    if (type === "string") return typeof v === "string" && (empty || v.trim().length > 0);
+    if (type === "array") return Array.isArray(v) && (empty || v.length > 0);
     return v !== undefined;
   });
 }
@@ -262,17 +263,23 @@ export async function narrateMission({ mission, characters, worldLog, persona, c
       "2 short paragraphs spoken by the persona. 'crossing' explains in 2–4 sentences how the crew's stories connect. " +
       "'stakes' is 1–2 sentences. 'twist' is a secret revealed only at the end; make it land on the crossing. " +
       "If a character carries an active condition (injury, ship damage, warrant), let it matter: mention it in the briefing or stakes. " +
-      "Respect server_canon: it is what has already happened on this server.",
+      "Respect server_canon: it is what has already happened on this server. " +
+      "'stop_reasons' has exactly one entry per stop in stops_on_the_way, in order: a vivid, specific reason the crew " +
+      "MUST stop there, tied to the story, the crossing or a character's condition (2 sentences max). Don't change the " +
+      "place or the action; a stop forced by a crew condition must keep that condition as its reason. Make at least " +
+      "one stop carry action or danger when it fits.",
     {
       persona,
-      mission: { type: mission.typeLabel, system: mission.system, antagonist: mission.antagonist, person_at_the_centre: mission.target, draft_briefing: mission.briefing, draft_stakes: mission.stakes, shared_contract: mission.anchor, meet_at: mission.rendezvous, roles: mission.objectives.map((o) => ({ for: o.characterName, career: o.activity, role: o.text })) },
+      mission: { type: mission.typeLabel, system: mission.system, antagonist: mission.antagonist, person_at_the_centre: mission.target, draft_briefing: mission.briefing, draft_stakes: mission.stakes, shared_contract: mission.anchor, meet_at: mission.rendezvous, roles: mission.objectives.map((o) => ({ for: o.characterName, career: o.activity, role: o.text })), stops_on_the_way: (mission.stops || []).map((st) => ({ place: st.place, draft_reason: st.reason, action: st.action, forced_by_crew_condition: st.forced })) },
       crossing_facts: mission.crossings,
       allowed_names: mission.names,
       characters: characters.map(charBrief),
       world_log: worldLog.slice(-8).map((w) => w.text),
       server_canon: canon,
     },
-    obj({ title: str, briefing: str, crossing: str, objective_flavour: { type: "array", items: str }, stakes: str, twist: str }),
+    obj({ title: str, briefing: str, crossing: str, objective_flavour: { type: "array", items: str }, stakes: str, twist: str, stop_reasons: { type: "array", items: str } }),
+    "",
+    { allowEmpty: ["stop_reasons"] },
   );
 }
 
@@ -338,7 +345,7 @@ export async function askDM({ question, persona, asker, mission, characters, can
     `GAME-AS-RP RULES: ${JSON.stringify(rules)}\n` +
     `SERVER CANON: ${JSON.stringify(canon)}\n` +
     `ASKED BY: ${asker || "a player"}\n` +
-    `CURRENT MISSION: ${mission ? JSON.stringify({ title: mission.title, type: mission.typeLabel, system: mission.system, briefing: mission.briefing, crossings: mission.crossings, stakes: mission.stakes, shared_contract: mission.anchor, meet_at: mission.rendezvous, roles: mission.objectives.map((o) => ({ for: o.characterName, role: o.text })), field_log: mission.scribe || [] }) : "none"}\n` +
+    `CURRENT MISSION: ${mission ? JSON.stringify({ title: mission.title, type: mission.typeLabel, system: mission.system, briefing: mission.briefing, crossings: mission.crossings, stakes: mission.stakes, shared_contract: mission.anchor, meet_at: mission.rendezvous, roles: mission.objectives.map((o) => ({ for: o.characterName, role: o.text })), stops: mission.stops || [], field_log: mission.scribe || [] }) : "none"}\n` +
     `CREW: ${JSON.stringify(characters.map(charBrief))}`;
   try {
     return await complete({ system: [lore(), context], messages: [{ role: "user", content: question }], maxTokens: 800 });

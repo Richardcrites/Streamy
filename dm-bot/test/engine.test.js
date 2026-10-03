@@ -252,3 +252,27 @@ test("scrapping a mission rolls the server back to exactly how it was", () => {
   assert.equal(after, before);
   assert.equal(g.missions[m.id], undefined);
 });
+
+test("stops: the d20 decides how many, crew damage forces one, places are real and never repeat", () => {
+  const healthy = [{ name: "RJ", conditions: [] }];
+  const damaged = [{ name: "RJ", conditions: [{ status: "active", kind: "ship" }] }];
+  for (let i = 0; i < 300; i++) {
+    for (const system of ["Stanton", "Pyro", "Nyx"]) {
+      const a = story.rollStops(healthy, system);
+      assert.ok(a.roadRoll >= 1 && a.roadRoll <= 20);
+      assert.equal(a.stops.length, a.roadRoll <= 4 ? 2 : a.roadRoll <= 19 ? 1 : 0, `roll ${a.roadRoll}`);
+      const b = story.rollStops(damaged, system);
+      assert.ok(b.stops.some((s) => s.forced && /RJ's ship/.test(s.reason)), "damage forces a stop");
+      for (const s of [...a.stops, ...b.stops]) assert.ok(s.place && s.reason && s.action && s.need && !unfilled(s.reason));
+      assert.equal(new Set(b.stops.map((s) => s.place)).size, b.stops.length, "no repeated stop");
+    }
+  }
+});
+
+test("dice expressions", () => {
+  const r = story.rollDice("3d6+2");
+  assert.equal(r.rolls.length, 3);
+  assert.ok(r.total >= 5 && r.total <= 20);
+  assert.equal(story.rollDice("d20").rolls.length, 1);
+  assert.equal(story.rollDice("banana"), null);
+});

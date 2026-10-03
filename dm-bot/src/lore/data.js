@@ -585,3 +585,72 @@ export const RENDEZVOUS = {
   Pyro: ["Ruin Station", "Checkmate Station", "Orbituary", "Patch City"],
   Nyx: ["Levski"],
 };
+
+// ── Forced stops on the way (rolled per mission) ─────────────────────────────
+// Kinds of places that exist in each system; players pick a matching one on the starmap.
+export const STOP_PLACES = {
+  Stanton: [
+    { place: "an abandoned settlement on Daymar", kind: "hostile" },
+    { place: "a derelict outpost on Wala", kind: "hostile" },
+    { place: "a cave on Aberdeen", kind: "hostile" },
+    { place: "a mining outpost on Arial", kind: "camp" },
+    { place: "a Rest & Relax stop at a Lagrange point", kind: "resupply" },
+    { place: "an Onyx Facility on Cellin", kind: "hostile" },
+    { place: "a wreck in the Yela asteroid belt", kind: "wreck" },
+  ],
+  Pyro: [
+    { place: "a derelict outpost on Bloom", kind: "hostile" },
+    { place: "a Citizens for Prosperity holdout on Monox", kind: "hostile" },
+    { place: "a gang-held outpost on Pyro IV", kind: "hostile" },
+    { place: "an abandoned settlement on Terminus", kind: "camp" },
+    { place: "a cave system on Bloom", kind: "hostile" },
+    { place: "Checkmate Station or Orbituary", kind: "resupply" },
+    { place: "a wreck field around Pyro V's moons", kind: "wreck" },
+  ],
+  Nyx: [
+    { place: "an abandoned station in the Keeger Belt", kind: "hostile" },
+    { place: "a dead mining platform in the Glaciem Ring", kind: "camp" },
+    { place: "a smuggler drop in the Keeger Belt", kind: "hostile" },
+    { place: "Levski's outer docks", kind: "resupply" },
+  ],
+};
+
+export const STOP_REASONS = {
+  any: [
+    "the quantum drive is running hot after the last jump and needs to cool",
+    "a solar flare is sweeping the lanes; flying through it fries electronics",
+    "someone has been on your tail since you left, and you need to lose them on the ground",
+    "the crew has been running on stims and empty stomachs; people are making mistakes",
+    "comms picked up a signal from there that matches something from your past",
+    "the fuel numbers don't add up; someone siphoned your tanks at the last stop",
+  ],
+  ship: ["{who}'s ship is carrying damage and won't take another jump without a patch"],
+  injury: ["{who} is hurt worse than they're letting on and needs a few hours flat on their back"],
+};
+
+export const STOP_ACTIONS = {
+  hostile: [
+    "Clear it on foot. Someone's squatting there, and they won't share.",
+    "Clear it, then hold it for the night: set a watch rotation.",
+  ],
+  camp: [
+    "Set up camp: secure the doors and sleep in shifts.",
+    "Make camp and scavenge whatever's useful from the lockers.",
+  ],
+  resupply: [
+    "Resupply: food, water, ammo and med pens. Someone here is watching you, though.",
+    "Refuel and repair, and keep it quick. Word travels fast here.",
+  ],
+  wreck: [
+    "Search the wreck for parts, and for whoever flew it.",
+    "Strip the wreck for what you need. The crew's logs might still be readable.",
+  ],
+};
+
+// Survival beats the game actually has (hunger, thirst, rest) to make a stop feel lived-in.
+export const STOP_NEEDS = [
+  "Everyone eats and drinks something before moving on (hunger and thirst are real in game).",
+  "Someone stands watch while the others rest.",
+  "Patch up any wounds with med pens before you leave.",
+  "Check the ship over: fuel, ammo, hull.",
+];

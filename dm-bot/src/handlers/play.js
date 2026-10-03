@@ -1,6 +1,6 @@
 import { EmbedBuilder, MessageFlags, ModalBuilder, ActionRowBuilder, TextInputBuilder, TextInputStyle } from "discord.js";
 import { CAMPAIGN_GOALS, NEWS, CURRENT_PATCH, CURRENT_YEAR, GAME_RULES } from "../lore/data.js";
-import { buildCampaign, buildChapter, buildFinale, buildCrossover } from "../engine/story.js";
+import { buildCampaign, buildChapter, buildFinale, buildCrossover, rollDice } from "../engine/story.js";
 import { pickN } from "../engine/util.js";
 import { narrateChapter, narrateFinale, aiEnabled, aiLabel } from "../ai.js";
 import * as store from "../store.js";
@@ -413,6 +413,7 @@ export async function help(interaction) {
       "**3. Play it in game**, then click how your crew handled it. Your choices (🕊️ clean / 🤝 deal / 🔥 ruthless) decide the **finale**.\n" +
       "**4. Keep going:** `/story next` for the next act. `/log` to record what you did. `/character location` when you travel.\n" +
       "**Ask the DM:** `/ask what contract do we take for this?`, or start a message with `?` in the scribe channel.\n" +
+      "**Dice:** `/roll` (default d20, or `2d6+1`). Missions roll a d20 for the road, which decides your forced stops.\n" +
       "**Keeping track:** `/status` shows injuries, ship damage and warrants (they carry into stories). `/lore` is your server's canon, `/archive` holds finished stories, and an admin can set a **scribe channel** where one person types quick updates during play.\n" +
       "**Voice:** join a voice channel and the DM reads briefings, twists and finales aloud. `/voice join`, `/voice test`, `/voice leave`.\n" +
       "**Link up:** `/story crossover @player` ties two characters' stories together. Orgs share campaigns (`/org`), and `/comms` sends in-character transmissions.\n" +
@@ -472,4 +473,26 @@ export async function rpRules(interaction) {
       "\n\n**Failure is story too.** Report what really happened, and the DM builds on it.",
     );
   return interaction.reply({ embeds: [embed] });
+}
+
+// ── /roll ────────────────────────────────────────────────────────────────────
+export async function rollCommand(interaction, g) {
+  const expr = interaction.options.getString("dice") || "1d20";
+  const what = interaction.options.getString("for");
+  const r = rollDice(expr);
+  if (!r) return interaction.reply({ content: "I can roll things like `d20`, `2d6` or `1d20+3`.", flags: ephemeral });
+  const who = store.activeCharacter(g, interaction.user.id)?.name || interaction.member?.displayName || interaction.user.username;
+  let verdict = "";
+  if (r.sides === 20 && r.rolls.length === 1) {
+    if (r.rolls[0] === 20) verdict = "**Natural 20.** It works better than anyone planned.";
+    else if (r.rolls[0] === 1) verdict = "**Natural 1.** It goes wrong, loudly.";
+    else if (r.total >= 15) verdict = "Clean success.";
+    else if (r.total >= 10) verdict = "It works, but there's a cost. Someone decides what.";
+    else verdict = "It doesn't work. Find another way.";
+  }
+  const embed = new EmbedBuilder()
+    .setColor(COLORS.news)
+    .setDescription(`🎲 **${who}** rolls ${r.text}${what ? ` to *${what}*` : ""}: ${r.rolls.length > 1 || r.mod ? `[${r.rolls.join(", ")}]${r.mod ? ` ${r.mod > 0 ? "+" : "−"} ${Math.abs(r.mod)}` : ""} = ` : ""}**${r.total}**${verdict ? `\n${verdict}` : ""}`);
+  await interaction.reply({ embeds: [embed] });
+  voice.sayIfConnected(interaction.guild, g, `${who} rolls ${r.total}. ${verdict.replace(/\*/g, "")}`);
 }

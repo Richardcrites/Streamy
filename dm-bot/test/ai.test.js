@@ -80,3 +80,11 @@ test("OpenRouter: still empty after the retry falls back to built-in text", asyn
   globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ finish_reason: "stop", message: { content: null } }] }));
   assert.equal(await fresh.narrateOrigin(char), null);
 });
+
+test("mission AI rewrites stop reasons only when the count matches; zero stops is fine", async () => {
+  const fresh = await import(`../src/ai.js?stops=${Date.now()}`);
+  const mission = { typeLabel: "Heist", system: "Pyro", antagonist: "A", target: "B", briefing: "", stakes: "", names: ["A", "B"], crossings: [], anchor: {}, rendezvous: "Ruin Station", objectives: [], stops: [] };
+  globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ title: "T", briefing: "B", crossing: "C", objective_flavour: ["x"], stakes: "S", twist: "W", stop_reasons: [] }) } }] }));
+  const out = await fresh.narrateMission({ mission, characters: [], worldLog: [], persona: "p" });
+  assert.equal(out?.title, "T", "an empty stop list must not throw the mission away");
+});

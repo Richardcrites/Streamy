@@ -7,7 +7,7 @@ import {
   ModalBuilder, TextInputBuilder, TextInputStyle,
 } from "discord.js";
 import { DEFAULT_PERSONA } from "../lore/data.js";
-import { buildMission, missionEpilogue, snapshot, createdSince, rollbackMission } from "../engine/story.js";
+import { buildMission, missionEpilogue, snapshot, createdSince, rollbackMission, roadRollLabel } from "../engine/story.js";
 import { narrateMission, narrateMissionEnd } from "../ai.js";
 import * as store from "../store.js";
 import { broadcast, COLORS, clip } from "../comms.js";
@@ -32,7 +32,8 @@ export async function start(interaction, g) {
   await interaction.deferReply();
   const { mission, message } = await createMission(g, crew, interaction.options.getString("type"), interaction.user.id);
   await interaction.editReply(message);
-  voice.narrate(interaction, g, `${mission.title}. ${mission.briefing} ${mission.crossings.join(" ")} ${mission.stakes}`);
+  voice.narrate(interaction, g, `${mission.title}. ${mission.briefing} ${mission.crossings.join(" ")} ${mission.stakes}` +
+    (mission.stops?.length ? ` And you won't make it in one go. ${mission.stops.map((st, i) => `Stop ${i + 1}: ${st.place}, because ${st.reason}.`).join(" ")}` : ""));
 }
 
 async function createMission(g, crew, type, ownerId) {
@@ -42,6 +43,15 @@ async function createMission(g, crew, type, ownerId) {
   mission.requestedType = type || null;
   const ai = await narrateMission({ mission, characters: crew, worldLog: g.worldLog, persona: persona(g), canon: canonText(g) });
   if (ai) {
+    // The AI rewrites why each stop happens (more vivid, tied to the story); places and actions stay as rolled.
+    if (Array.isArray(ai.stop_reasons) && ai.stop_reasons.length === mission.stops?.length) {
+      ai.stop_reasons.forEach((r, i) => {
+        const st = mission.stops[i];
+        const who = st.forcedBy?.split(/\s+/)[0];
+        // A stop forced by damage or injury keeps that reason unless the AI's version still names the character.
+        if (r?.trim() && (!who || r.includes(who))) st.reason = r.trim();
+      });
+    }
     mission.title = ai.title;
     mission.briefing = ai.briefing;
     mission.crossings = [ai.crossing];
@@ -75,6 +85,12 @@ function missionMessage(g, mission, crew) {
         name: "🎭 Roles",
         value: clip(mission.objectives.map((o) => `**${o.characterName}:** ${o.text}${o.flavour ? ` *${o.flavour}*` : ""}`).join("\n"), 1024),
       },
+      ...(mission.stops ? [{
+        name: `🛑 Stops on the way · 🎲 d20 rolled ${mission.roadRoll}: ${roadRollLabel(mission.roadRoll)}`,
+        value: clip(mission.stops.length
+          ? mission.stops.map((st, i) => `**${i + 1}. ${st.place}**${st.forced ? " *(you can't skip this one)*" : ""}\n**Why:** ${st.reason}\n**What:** ${st.action} ${st.need}`).join("\n\n")
+          : "No stops. Fly straight there, and enjoy it while it lasts.", 1024),
+      }] : []),
       ...(carrying.length ? [{ name: "🩹 Carrying into this job", value: clip(carrying.join("\n"), 1024) }] : []),
       { name: "⚖️ Stakes", value: clip(mission.stakes, 1024) },
       { name: "🎲 If the game fights back", value: clip(mission.rules.map((r) => `• ${r}`).join("\n"), 1024) },
