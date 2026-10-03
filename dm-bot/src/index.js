@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { Client, Events, GatewayIntentBits, MessageFlags } from "discord.js";
+import { Client, Events, GatewayIntentBits, MessageFlags, OAuth2Scopes, PermissionFlagsBits } from "discord.js";
 import * as store from "./store.js";
 import * as character from "./handlers/character.js";
 import * as play from "./handlers/play.js";
@@ -17,6 +17,14 @@ const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBit
 
 client.once(Events.ClientReady, (c) => {
   console.log(`Star Citizen DM online as ${c.user.tag}. Narration: ${aiLabel()}. Voice: ${voice.ttsLabel()}.`);
+  const invite = c.generateInvite({
+    scopes: [OAuth2Scopes.Bot, OAuth2Scopes.ApplicationsCommands],
+    permissions: [
+      PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks,
+      PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.Connect, PermissionFlagsBits.Speak,
+    ],
+  });
+  console.log(`Invite / fix permissions link (open it and pick your server):\n${invite}`);
 });
 
 async function route(interaction) {

@@ -426,6 +426,14 @@ export async function voiceCommand(interaction, g, sub) {
   const channel = interaction.member?.voice?.channel;
   if (!channel) return interaction.reply({ content: "Join a voice channel first, then try again.", flags: ephemeral });
   if (g.settings.voice === false) return interaction.reply({ content: "The DM's voice is turned off. An admin can enable it with `/dm-admin voice`.", flags: ephemeral });
+  const me = interaction.guild.members.me;
+  const missing = ["ViewChannel", "Connect", "Speak"].filter((p) => !channel.permissionsFor(me)?.has(p));
+  if (missing.length) {
+    return interaction.reply({
+      content: `I'm missing **${missing.join(", ")}** in **${channel.name}**. Fix it in Server Settings → Roles → my role, or open the invite link shown in my window when I start.`,
+      flags: ephemeral,
+    });
+  }
   await interaction.deferReply({ flags: ephemeral });
   try {
     await voice.join(channel);
