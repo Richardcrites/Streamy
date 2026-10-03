@@ -6,6 +6,7 @@ import * as play from "./handlers/play.js";
 import * as mission from "./handlers/mission.js";
 import * as voice from "./voice.js";
 import * as records from "./handlers/records.js";
+import * as ask from "./handlers/ask.js";
 import { aiLabel } from "./ai.js";
 import { linkKin } from "./engine/story.js";
 import { registerName } from "./engine/names.js";
@@ -86,6 +87,7 @@ async function route(interaction) {
         return play.admin(interaction, g, sub);
       case "dm-help": return play.help(interaction);
       case "rp-rules": return play.rpRules(interaction);
+      case "ask": return ask.ask(interaction, g);
       case "status": return records.status(interaction, g, sub);
       case "lore": return records.lore(interaction, g, sub);
       case "archive": return records.archive(interaction, g, sub);

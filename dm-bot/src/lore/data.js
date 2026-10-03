@@ -517,3 +517,20 @@ export const TITLE_WORDS = {
   a: ["Cold", "Dead", "Quiet", "Burning", "Broken", "Silent", "Last", "Red", "Hollow", "Blind", "Long", "Iron", "Black", "Pale", "Bitter", "Lost", "Crooked", "Sunken"],
   b: ["Lanes", "Signal", "Ledger", "Harbour", "Debt", "Light", "Orbit", "Contract", "Ashes", "Static", "Vault", "Tide", "Wake", "Promise", "Cargo", "Frontier", "Echo", "Margin"],
 };
+
+// ── Which in-game contracts fit each objective (Alpha 4.10; names can shift between patches) ──
+export const CONTRACT_GUIDE = {
+  haul: "mobiGlas → Contracts → **Hauling** (Covalex, Ling Family Hauling, Red Wind Linehaul). Or buy cargo at a trade terminal and run it yourself.",
+  delivery: "mobiGlas → Contracts → **Delivery / Courier** (Covalex local deliveries). Small packages, hand-carried.",
+  bounty: "mobiGlas → Contracts → **Bounty Hunting**. Pick a tier you can handle. In Pyro, gang reputation decides who offers them.",
+  fps: "mobiGlas → Contracts → **Mercenary** (clear an outpost, eliminate hostiles), an **Onyx Facility** investigation, or a Pyro **contested zone**.",
+  mining: "No contract needed: mine (ship or hand), refine at a station refinery, sell. Pyro and Nyx belts pay more, with more risk.",
+  salvage: "mobiGlas → Contracts → **Salvage** (e.g. Adagio Holdings), or strip any wreck you find. Sell the RMC at a station.",
+  investigate: "mobiGlas → Contracts → **Investigation** (Hockrow Agency, Onyx Facilities) or a **Recovery** contract at the location.",
+  patrol: "No contract needed: fly the route and log contacts. A **Defense** or **Bounty** contract nearby makes it pay.",
+  escort: "A crewmate's cargo run counts. Solo: mobiGlas → Contracts → **Defense / Escort**.",
+  combat: "mobiGlas → Contracts → **Mercenary (ship combat)** or **Defense**. Vanduul encounters are in Nyx.",
+  rescue: "Answer a **rescue beacon** (mobiGlas → Contracts → Services / Search & Rescue), or fly a med-bed ship to a downed crewmate.",
+  exploration: "No contract needed: go there and look around. Screenshot what you find.",
+  rp: "No contract: meet up in person at the location and play the scene.",
+};

@@ -12,6 +12,7 @@ import {
 } from "../engine/records.js";
 import { parseScribe, aiEnabled } from "../ai.js";
 import * as voice from "../voice.js";
+import { answer, answerEmbed } from "./ask.js";
 
 const ephemeral = MessageFlags.Ephemeral;
 
@@ -81,6 +82,17 @@ export async function onScribeMessage(message, g) {
   if (!text || text.startsWith("((") || text.startsWith("//")) return;
   const authorChar = store.activeCharacter(g, message.author.id);
   const author = authorChar ? `${message.member?.displayName ?? message.author.username} (plays ${authorChar.name})` : message.author.username;
+
+  // "?" in front means it's a question for the DM, not an update.
+  if (text.startsWith("?")) {
+    const question = text.slice(1).trim();
+    if (!question) return;
+    await message.channel.sendTyping().catch(() => {});
+    const reply = await answer(g, { question, userId: message.author.id, askerName: message.member?.displayName ?? message.author.username });
+    await message.reply({ embeds: [answerEmbed(g, question, reply)], allowedMentions: { repliedUser: false } }).catch(() => {});
+    voice.sayIfConnected(message.guild, g, reply);
+    return;
+  }
 
   if (!aiEnabled()) {
     // Without AI we can't parse, but nothing is lost: it goes into the field log and journal.

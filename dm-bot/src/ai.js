@@ -304,3 +304,26 @@ export async function parseScribe({ text, author, characters, missionTitle }) {
     { lenient: true },
   );
 }
+
+// ── Questions: players ask the DM anything ───────────────────────────────────
+export async function askDM({ question, persona, asker, mission, characters, canon, guide, rules }) {
+  if (!aiEnabled()) return null;
+  const context =
+    `${persona}\n\n` +
+    "A player is asking you a question, out of game or in character. Answer in your persona's voice, briefly " +
+    "(under 120 words), practically and truthfully. For game questions (which contract, where to go, how to fix " +
+    "something), give real Star Citizen guidance from the contract guide, the lore and the current mission; if you're " +
+    "not sure something exists in the current patch, say so instead of inventing it. Don't reveal the mission's secret twist.\n\n" +
+    `CONTRACT GUIDE (by objective type): ${JSON.stringify(guide)}\n` +
+    `GAME-AS-RP RULES: ${JSON.stringify(rules)}\n` +
+    `SERVER CANON: ${JSON.stringify(canon)}\n` +
+    `ASKED BY: ${asker || "a player"}\n` +
+    `CURRENT MISSION: ${mission ? JSON.stringify({ title: mission.title, type: mission.typeLabel, system: mission.system, briefing: mission.briefing, crossings: mission.crossings, stakes: mission.stakes, objectives: mission.objectives.map((o) => ({ for: o.characterName, activity: o.activity, place: o.place, text: o.text })), field_log: mission.scribe || [] }) : "none"}\n` +
+    `CREW: ${JSON.stringify(characters.map(charBrief))}`;
+  try {
+    return await complete({ system: [lore(), context], messages: [{ role: "user", content: question }], maxTokens: 800 });
+  } catch (err) {
+    logFailure("question", err);
+    return null;
+  }
+}

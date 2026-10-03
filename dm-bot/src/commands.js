@@ -144,6 +144,11 @@ export const commands = [
       .addStringOption((o) => o.setName("title").setDescription("Part of the title").setRequired(true)))
     .addSubcommand((s) => s.setName("export").setDescription("Download the whole archive as a file")),
 
+  new SlashCommandBuilder()
+    .setName("ask")
+    .setDescription("Ask the DM anything, e.g. what contract do we take for this?")
+    .addStringOption((o) => o.setName("question").setDescription("Your question").setRequired(true).setMaxLength(500)),
+
   new SlashCommandBuilder().setName("rp-rules").setDescription("How the game's bugs and limits become part of the story"),
 
   new SlashCommandBuilder().setName("dm-help").setDescription("How to use the Star Citizen DM"),
