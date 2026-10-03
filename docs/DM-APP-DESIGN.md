@@ -73,7 +73,6 @@ Star Citizen has **no official live game API**. Realistic data sources:
 | Source | What it gives | Notes |
 |---|---|---|
 | **Game.log** (local client log file) | Location and zone changes, deaths and kills, some contract and notification events, the server being joined | The best "what actually happened" source. Needs a small desktop companion that watches the file. Read-only. Log formats change between patches. |
-| **UEX Corp API** (already used by this repo's widget) | Live commodity prices, trade routes, ship prices, terminals | Good for hauling and trade objectives with real numbers. |
 | **Star Citizen Wiki API** (api.star-citizen.wiki) | Ships, items, missions, Galactapedia, current-patch data | Keeps "what exists in game" accurate. |
 | **RSI public profile / org pages** | Handle, org membership | Links a character to a real player and org. |
 | **Player check-ins** | "Done: delivered 32 SCU of medical supplies to Levski" plus a screenshot | Always works. A fallback when there's no log watcher. |

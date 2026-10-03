@@ -72,7 +72,6 @@ Everything is saved in `data/db.json`, separated per Discord server. Back it up 
 ## Roadmap
 
 - **Game.log companion:** a small desktop app that reads Star Citizen's local `Game.log` to auto-update location and log kills, deaths and contracts.
-- **UEX integration:** live commodity prices for trade objectives (this repo's widget already uses UEX).
 - **Patch updates:** when Castra and the Nyx planets go live, add them to `src/lore/data.js` and `/lore`.
 - **Crew votes** on choices, and scheduled news broadcasts.
 
