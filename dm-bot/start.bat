@@ -1,0 +1,57 @@
+@echo off
+title Star Citizen DM Bot
+cd /d "%~dp0"
+
+where node >nul 2>nul
+if errorlevel 1 (
+  echo.
+  echo Node.js is not installed.
+  echo Download the LTS version from https://nodejs.org, install it, then double-click start.bat again.
+  echo.
+  start https://nodejs.org
+  pause
+  exit /b 1
+)
+
+if not exist ".env" (
+  echo.
+  echo ===== First-time setup =====
+  echo Get these from https://discord.com/developers/applications  ^(see README^)
+  echo.
+  set /p TOKEN=Paste your BOT TOKEN and press Enter:
+  set /p CLIENT=Paste your APPLICATION ID and press Enter:
+  set /p GUILD=Paste your SERVER ID and press Enter:
+  call :writeenv
+)
+
+if not exist "node_modules" (
+  echo Installing... this only happens once.
+  call npm install --omit=dev
+  if errorlevel 1 goto failed
+)
+
+echo Registering slash commands with Discord...
+call npm run deploy
+if errorlevel 1 goto failed
+
+echo.
+echo Starting the bot. Leave this window open while you play. Close it to stop the bot.
+echo.
+call npm start
+pause
+exit /b 0
+
+:writeenv
+> .env echo DISCORD_TOKEN=%TOKEN%
+>> .env echo CLIENT_ID=%CLIENT%
+>> .env echo GUILD_ID=%GUILD%
+>> .env echo ANTHROPIC_API_KEY=
+echo Saved your settings to .env
+exit /b 0
+
+:failed
+echo.
+echo Something went wrong. Check the message above.
+echo If the token or IDs were wrong, delete the .env file and run start.bat again.
+pause
+exit /b 1
