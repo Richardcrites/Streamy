@@ -191,7 +191,7 @@ const str = { type: "string" };
 const obj = (properties) => ({ type: "object", properties, required: Object.keys(properties), additionalProperties: false });
 
 const charBrief = (c) => ({
-  name: c.name, pronouns: c.pronouns, origin: c.origin, career: c.careerLabel || c.career,
+  name: c.name, pronouns: c.pronouns, origin: c.origin, preferred_crew_role: c.preferredRole || "auto",
   open_hooks: c.hooks.filter((h) => h.status === "open").map((h) => h.text),
   recent_journal: c.journal.slice(-6).map((j) => j.text),
   active_conditions: (c.conditions || []).filter((x) => x.status === "active").map((x) => `${x.kind}: ${x.text} (${x.severity}; clears: ${x.clears})`),
@@ -208,7 +208,7 @@ export async function narrateOrigin(character, otherStories = []) {
       "the other characters' stories listed in other_characters_on_this_server. Use the full name once, then the short " +
       "name or pronouns.",
     {
-      name: character.name, pronouns: character.pronouns, origin: character.origin, career: character.careerLabel || character.career,
+      name: character.name, pronouns: character.pronouns, origin: character.origin,
       home: character.home, player_seed: character.seed, draft: character.story, hooks: character.hooks.map((h) => h.text),
       other_characters_on_this_server: otherStories,
     },
@@ -263,8 +263,9 @@ export async function narrateMission({ mission, characters, worldLog, persona, c
       "facts and the characters' hooks so each player has a personal reason to be there. Hard rules: the only named " +
       "people you may mention are the crew and the names in `allowed_names`. Never invent other named characters. " +
       "The crew plays it through ONE real shared contract (shared_contract), whose destination stands in for the story's " +
-      "location. Keep it exactly; never invent other contracts or mission names. 'objective_flavour' is one short " +
-      "line per role, in order. 'briefing' is " +
+      "location. Keep it exactly; never invent other contracts or mission names. Each crew member has a different crew " +
+      "role (crew_roles); 'objective_flavour' is one short line per crew member, in order, saying what their role means " +
+      "on THIS job, tied to their story. 'briefing' is " +
       "2 short paragraphs spoken by the persona. 'crossing' explains in 2–4 sentences how the crew's stories connect. " +
       "'stakes' is 1–2 sentences. 'twist' is a secret revealed only at the end; make it land on the crossing. " +
       "If a character carries an active condition (injury, ship damage, warrant), let it matter: mention it in the briefing or stakes. " +
@@ -275,7 +276,7 @@ export async function narrateMission({ mission, characters, worldLog, persona, c
       "one stop carry action or danger when it fits.",
     {
       persona,
-      mission: { type: mission.typeLabel, system: mission.system, antagonist: mission.antagonist, person_at_the_centre: mission.target, draft_briefing: mission.briefing, draft_stakes: mission.stakes, shared_contract: mission.anchor, meet_at: mission.rendezvous, roles: mission.objectives.map((o) => ({ for: o.characterName, career: o.activity, role: o.text })), stops_on_the_way: (mission.stops || []).map((st) => ({ place: st.place, draft_reason: st.reason, action: st.action, forced_by_crew_condition: st.forced })) },
+      mission: { type: mission.typeLabel, system: mission.system, antagonist: mission.antagonist, person_at_the_centre: mission.target, draft_briefing: mission.briefing, draft_stakes: mission.stakes, shared_contract: mission.anchor, meet_at: mission.rendezvous, crew_roles: mission.objectives.map((o) => ({ for: o.characterName, role: o.roleLabel || o.activity, job: o.text, chosen_because: o.why })), stops_on_the_way: (mission.stops || []).map((st) => ({ place: st.place, draft_reason: st.reason, action: st.action, forced_by_crew_condition: st.forced })) },
       crossing_facts: mission.crossings,
       allowed_names: mission.names,
       characters: characters.map(charBrief),
@@ -350,7 +351,7 @@ export async function askDM({ question, persona, asker, mission, characters, can
     `GAME-AS-RP RULES: ${JSON.stringify(rules)}\n` +
     `SERVER CANON: ${JSON.stringify(canon)}\n` +
     `ASKED BY: ${asker || "a player"}\n` +
-    `CURRENT MISSION: ${mission ? JSON.stringify({ title: mission.title, type: mission.typeLabel, system: mission.system, briefing: mission.briefing, crossings: mission.crossings, stakes: mission.stakes, shared_contract: mission.anchor, meet_at: mission.rendezvous, roles: mission.objectives.map((o) => ({ for: o.characterName, role: o.text })), stops: mission.stops || [], field_log: mission.scribe || [] }) : "none"}\n` +
+    `CURRENT MISSION: ${mission ? JSON.stringify({ title: mission.title, type: mission.typeLabel, system: mission.system, briefing: mission.briefing, crossings: mission.crossings, stakes: mission.stakes, shared_contract: mission.anchor, meet_at: mission.rendezvous, crew_roles: mission.objectives.map((o) => ({ for: o.characterName, role: o.roleLabel, job: o.text })), stops: mission.stops || [], field_log: mission.scribe || [] }) : "none"}\n` +
     `CREW: ${JSON.stringify(characters.map(charBrief))}`;
   try {
     return await complete({ system: [lore(), context], messages: [{ role: "user", content: question }], maxTokens: 800 });

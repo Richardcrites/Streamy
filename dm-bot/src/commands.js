@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, PermissionFlagsBits, ChannelType } from "discord.js";
-import { CAMPAIGN_GOALS, LOCATIONS, MISSION_TYPES } from "./lore/data.js";
+import { CAMPAIGN_GOALS, LOCATIONS, MISSION_TYPES, CREW_ROLES } from "./lore/data.js";
 import { EDGE_VOICES } from "./voice.js";
 
 export const commands = [
@@ -12,6 +12,9 @@ export const commands = [
       .addUserOption((o) => o.setName("player").setDescription("Whose character (default: yours)")))
     .addSubcommand((s) => s.setName("story").setDescription("Read the full origin story")
       .addUserOption((o) => o.setName("player").setDescription("Whose character (default: yours)")))
+    .addSubcommand((s) => s.setName("role").setDescription("Your preferred crew role on missions (or auto: fit your story and rotate)")
+      .addStringOption((o) => o.setName("role").setDescription("Role").setRequired(true)
+        .addChoices({ name: "🎲 Auto (fit my story, rotate)", value: "auto" }, ...Object.entries(CREW_ROLES).map(([k, r]) => ({ name: `${r.emoji} ${r.label}`, value: k })))))
     .addSubcommand((s) => s.setName("backstory").setDescription("Write or edit your active character's backstory in your own words"))
     .addSubcommand((s) => s.setName("delete").setDescription("Delete one of your characters")
       .addStringOption((o) => o.setName("name").setDescription("Character name").setRequired(true)))

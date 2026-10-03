@@ -10,7 +10,8 @@ Built on the lore codex in [`../lore`](../lore) (year 2956, Alpha 4.10).
 
 | Command | What happens |
 |---|---|
-| `/character create` | Pick an origin (8 lore backgrounds), a career, pronouns, then a **name from suggestions** (or type your own). The DM writes your origin story with 2 personal **hooks** that later stories pull on. |
+| `/character create` | Pick an origin (8 lore backgrounds), pronouns, then a **name from suggestions** (or type your own). The DM writes your origin story with 2 personal **hooks** that later stories pull on. |
+| `/character role` | Your preferred **crew role** on missions: Pilot, Engineer, XO, Gunner, Medic, Loadmaster, Scout, Boarding Lead, Salvage Specialist or Quartermaster. Or **Auto**: the bot picks roles that fit your story and rotates them so you try new things. Nobody on a mission ever gets the same role as someone else. |
 | `/character sheet` / `story` / `list` / `switch` | Your dossier, full story, and multiple characters. |
 | `/character location` | Tell the DM where you are in the 'Verse (Stanton / Pyro / Nyx). |
 | `/log` | Record what you did in game. It goes into your journal and future chapters. |

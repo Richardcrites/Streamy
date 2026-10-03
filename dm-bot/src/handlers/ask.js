@@ -23,7 +23,7 @@ function offlineAnswer(question, mission) {
   if (mission?.anchor && /contract|mission|take|do we|what do|where|share|meet/i.test(question)) {
     return `Take ${mission.anchor.contract}.\n**In the story:** ${mission.anchor.standIn}\n${mission.anchor.share}` +
       (mission.rendezvous ? `\n**Meet at:** ${mission.rendezvous}.` : "") +
-      `\n\n${mission.objectives.map((o) => `• **${o.characterName}:** ${o.text}`).join("\n")}`;
+      `\n\n${mission.objectives.map((o) => `• **${o.characterName}${o.roleLabel ? ` (${o.roleLabel})` : ""}:** ${o.text}`).join("\n")}`;
   }
   return "I can only answer contract questions without an AI key. Add an OpenRouter key to `.env` and I can answer anything.";
 }

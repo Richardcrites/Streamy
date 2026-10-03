@@ -663,17 +663,58 @@ export const ANCHORS = {
   ],
 };
 
-// What each career does on a shared job (no extra contract needed).
-export const ROLES = {
-  pilot: "Flies cover and gets the crew in and out. You call the approach.",
-  hauler: "Brings the cargo ship and handles anything that needs moving. You own the freight elevator problem.",
-  miner: "Brings tools and a sharp eye for the terrain. If there's a rock to crack or a way through, it's yours.",
-  bounty: "Tracks the target and makes the call on taking them alive. You read the bounty intel.",
-  marine: "First through the door. You lead on foot.",
-  medic: "Keeps everyone breathing. Bring medpens and a med bed if you have one, and stay close to the guns.",
-  salvager: "Strips what matters from the site or wreck, and knows what's worth taking.",
-  explorer: "Scouts ahead. You spot the trouble before it spots the crew.",
-  smuggler: "Knows the back way in and how to talk past security. Hide what needs hiding.",
+// ── Crew roles: everyone on a mission gets a different one ───────────────────
+// Real jobs aboard a Star Citizen crew (engineering arrived in Alpha 4.5).
+export const CREW_ROLES = {
+  pilot: { label: "Pilot", emoji: "🛩️", job: "Flies the ship and calls the approach. Gets everyone in and out alive." },
+  engineer: { label: "Engineer", emoji: "🔧", job: "Runs the ship's power and repairs: reroutes power, fights fires, keeps components alive under fire." },
+  xo: { label: "XO", emoji: "🎖️", job: "Runs the op: accepts and shares the contract, makes the tactical calls, keeps comms with the DM's contacts." },
+  gunner: { label: "Gunner", emoji: "🎯", job: "Mans the turrets, or is the second gun in the fight. Nothing gets close without permission." },
+  medic: { label: "Medic", emoji: "🩺", job: "Keeps everyone breathing: med pens, revives, and the med bed if the ship has one. Stays close to the guns." },
+  loadmaster: { label: "Loadmaster", emoji: "📦", job: "Handles cargo, the tractor beam and the freight elevators. Knows what's aboard and where." },
+  scout: { label: "Scout", emoji: "🔭", job: "Goes ahead: scans, watches from cover, and spots trouble before it spots the crew." },
+  boarding: { label: "Boarding Lead", emoji: "🚪", job: "First through the door on foot. Leads the crew in every FPS push." },
+  salvage: { label: "Salvage Specialist", emoji: "♻️", job: "Strips what matters from wrecks and sites, and knows what's worth taking." },
+  quartermaster: { label: "Quartermaster", emoji: "🎒", job: "Gear, ammo, food and water for the crew, and the deals to get them. Nobody runs dry on your watch." },
+};
+
+// Which roles suit each origin's background.
+export const ORIGIN_ROLES = {
+  hurston_worker: ["engineer", "loadmaster", "quartermaster"],
+  terran_noble: ["xo", "pilot", "quartermaster"],
+  pyro_outlaw: ["pilot", "gunner", "boarding", "scout"],
+  navy_veteran: ["xo", "pilot", "gunner"],
+  tevarin: ["pilot", "scout", "boarding"],
+  levski_born: ["engineer", "medic", "loadmaster"],
+  microtech_engineer: ["engineer", "medic", "salvage"],
+  banu_trader: ["quartermaster", "loadmaster", "xo"],
+};
+
+// Words in a character's name, callsign, idea or backstory that point at a role.
+export const ROLE_WORDS = {
+  pilot: /\b(pilot|fly|flew|flying|flight|wing|ace)\b/i,
+  engineer: /\b(engineer\w*|mechanic|fix(ed|es|ing)?|repair\w*|tinker\w*|wrench)\b/i,
+  xo: /\b(xo|officer|command\w*|captain|lead(er)?|navy)\b/i,
+  gunner: /\b(gun\w*|turret|shoot\w*|killshot|trigger)\b/i,
+  medic: /\b(medic\w*|doctor|nurse|heal\w*|med ?bed)\b/i,
+  loadmaster: /\b(cargo|haul\w*|freight|trader?|trading)\b/i,
+  scout: /\b(scout\w*|sniper|hunt(er|ing)?|bounty|track\w*)\b/i,
+  boarding: /\b(marine|soldier|merc(enary)?|breach\w*|board\w*)\b/i,
+  salvage: /\b(salvag\w*|scrap\w*|wreck\w*)\b/i,
+  quartermaster: /\b(supply|supplies|quartermaster|smuggl\w*|deal\w*|barter)\b/i,
+};
+
+// Old careers (characters made before roles) still count as a hint.
+export const CAREER_TO_ROLE = { pilot: "pilot", hauler: "loadmaster", miner: "engineer", bounty: "scout", marine: "boarding", medic: "medic", salvager: "salvage", explorer: "scout", smuggler: "quartermaster" };
+
+// The role each mission type most needs filled.
+export const MISSION_NEEDS = {
+  heist: ["boarding", "engineer", "scout"],
+  bounty: ["pilot", "gunner", "scout"],
+  salvage: ["salvage", "engineer", "loadmaster"],
+  rescue: ["medic", "pilot", "boarding"],
+  smuggle: ["pilot", "loadmaster", "xo"],
+  defense: ["gunner", "pilot", "engineer"],
 };
 
 // A meeting point for the crew: a real place that stands in for the story's rendezvous.

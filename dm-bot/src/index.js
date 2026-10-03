@@ -61,6 +61,7 @@ async function route(interaction) {
         if (sub === "story") return character.sheet(interaction, g, { full: true });
         if (sub === "list") return character.list(interaction, g);
         if (sub === "backstory") return character.backstory(interaction, g);
+        if (sub === "role") return character.setRole(interaction, g);
         if (sub === "delete") return character.remove(interaction, g);
         if (sub === "switch") return character.switchChar(interaction, g);
         if (sub === "location") return character.location(interaction, g);

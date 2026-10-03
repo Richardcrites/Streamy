@@ -2,7 +2,7 @@ import {
   ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, EmbedBuilder,
   ModalBuilder, TextInputBuilder, TextInputStyle, MessageFlags,
 } from "discord.js";
-import { ORIGINS, CAREERS } from "../lore/data.js";
+import { ORIGINS, CREW_ROLES } from "../lore/data.js";
 import { PRONOUNS } from "../engine/util.js";
 import { suggestNames, buildCharacter, linkKin } from "../engine/story.js";
 import { narrateOrigin } from "../ai.js";
@@ -22,7 +22,7 @@ export async function create(interaction, g) {
     .setPlaceholder("Choose your origin")
     .addOptions(Object.entries(ORIGINS).map(([id, o]) => ({ label: o.label, value: id, emoji: o.emoji, description: clip(o.home, 100) })));
   await interaction.reply({
-    embeds: [step("Step 1 of 4: Where are you from?", "Your origin sets your home, your loyalties and the old wounds your stories will pull on.")],
+    embeds: [step("Step 1 of 3: Where are you from?", "Your origin sets your home, your loyalties and the old wounds your stories will pull on.")],
     components: [new ActionRowBuilder().addComponents(menu)],
     flags: ephemeral,
   });
@@ -33,26 +33,11 @@ export async function onOrigin(interaction, g) {
   if (!draft) return expired(interaction);
   draft.originId = interaction.values[0];
   store.save();
-  const menu = new StringSelectMenuBuilder()
-    .setCustomId("cc:career")
-    .setPlaceholder("Choose your career")
-    .addOptions(Object.entries(CAREERS).map(([id, c]) => ({ label: c.label, value: id, emoji: c.emoji })));
-  await interaction.update({
-    embeds: [step("Step 2 of 4: What do you do?", `**${ORIGINS[draft.originId].label}**. Now pick a career. The DM gives you in-game objectives that fit it.`)],
-    components: [new ActionRowBuilder().addComponents(menu)],
-  });
-}
-
-export async function onCareer(interaction, g) {
-  const draft = g.drafts[interaction.user.id];
-  if (!draft) return expired(interaction);
-  draft.career = interaction.values[0];
-  store.save();
   const row = new ActionRowBuilder().addComponents(
     Object.entries(PRONOUNS).map(([k, p]) => new ButtonBuilder().setCustomId(`cc:pr:${k}`).setLabel(p.label).setStyle(ButtonStyle.Secondary)),
   );
   await interaction.update({
-    embeds: [step("Step 3 of 4: Pronouns", "How should the story refer to your character?")],
+    embeds: [step("Step 2 of 3: Pronouns", `**${ORIGINS[draft.originId].label}**. How should the story refer to your character?`)],
     components: [row],
   });
 }
@@ -70,7 +55,7 @@ async function showNames(interaction, draft, g) {
   store.save();
   const nameButtons = draft.names.map((n, i) => new ButtonBuilder().setCustomId(`cc:name:${i}`).setLabel(clip(n, 80)).setStyle(ButtonStyle.Primary));
   await interaction.update({
-    embeds: [step("Step 4 of 4: Choose a name", `Names that fit a **${ORIGINS[draft.originId].label}**. Pick one, roll new ones, or type your own.`)],
+    embeds: [step("Step 3 of 3: Choose a name", `Names that fit a **${ORIGINS[draft.originId].label}**. Pick one, roll new ones, or type your own.`)],
     components: [
       new ActionRowBuilder().addComponents(nameButtons.slice(0, 3)),
       new ActionRowBuilder().addComponents(nameButtons.slice(3, 6)),
@@ -116,8 +101,7 @@ export async function onCustomName(interaction, g) {
 async function finish(interaction, g, draft, name) {
   await interaction.editReply({ embeds: [step("Writing your story…", `The DM is writing ${name}'s origin.`)], components: [] });
 
-  const char = buildCharacter(g, { ownerId: interaction.user.id, originId: draft.originId, career: draft.career, name, pronouns: draft.pronouns, seed: draft.seed });
-  char.careerLabel = CAREERS[char.career].label;
+  const char = buildCharacter(g, { ownerId: interaction.user.id, originId: draft.originId, career: null, name, pronouns: draft.pronouns, seed: draft.seed });
   char.pronounsLabel = PRONOUNS[char.pronouns].label;
   // Other characters' stories (same origin first), so the AI doesn't hand out the same life twice.
   const others = Object.values(g.characters)
@@ -131,7 +115,7 @@ async function finish(interaction, g, draft, name) {
   g.activeChar[interaction.user.id] = char.id;
   const kin = linkKin(g, char);
   delete g.drafts[interaction.user.id];
-  store.addJournal(char, { kind: "origin", text: `${char.name} entered the 'Verse: ${char.origin}, ${char.careerLabel}.` });
+  store.addJournal(char, { kind: "origin", text: `${char.name} entered the 'Verse: ${char.origin}.` });
   store.logWorld(g, `${char.name} (${char.origin}) arrived in the 'Verse.`);
   for (const k of kin) store.logWorld(g, `Rumour has it ${char.name} and ${k.with} are blood: ${k.relation}s.`);
   store.save();
@@ -172,7 +156,7 @@ export async function list(interaction, g) {
   const chars = store.charactersOf(g, interaction.user.id);
   if (!chars.length) return interaction.reply({ content: "No characters yet. Use `/character create`.", flags: ephemeral });
   const active = g.activeChar[interaction.user.id];
-  await interaction.reply({ content: chars.map((c) => `${c.id === active ? "▶️" : "▫️"} **${c.name}**: ${c.origin}, ${c.careerLabel}`).join("\n"), flags: ephemeral });
+  await interaction.reply({ content: chars.map((c) => `${c.id === active ? "▶️" : "▫️"} **${c.name}**: ${c.origin}${c.preferredRole ? `, prefers ${CREW_ROLES[c.preferredRole].label}` : ""}`).join("\n"), flags: ephemeral });
 }
 
 export async function switchChar(interaction, g) {
@@ -252,4 +236,20 @@ export async function remove(interaction, g) {
   }
   store.save();
   await interaction.reply({ content: `**${char.name}** has been deleted.`, flags: ephemeral });
+}
+
+// ── /character role: a preferred crew role (or auto) ────────────────────────
+export async function setRole(interaction, g) {
+  const char = store.activeCharacter(g, interaction.user.id);
+  if (!char) return interaction.reply({ content: "Create a character first: `/character create`.", flags: ephemeral });
+  const role = interaction.options.getString("role");
+  char.preferredRole = role === "auto" ? null : role;
+  store.save();
+  const r = CREW_ROLES[char.preferredRole];
+  await interaction.reply({
+    content: r
+      ? `${r.emoji} **${char.name}** will be the crew's **${r.label}** whenever possible. (If two people pick the same role, one of them gets their next-best fit.)`
+      : `**${char.name}** will get roles that fit their story, and rotate so they try new things.`,
+    flags: ephemeral,
+  });
 }

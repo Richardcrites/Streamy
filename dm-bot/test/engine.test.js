@@ -242,3 +242,59 @@ test("characters with the same origin get different lives and different hooks", 
   for (const c of made) for (const k of c.hookKeys) hookUse[k] = (hookUse[k] || 0) + 1;
   assert.ok(Object.keys(hookUse).length >= 4, `hooks are spread out: ${JSON.stringify(hookUse)}`);
 });
+
+test("crew roles: never doubled, preferences win, stories steer, and roles rotate", async () => {
+  const { CREW_ROLES } = await import("../src/lore/data.js");
+  const g = store.guild(`roles-${Math.random()}`);
+  const mk = (owner, originId, name, extra = {}) => {
+    const c = story.buildCharacter(g, { ownerId: owner, originId, career: null, name, pronouns: "he" });
+    Object.assign(c, extra);
+    g.characters[c.id] = c;
+    return c;
+  };
+  const rj = mk("a", "pyro_outlaw", "RJ Oressian", { preferredRole: "pilot" });
+  const xo = mk("b", "navy_veteran", 'Jace "XO" Calder');
+  const crew = [rj, xo, ...["c", "d", "e", "f", "g", "h", "i", "j"].map((u, i) => mk(u, "pyro_outlaw", `Merc${i} Gun${i}`, { career: "marine" }))];
+  for (let i = 0; i < 50; i++) {
+    const roles = story.assignRoles(crew, "heist");
+    assert.equal(new Set(roles.map((r) => r.role)).size, crew.length, "ten crew, ten different roles");
+    assert.equal(roles[0].role, "pilot", "a chosen role always wins");
+    for (const r of roles) assert.ok(CREW_ROLES[r.role] && r.why);
+  }
+  let xoAsXo = 0;
+  for (let i = 0; i < 50; i++) if (story.assignRoles([rj, xo], "smuggle")[1].role === "xo") xoAsXo++;
+  assert.ok(xoAsXo >= 45, `a character called XO should usually be the XO (${xoAsXo}/50)`);
+  xo.roleHistory = [{ role: "xo" }, { role: "xo" }];
+  let rotated = 0;
+  for (let i = 0; i < 50; i++) if (story.assignRoles([rj, xo], "smuggle")[1].role !== "xo") rotated++;
+  assert.ok(rotated > 0, "after two missions as XO, they sometimes try something else");
+});
+
+test("missions record roles, and scrapping one erases them", () => {
+  const g = store.guild(`roles2-${Math.random()}`);
+  const crew = ["a", "b", "c"].map((u, i) => {
+    const c = story.buildCharacter(g, { ownerId: u, originId: "pyro_outlaw", career: null, name: `Crew${i} Name${i}`, pronouns: "they" });
+    g.characters[c.id] = c;
+    return c;
+  });
+  const m = story.buildMission(g, crew, "rescue");
+  assert.equal(new Set(m.objectives.map((o) => o.role)).size, 3);
+  for (const o of m.objectives) (g.characters[o.characterId].roleHistory ??= []).push({ missionId: m.id, role: o.role });
+  g.missions = { [m.id]: m };
+  story.rollbackMission(g, m);
+  for (const c of crew) assert.equal(c.roleHistory.length, 0);
+});
+
+test("campaign chapters hand different crew members different activities when they can", () => {
+  const g = store.guild(`ch-${Math.random()}`);
+  const crew = ["a", "b"].map((u, i) => {
+    const c = story.buildCharacter(g, { ownerId: u, originId: "pyro_outlaw", career: null, name: `Pal${i} Friend${i}`, pronouns: "they" });
+    g.characters[c.id] = c;
+    return c;
+  });
+  for (let i = 0; i < 40; i++) {
+    const camp = story.buildCampaign(g, { goalId: "uncover", characters: crew, ownerId: "a", scope: "org" });
+    const ch = story.buildChapter(g, camp, crew);
+    assert.notEqual(ch.objectives[0].activity, ch.objectives[1].activity);
+  }
+});

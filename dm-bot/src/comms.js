@@ -3,6 +3,7 @@
 // are DMed to every player involved, so they arrive like incoming comms in the game.
 
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
+import { CREW_ROLES } from "./lore/data.js";
 
 export const COLORS = { transmission: 0xf5a623, dossier: 0x4aa3df, chapter: 0x7b61ff, outcome: 0x3ecf8e, finale: 0xe5484d, news: 0x8892a6 };
 
@@ -19,7 +20,7 @@ export function dossierEmbed(char, { full = false } = {}) {
     .setDescription(clip(full ? char.story.join("\n\n") : char.story[0], 4000))
     .addFields(
       { name: "Origin", value: char.origin, inline: true },
-      { name: "Career", value: char.careerLabel || char.career, inline: true },
+      { name: "Crew role", value: char.preferredRole ? `${CREW_ROLES[char.preferredRole].emoji} ${CREW_ROLES[char.preferredRole].label}` : "Auto (fits the story)", inline: true },
       { name: "Pronouns", value: char.pronounsLabel || char.pronouns, inline: true },
       { name: "Home", value: char.home, inline: true },
       { name: "Last known location", value: char.location || "Unknown", inline: true },

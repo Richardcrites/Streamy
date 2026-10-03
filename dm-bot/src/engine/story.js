@@ -7,7 +7,7 @@ import {
   ORIGINS, NAME_POOLS, NPC_POOL, RELICS, LOCATIONS, CARGO, ORES, EVIDENCE,
   OBJECTIVES, ACTIVITY_TAGS, CAMPAIGN_GOALS, THREADS, CAREERS, MISSION_TYPES, MISSION_TWISTS,
   GAME_RULES, NPC_LINKS, KIN_RELATIONS, SIDES, MISSION_STAKES, TITLE_WORDS,
-  ANCHORS, ROLES, RENDEZVOUS, SHARE_HOW, STOP_PLACES, STOP_REASONS, STOP_ACTIONS, STOP_NEEDS,
+  ANCHORS, RENDEZVOUS, SHARE_HOW, CREW_ROLES, ORIGIN_ROLES, ROLE_WORDS, CAREER_TO_ROLE, MISSION_NEEDS, STOP_PLACES, STOP_REASONS, STOP_ACTIONS, STOP_NEEDS,
 } from "../lore/data.js";
 import { pick, pickN, randInt, fill } from "./util.js";
 import { freshName, registerName, isTaken, similar, lastName } from "./names.js";
@@ -187,10 +187,13 @@ function locationFor(system, activity) {
   return pick(fits.length ? fits : places).name;
 }
 
-export function buildObjective(campaign, char, activities) {
+export function buildObjective(campaign, char, activities, avoid = new Set()) {
   const careerActs = CAREERS[char.career]?.activities || [];
-  const preferred = activities.filter((a) => careerActs.includes(a));
-  const activity = pick(preferred.length ? preferred : activities);
+  const fresh = activities.filter((a) => !avoid.has(a));
+  const pool = fresh.length ? fresh : activities;
+  const preferred = pool.filter((a) => careerActs.includes(a));
+  const activity = pick(preferred.length ? preferred : pool);
+  avoid.add(activity);
   const v = campaign.vars;
   const objVars = {
     ...v,
@@ -246,7 +249,9 @@ export function buildChapter(g, campaign, characters) {
   const act = campaign.acts[campaign.actIndex];
   const v = { ...campaign.vars, patron: npcName(g, campaign.patronId), lead: characters[0].name, actTitle: act.title };
 
-  const objectives = characters.map((c) => buildObjective(campaign, c, act.activities));
+  // Different activities for different crew members where the act allows it.
+  const used = new Set();
+  const objectives = characters.map((c) => buildObjective(campaign, c, act.activities, used));
   // Pull a participant's open hook into the briefing so personal stories surface.
   const hookChar = pick(characters.filter((c) => c.hooks.some((h) => h.status === "open"))) || null;
   const hook = hookChar ? pick(hookChar.hooks.filter((h) => h.status === "open")) : null;
@@ -498,12 +503,15 @@ export function buildMission(g, characters, typeId) {
   // One real contract, shared with the party, anchors the job: its destination stands in for the story's place.
   const anchorTpl = pick(ANCHORS[typeKey]);
   const anchor = { contract: `${anchorTpl.contract} in ${system}`, standIn: fill(anchorTpl.standIn, vars), share: SHARE_HOW };
-  // Everyone has a role on that one job, based on their career.
-  const objectives = characters.map((c) => ({
-    characterId: c.id,
-    characterName: c.name,
-    activity: c.career,
-    text: ROLES[c.career] || "Back the crew up however the job needs.",
+  // Everyone gets a different crew role, based on their story (and their own pick, if they set one).
+  const objectives = assignRoles(characters, typeKey).map(({ char, role, why }) => ({
+    characterId: char.id,
+    characterName: char.name,
+    activity: role,
+    role,
+    roleLabel: CREW_ROLES[role].label,
+    why,
+    text: CREW_ROLES[role].job,
   }));
   const activities = type.activities;
 
@@ -581,7 +589,9 @@ export function rollbackMission(g, mission) {
   g.usedTitles = (g.usedTitles || []).filter((t) => !made.titles.includes(t));
   for (const id of mission.characterIds) {
     const c = g.characters[id];
-    if (c) c.journal = c.journal.filter((j) => !(j.kind === "mission" && j.text.includes(`"${mission.title}"`)));
+    if (!c) continue;
+    c.journal = c.journal.filter((j) => !(j.kind === "mission" && j.text.includes(`"${mission.title}"`)));
+    if (c.roleHistory) c.roleHistory = c.roleHistory.filter((r) => r.missionId !== mission.id);
   }
   delete g.missions[mission.id];
 }
@@ -645,4 +655,40 @@ export function roadRollLabel(d20) {
   if (d20 <= 8) return "Trouble on the way";
   if (d20 <= 19) return "One stop on the way";
   return "Clean run: the lanes are clear";
+}
+
+// ── Crew roles ───────────────────────────────────────────────────────────────
+// Scores every (character, role) pair, then hands out roles greedily so nobody doubles up.
+// Preferred role > words in their story/name > origin > old career; recent roles are discouraged
+// (so people try new things) unless it's their chosen role. The mission's key role gets a nudge.
+export function assignRoles(characters, typeKey) {
+  const needs = MISSION_NEEDS[typeKey] || [];
+  const pairs = [];
+  for (const c of characters) {
+    const text = [c.name, c.seed || "", ...(c.story || [])].join(" ");
+    const recent = (c.roleHistory || []).slice(-2).map((r) => r.role);
+    for (const role of Object.keys(CREW_ROLES)) {
+      let score = Math.random();
+      let why = "something new to try";
+      if (c.preferredRole === role) { score += 20; why = "your chosen role"; }
+      else {
+        if (ROLE_WORDS[role]?.test(text)) { score += 4; why = "it fits your story"; }
+        if ((ORIGIN_ROLES[c.originId] || []).includes(role)) { score += 3; if (why === "something new to try") why = `it suits a ${c.origin}`; }
+        if (CAREER_TO_ROLE[c.career] === role) score += 2;
+        score -= 2.5 * recent.filter((r) => r === role).length;
+      }
+      if (needs[0] === role) score += 2;
+      else if (needs.includes(role)) score += 1;
+      pairs.push({ char: c, role, score, why });
+    }
+  }
+  pairs.sort((a, b) => b.score - a.score);
+  const taken = new Set();
+  const done = new Map();
+  for (const p of pairs) {
+    if (done.has(p.char.id) || taken.has(p.role)) continue;
+    taken.add(p.role);
+    done.set(p.char.id, p);
+  }
+  return characters.map((c) => done.get(c.id));
 }

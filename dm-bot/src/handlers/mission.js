@@ -6,7 +6,7 @@ import {
   EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags,
   ModalBuilder, TextInputBuilder, TextInputStyle,
 } from "discord.js";
-import { DEFAULT_PERSONA } from "../lore/data.js";
+import { DEFAULT_PERSONA, CREW_ROLES } from "../lore/data.js";
 import { buildMission, missionEpilogue, snapshot, createdSince, rollbackMission, roadRollLabel } from "../engine/story.js";
 import { narrateMission, narrateMissionEnd } from "../ai.js";
 import * as store from "../store.js";
@@ -60,6 +60,10 @@ async function createMission(g, crew, type, ownerId) {
     ai.objective_flavour.forEach((f, i) => { if (mission.objectives[i]) mission.objectives[i].flavour = f; });
   }
   mission.created = createdSince(g, snap);
+  for (const o of mission.objectives) {
+    const c = g.characters[o.characterId];
+    if (c && o.role) (c.roleHistory ??= []).push({ missionId: mission.id, role: o.role });
+  }
   mission.ownerId = ownerId;
   g.missions[mission.id] = mission;
   for (const c of crew) store.addJournal(c, { kind: "mission", text: `Took the job "${mission.title}" from ${personaName(g)}.` });
@@ -82,8 +86,10 @@ function missionMessage(g, mission, crew) {
       }] : []),
       ...(mission.rendezvous ? [{ name: "📍 Meet at", value: `${mission.rendezvous}. Party up there before anyone takes the contract.` }] : []),
       {
-        name: "🎭 Roles",
-        value: clip(mission.objectives.map((o) => `**${o.characterName}:** ${o.text}${o.flavour ? ` *${o.flavour}*` : ""}`).join("\n"), 1024),
+        name: "🎭 Crew roles",
+        value: clip(mission.objectives.map((o) => o.roleLabel
+          ? `${CREW_ROLES[o.role].emoji} **${o.characterName}: ${o.roleLabel}** (${o.why}). ${o.flavour || o.text}`
+          : `**${o.characterName}:** ${o.text}`).join("\n"), 1024),
       },
       ...(mission.stops ? [{
         name: `🛑 Stops on the way · 🎲 d20 rolled ${mission.roadRoll}: ${roadRollLabel(mission.roadRoll)}`,
