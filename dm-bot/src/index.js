@@ -5,6 +5,7 @@ import * as character from "./handlers/character.js";
 import * as play from "./handlers/play.js";
 import * as mission from "./handlers/mission.js";
 import * as voice from "./voice.js";
+import * as records from "./handlers/records.js";
 import { aiLabel } from "./ai.js";
 import { linkKin } from "./engine/story.js";
 import { registerName } from "./engine/names.js";
@@ -23,9 +24,19 @@ for (const g of Object.values(store.load().guilds)) {
   }
 }
 store.saveNow();
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates] });
+// The scribe channel needs to read message text, which is a "privileged intent" that must be switched
+// on in the developer portal. If it isn't, the bot still starts, just without the scribe channel.
+function makeClient(withMessages) {
+  const intents = [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates];
+  if (withMessages) intents.push(GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent);
+  const client = new Client({ intents });
+  client.once(Events.ClientReady, onReady);
+  client.on(Events.InteractionCreate, onInteraction);
+  if (withMessages) client.on(Events.MessageCreate, onMessage);
+  return client;
+}
 
-client.once(Events.ClientReady, (c) => {
+function onReady(c) {
   console.log(`Star Citizen DM online as ${c.user.tag}. Narration: ${aiLabel()}. Voice: ${voice.ttsLabel()}.`);
   const invite = c.generateInvite({
     scopes: [OAuth2Scopes.Bot, OAuth2Scopes.ApplicationsCommands],
@@ -35,7 +46,7 @@ client.once(Events.ClientReady, (c) => {
     ],
   });
   console.log(`Invite / fix permissions link (open it and pick your server):\n${invite}`);
-});
+}
 
 async function route(interaction) {
   const g = store.guild(interaction.guildId);
@@ -71,9 +82,13 @@ async function route(interaction) {
       case "voice": return play.voiceCommand(interaction, g, sub);
       case "dm-admin":
         if (sub === "persona") return mission.editPersona(interaction, g);
+        if (sub === "scribe-channel") return records.setScribeChannel(interaction, g);
         return play.admin(interaction, g, sub);
       case "dm-help": return play.help(interaction);
       case "rp-rules": return play.rpRules(interaction);
+      case "status": return records.status(interaction, g, sub);
+      case "lore": return records.lore(interaction, g, sub);
+      case "archive": return records.archive(interaction, g, sub);
     }
     return;
   }
@@ -93,12 +108,25 @@ async function route(interaction) {
   }
   if (kind === "ms") return mission.onButton(interaction, g, args[0], args[1]);
   if (kind === "msm") return mission.onReport(interaction, g, args[0], args[1]);
+  if (kind === "st") return records.onClearSelect(interaction, g, args[0]);
   if (kind === "persona") return mission.savePersona(interaction, g);
   if (kind === "ch") return play.onChoice(interaction, g, args[0], args[1], Number(args[2]));
   if (kind === "chm") return play.onReport(interaction, g, args[0], args[1], Number(args[2]));
 }
 
-client.on(Events.InteractionCreate, async (interaction) => {
+async function onMessage(message) {
+  if (message.author.bot || !message.guildId) return;
+  const g = store.guild(message.guildId);
+  if (message.channelId !== g.settings.scribeChannelId) return;
+  try {
+    await records.onScribeMessage(message, g);
+  } catch (err) {
+    console.error("[scribe]", err);
+    message.react("⚠️").catch(() => {});
+  }
+}
+
+async function onInteraction(interaction) {
   if (!interaction.guildId) {
     if (interaction.isRepliable()) await interaction.reply({ content: "Use me inside a server, not in DMs.", flags: MessageFlags.Ephemeral }).catch(() => {});
     return;
@@ -113,7 +141,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       else await interaction.reply(msg).catch(() => {});
     }
   }
-});
+}
 
 for (const sig of ["SIGINT", "SIGTERM"]) {
   process.on(sig, () => {
@@ -122,4 +150,15 @@ for (const sig of ["SIGINT", "SIGTERM"]) {
   });
 }
 
-client.login(process.env.DISCORD_TOKEN);
+const first = makeClient(true);
+try {
+  await first.login(process.env.DISCORD_TOKEN);
+} catch (err) {
+  if (!/disallowed intents/i.test(err.message)) throw err;
+  first.destroy();
+  console.warn(
+    "⚠️ The scribe channel is off: turn on 'Message Content Intent' in the Discord developer portal → Bot, then restart.\n" +
+      "   Everything else works normally.",
+  );
+  await makeClient(false).login(process.env.DISCORD_TOKEN);
+}

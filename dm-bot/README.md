@@ -21,6 +21,11 @@ Built on the lore codex in [`../lore`](../lore) (year 2956, Alpha 4.10).
 | `/mission` | A **one-shot mission** in the DM's voice: a hook, an NPC with a motive, an in-game objective for each crew member, and a hidden twist. Play it in game and in **voice chat**, then click ✅ complete or 💀 failed (add a note about what happened). The DM reveals the twist, writes an epilogue, and updates everyone's journal. |
 | `/voice join` / `test` / `replay` / `leave` | The DM **speaks aloud** in your voice channel. When you're in voice, missions, chapter transmissions, twists and finales are read out automatically. It speaks only; it doesn't listen. |
 | `/dm-admin voice` / `voice-name` | Admin: turn the spoken voice on or off, and pick one of 11 free voices. |
+| `/status view` / `add` / `clear` | Injuries 🩸, ship damage 🚀, warrants ⚖️ and other conditions. Each says how it clears in game ("land and repair", "med bed"), and they carry into missions and stories until cleared. |
+| `/lore add` / `list` | **Server canon**: lore your group created. The DM respects it in every story. |
+| `/archive list` / `read` / `export` | Finished missions and campaigns, saved as readable stories. Export downloads everything as a file. |
+| **Scribe channel** | One player types quick, messy updates while you play, like *"beat 2 vanduul, rj hull shredded, landing nyx 2"*. The DM records injuries, ship damage, locations, journal entries and lore, and replies with a short ✅ summary. No commands needed. Mission report notes are read the same way. |
+| `/dm-admin scribe-channel` | Admin: pick the scribe channel. |
 | `/dm-admin persona` | Admin: give the DM a name and personality (default: "Relay", a gravelly information broker). |
 | `/story crossover @player` | Links two characters' stories through shared history, rivalries or hooks, with a joint job and a meet-up scene. |
 | `/org create/join/leave/info/list/relation` | Multiple orgs per server, with alliances and rivalries. |
@@ -70,6 +75,14 @@ Built on the lore codex in [`../lore`](../lore) (year 2956, Alpha 4.10).
 - **Chapter → chapter:** chapters pull in open hooks, your `/log` entries and earlier choices.
 - **Player → player:** crossovers create connections. Org campaigns give everyone a role.
 - **Story → world:** finales, new orgs and rivalries go into the **world log**, which feeds the news and the AI narrator, so one crew's ending becomes another crew's rumour.
+
+## Scribe channel setup
+
+1. `/dm-admin scribe-channel #scribe`
+2. In the Discord developer portal → your app → **Bot**, turn on **Message Content Intent** (so the bot can read that channel), then restart the bot.
+3. During play, one person types what happens. Messages starting with `((` or `//` are ignored (out of character).
+
+Without an AI key, scribe messages are still saved to the journal and the mission's field log, but not parsed into conditions.
 
 ## The DM's voice
 

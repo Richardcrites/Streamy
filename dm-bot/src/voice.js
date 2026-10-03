@@ -195,3 +195,10 @@ export function narrate(interaction, g, text) {
   if (!channel) return;
   say(channel, text, g.settings.voiceName).catch(() => {});
 }
+
+// Speak only if the DM is already in a voice channel in this guild (used for scribe confirmations).
+export function sayIfConnected(guild, g, text) {
+  if (g.settings.voice === false || !guild || !isConnected(guild.id)) return;
+  const channel = guild.channels.cache.get(getVoiceConnection(guild.id).joinConfig.channelId);
+  if (channel) say(channel, text, g.settings.voiceName).catch(() => {});
+}

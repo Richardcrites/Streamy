@@ -12,6 +12,8 @@ import { narrateMission, narrateMissionEnd } from "../ai.js";
 import * as store from "../store.js";
 import { broadcast, COLORS, clip } from "../comms.js";
 import * as voice from "../voice.js";
+import { activeConditions, conditionLine, canonText, archiveMission } from "../engine/records.js";
+import { parseAndApply } from "./records.js";
 
 const ephemeral = MessageFlags.Ephemeral;
 export const persona = (g) => g.settings.persona || DEFAULT_PERSONA;
@@ -31,7 +33,7 @@ export async function start(interaction, g) {
 
   g.missions ??= {};
   const mission = buildMission(g, crew, interaction.options.getString("type"));
-  const ai = await narrateMission({ mission, characters: crew, worldLog: g.worldLog, persona: persona(g) });
+  const ai = await narrateMission({ mission, characters: crew, worldLog: g.worldLog, persona: persona(g), canon: canonText(g) });
   if (ai) {
     mission.title = ai.title;
     mission.briefing = ai.briefing;
@@ -45,6 +47,7 @@ export async function start(interaction, g) {
   for (const c of crew) store.addJournal(c, { kind: "mission", text: `Took the job "${mission.title}" from ${personaName(g)}.` });
   store.save();
 
+  const carrying = crew.flatMap((c) => activeConditions(c).map((x) => `**${c.name}:** ${conditionLine(x)}`));
   const embed = new EmbedBuilder()
     .setColor(COLORS.transmission)
     .setAuthor({ name: `📡 ${personaName(g).toUpperCase()} · ${mission.emoji} ${mission.typeLabel.toUpperCase()} · ${mission.system}` })
@@ -56,6 +59,7 @@ export async function start(interaction, g) {
         name: `🎮 ${o.characterName}`,
         value: clip(o.flavour ? `${o.text}\n*${o.flavour}*` : o.text, 1024),
       })),
+      ...(carrying.length ? [{ name: "🩹 Carrying into this job", value: clip(carrying.join("\n"), 1024) }] : []),
       { name: "⚖️ Stakes", value: clip(mission.stakes, 1024) },
       { name: "🎲 If the game fights back", value: clip(mission.rules.map((r) => `• ${r}`).join("\n"), 1024) },
     )
@@ -94,6 +98,8 @@ export async function onReport(interaction, g, missionId, result) {
   const crew = mission.characterIds.map((id) => g.characters[id]).filter(Boolean);
 
   mission.status = success ? "complete" : "failed";
+  // The report notes go through the scribe parser too, so injuries and damage are recorded automatically.
+  const recorded = notes ? await parseAndApply(g, notes, interaction.user.username, { mission }) : null;
   const ai = await narrateMissionEnd({ mission, success, notes, characters: crew, persona: persona(g) });
   mission.epilogue = ai?.epilogue || missionEpilogue(mission, success);
   mission.notes = notes;
@@ -104,6 +110,7 @@ export async function onReport(interaction, g, missionId, result) {
     if (success) c.renown["Jobs done"] = (c.renown["Jobs done"] || 0) + 1;
   }
   store.logWorld(g, `${crew.map((c) => c.name).join(", ")} ${success ? "pulled off" : "failed"} "${mission.title}".`);
+  archiveMission(g, mission, crew);
   store.save();
 
   await interaction.editReply({ components: [] }).catch(() => {});
@@ -112,7 +119,8 @@ export async function onReport(interaction, g, missionId, result) {
     .setAuthor({ name: `📡 ${personaName(g).toUpperCase()} · ${success ? "JOB DONE" : "JOB FAILED"}` })
     .setTitle(clip(mission.title, 250))
     .setDescription(clip(`${mission.epilogue}${notes ? `\n\n**Crew report:** ${notes}` : ""}`, 4000))
-    .setFooter({ text: "Logged to everyone's journal. Run /mission for the next job." });
+    .setFooter({ text: "Archived (/archive) and logged to everyone's journal. Run /mission for the next job." });
+  if (recorded?.lines.length) embed.addFields({ name: "📝 Recorded", value: clip(recorded.lines.join("\n"), 1024) });
   voice.narrate(interaction, g, mission.epilogue);
   await broadcast(interaction, g, { embeds: [embed], userIds: [] });
 }

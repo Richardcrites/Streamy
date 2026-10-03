@@ -127,7 +127,7 @@ function logFailure(what, err) {
 }
 
 // Returns parsed JSON matching `schema`, or null if AI is off or the call fails.
-async function generate(task, payload, schema, extraSystem = "") {
+async function generate(task, payload, schema, extraSystem = "", { lenient = false } = {}) {
   if (!aiEnabled()) return null;
   try {
     const text = await complete({
@@ -136,7 +136,7 @@ async function generate(task, payload, schema, extraSystem = "") {
       schema,
     });
     const out = parseJson(text);
-    if (matchesSchema(out, schema)) return out;
+    if (matchesSchema(out, schema, lenient)) return out;
     console.warn(`[ai] ${task.slice(0, 40)}… the model's answer was ${text ? "missing fields" : "empty"}; using built-in text. Try a different OPENROUTER_MODEL if this keeps happening.`);
     return null;
   } catch (err) {
@@ -146,13 +146,13 @@ async function generate(task, payload, schema, extraSystem = "") {
 }
 
 // Light shape check so a model that skips a field falls back to the procedural text.
-function matchesSchema(value, schema) {
+function matchesSchema(value, schema, lenient = false) {
   if (!value || typeof value !== "object") return false;
   return (schema.required || []).every((key) => {
     const type = schema.properties[key]?.type;
     const v = value[key];
-    if (type === "string") return typeof v === "string" && v.trim().length > 0;
-    if (type === "array") return Array.isArray(v) && v.length > 0;
+    if (type === "string") return typeof v === "string" && (lenient || v.trim().length > 0);
+    if (type === "array") return Array.isArray(v) && (lenient || v.length > 0);
     return v !== undefined;
   });
 }
@@ -177,6 +177,7 @@ const charBrief = (c) => ({
   name: c.name, pronouns: c.pronouns, origin: c.origin, career: c.careerLabel || c.career,
   open_hooks: c.hooks.filter((h) => h.status === "open").map((h) => h.text),
   recent_journal: c.journal.slice(-6).map((j) => j.text),
+  active_conditions: (c.conditions || []).filter((x) => x.status === "active").map((x) => `${x.kind}: ${x.text} (${x.severity}; clears: ${x.clears})`),
 });
 
 // ── Narration (one-shot JSON) ────────────────────────────────────────────────
@@ -194,7 +195,7 @@ export async function narrateOrigin(character) {
   return out?.paragraphs?.length ? out.paragraphs : null;
 }
 
-export async function narrateChapter({ campaign, chapter, characters, worldLog }) {
+export async function narrateChapter({ campaign, chapter, characters, worldLog, canon = [] }) {
   return generate(
     "Write the next chapter of this campaign. Keep every objective's activity and place exactly. You are only " +
       "writing flavour for them. The transmission is an in-character comms message from the patron NPC. " +
@@ -206,6 +207,7 @@ export async function narrateChapter({ campaign, chapter, characters, worldLog }
       characters: characters.map(charBrief),
       skeleton: { transmission_from: chapter.transmission.from, transmission: chapter.transmission.text, objectives: chapter.objectives.map((o) => ({ for: o.characterName, activity: o.activity, place: o.place, text: o.text })), rp_prompt: chapter.rpPrompt },
       world_log: worldLog.slice(-8).map((w) => w.text),
+      server_canon: canon,
     },
     obj({
       title: str,
@@ -231,7 +233,7 @@ export async function narrateFinale({ campaign, finale, characters }) {
   );
 }
 
-export async function narrateMission({ mission, characters, worldLog, persona }) {
+export async function narrateMission({ mission, characters, worldLog, persona, canon = [] }) {
   return generate(
     "Write this one-shot mission in the persona's voice. It is played in Star Citizen and roleplayed in voice chat, " +
       "so DO NOT script scenes, dialogue or what the players do: give them a situation, stakes and a reason to care, and " +
@@ -240,7 +242,9 @@ export async function narrateMission({ mission, characters, worldLog, persona })
       "people you may mention are the crew and the names in `allowed_names`. Never invent other named characters. " +
       "Keep every objective's activity and place exactly; you only write one line of flavour for each. 'briefing' is " +
       "2 short paragraphs spoken by the persona. 'crossing' explains in 2–4 sentences how the crew's stories connect. " +
-      "'stakes' is 1–2 sentences. 'twist' is a secret revealed only at the end; make it land on the crossing.",
+      "'stakes' is 1–2 sentences. 'twist' is a secret revealed only at the end; make it land on the crossing. " +
+      "If a character carries an active condition (injury, ship damage, warrant), let it matter: mention it in the briefing or stakes. " +
+      "Respect server_canon: it is what has already happened on this server.",
     {
       persona,
       mission: { type: mission.typeLabel, system: mission.system, antagonist: mission.antagonist, person_at_the_centre: mission.target, draft_briefing: mission.briefing, draft_stakes: mission.stakes, objectives: mission.objectives.map((o) => ({ for: o.characterName, activity: o.activity, place: o.place, text: o.text })) },
@@ -248,6 +252,7 @@ export async function narrateMission({ mission, characters, worldLog, persona })
       allowed_names: mission.names,
       characters: characters.map(charBrief),
       world_log: worldLog.slice(-8).map((w) => w.text),
+      server_canon: canon,
     },
     obj({ title: str, briefing: str, crossing: str, objective_flavour: { type: "array", items: str }, stakes: str, twist: str }),
   );
@@ -267,5 +272,35 @@ export async function narrateMissionEnd({ mission, success, notes, characters, p
       characters: characters.map((c) => ({ name: c.name, pronouns: c.pronouns })),
     },
     obj({ epilogue: str, journal: { type: "array", items: obj({ name: str, entry: str }) } }),
+    "",
+    { lenient: true },
+  );
+}
+
+// ── Scribe: turn a quick, messy play update into structured records ──────────
+const KINDS = ["injury", "ship", "legal", "other", "clear", "journal", "location"];
+export async function parseScribe({ text, author, characters, missionTitle }) {
+  return generate(
+    "A player acting as scribe typed this quick update during a Star Citizen roleplay session. Extract what changed. " +
+      "kind: injury / ship (damage or limits on a ship) / legal (CrimeStat, warrants, fines) / other (a lasting " +
+      "condition) / clear (an existing condition is fixed; set condition_id from the list) / journal (something a " +
+      "character did worth remembering) / location (where a character now is; put the place in text). " +
+      "For conditions, write a short text, a severity (minor/major/critical) and how it clears in-game " +
+      "(e.g. 'land at the nearest planet and repair', 'med bed'). Use the character names exactly as listed; if the " +
+      "update says 'we' or 'everyone', add an entry per character involved. 'lore' is anything new about the world " +
+      "(an NPC's secret, a discovered place, a new rivalry) worth keeping as server canon; usually empty. 'summary' is " +
+      "one short line, in plain words, of what you recorded. Don't invent anything that isn't in the update. Use empty " +
+      "strings for fields that don't apply.",
+    { update: text, typed_by: author, current_mission: missionTitle || null, characters },
+    obj({
+      updates: {
+        type: "array",
+        items: obj({ character: str, kind: { type: "string", enum: KINDS }, text: str, severity: { type: "string", enum: ["minor", "major", "critical", ""] }, clears: str, condition_id: str }),
+      },
+      lore: { type: "array", items: str },
+      summary: str,
+    }),
+    "",
+    { lenient: true },
   );
 }

@@ -27,6 +27,8 @@ export function dossierEmbed(char, { full = false } = {}) {
     );
   const hooks = char.hooks.map((h) => `${h.status === "open" ? "◻️" : "✅"} ${h.text}`).join("\n");
   if (hooks) e.addFields({ name: "Story hooks", value: clip(hooks, 1024) });
+  const conds = (char.conditions || []).filter((c) => c.status === "active");
+  if (conds.length) e.addFields({ name: "Condition", value: clip(conds.map((c) => `${{ injury: "🩸", ship: "🚀", legal: "⚖️" }[c.kind] || "📌"} ${c.text}`).join("\n"), 1024) });
   const renown = Object.entries(char.renown || {}).map(([k, v]) => `${k}: ${v}`).join(" · ");
   if (renown) e.addFields({ name: "Renown", value: renown, inline: true });
   if (char.titles?.length) e.addFields({ name: "Titles", value: char.titles.join(", "), inline: true });

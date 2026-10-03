@@ -103,6 +103,8 @@ export const commands = [
     .addSubcommand((s) => s.setName("comms-channel").setDescription("Channel where story transmissions are posted")
       .addChannelOption((o) => o.setName("channel").setDescription("Channel").setRequired(true).addChannelTypes(ChannelType.GuildText)))
     .addSubcommand((s) => s.setName("persona").setDescription("Change the DM's name and personality"))
+    .addSubcommand((s) => s.setName("scribe-channel").setDescription("Channel where a scribe types quick updates during play")
+      .addChannelOption((o) => o.setName("channel").setDescription("Channel").setRequired(true).addChannelTypes(ChannelType.GuildText)))
     .addSubcommand((s) => s.setName("voice").setDescription("Turn the DM's spoken voice on or off")
       .addBooleanOption((o) => o.setName("enabled").setDescription("On or off").setRequired(true)))
     .addSubcommand((s) => s.setName("voice-name").setDescription("Choose the DM's voice (free voices)")
@@ -110,6 +112,37 @@ export const commands = [
         .addChoices(...Object.entries(EDGE_VOICES).map(([value, name]) => ({ name, value })))))
     .addSubcommand((s) => s.setName("dms").setDescription("DM story transmissions to players?")
       .addBooleanOption((o) => o.setName("enabled").setDescription("On or off").setRequired(true))),
+
+  new SlashCommandBuilder()
+    .setName("status")
+    .setDescription("Injuries, ship damage and other conditions your character carries")
+    .addSubcommand((s) => s.setName("view").setDescription("See a character's conditions")
+      .addUserOption((o) => o.setName("player").setDescription("Whose (default: yours)")))
+    .addSubcommand((s) => s.setName("add").setDescription("Add a condition")
+      .addStringOption((o) => o.setName("condition").setDescription("e.g. Hull breached, must land at the nearest planet").setRequired(true).setMaxLength(200))
+      .addStringOption((o) => o.setName("type").setDescription("Kind").setRequired(true)
+        .addChoices({ name: "🩸 Injury", value: "injury" }, { name: "🚀 Ship", value: "ship" }, { name: "⚖️ Legal", value: "legal" }, { name: "📌 Other", value: "other" }))
+      .addStringOption((o) => o.setName("severity").setDescription("How bad")
+        .addChoices({ name: "Minor", value: "minor" }, { name: "Major", value: "major" }, { name: "Critical", value: "critical" }))
+      .addStringOption((o) => o.setName("clears").setDescription("How it gets fixed in game, e.g. repair at a station").setMaxLength(150))
+      .addUserOption((o) => o.setName("player").setDescription("Whose (default: yours)")))
+    .addSubcommand((s) => s.setName("clear").setDescription("Mark conditions as fixed")
+      .addUserOption((o) => o.setName("player").setDescription("Whose (default: yours)"))),
+
+  new SlashCommandBuilder()
+    .setName("lore")
+    .setDescription("Server canon: lore your group has created")
+    .addSubcommand((s) => s.setName("add").setDescription("Make something canon")
+      .addStringOption((o) => o.setName("fact").setDescription("e.g. Ysolde Pike keeps a safehouse under Patch City").setRequired(true).setMaxLength(500)))
+    .addSubcommand((s) => s.setName("list").setDescription("Show server canon")),
+
+  new SlashCommandBuilder()
+    .setName("archive")
+    .setDescription("Finished stories")
+    .addSubcommand((s) => s.setName("list").setDescription("List archived stories"))
+    .addSubcommand((s) => s.setName("read").setDescription("Read an archived story")
+      .addStringOption((o) => o.setName("title").setDescription("Part of the title").setRequired(true)))
+    .addSubcommand((s) => s.setName("export").setDescription("Download the whole archive as a file")),
 
   new SlashCommandBuilder().setName("rp-rules").setDescription("How the game's bugs and limits become part of the story"),
 

@@ -6,6 +6,8 @@ import { narrateChapter, narrateFinale, aiEnabled, aiLabel } from "../ai.js";
 import * as store from "../store.js";
 import { chapterMessage, transmissionEmbed, broadcast, COLORS, clip } from "../comms.js";
 import * as voice from "../voice.js";
+import { canonText, archiveCampaign } from "../engine/records.js";
+import { parseAndApply } from "./records.js";
 
 const ephemeral = MessageFlags.Ephemeral;
 const RENOWN = { honor: "Trust", pragmatic: "Connections", ruthless: "Fear" };
@@ -23,7 +25,7 @@ const currentChapter = (campaign) => campaign.chapters.find((c) => c.status === 
 async function startChapter(interaction, g, campaign) {
   const chars = campaignChars(g, campaign);
   const chapter = buildChapter(g, campaign, chars);
-  const ai = await narrateChapter({ campaign, chapter, characters: chars, worldLog: g.worldLog });
+  const ai = await narrateChapter({ campaign, chapter, characters: chars, worldLog: g.worldLog, canon: canonText(g) });
   if (ai) {
     chapter.title = `Act ${campaign.actIndex + 1}: ${ai.title}`;
     chapter.transmission.text = ai.transmission;
@@ -178,6 +180,7 @@ export async function onReport(interaction, g, campaignId, chapterId, idx) {
   chapter.status = "done";
   chapter.result = { tone: choice.tone, label: choice.label, outcome: choice.outcome, by: interaction.user.id, notes };
   campaign.tones.push(choice.tone);
+  if (notes) await parseAndApply(g, notes, interaction.user.username, { mission: null });
 
   const chars = campaignChars(g, campaign);
   for (const c of chars) {
@@ -218,6 +221,7 @@ async function runFinale(interaction, g, campaign) {
     store.addJournal(c, { kind: "finale", text: `Completed "${campaign.title}" with ${finale.label}. Earned the title "${finale.awardTitle}".` });
   }
   store.logWorld(g, `${chars.map((c) => c.name).join(", ")} completed "${campaign.title}" with ${finale.label.toLowerCase()}.`);
+  archiveCampaign(g, campaign, chars);
   store.save();
 
   const embed = new EmbedBuilder()
@@ -408,6 +412,7 @@ export async function help(interaction) {
       "**2. Start a story:** `/campaign start` (solo or with your org). Each act gives you real **in-game objectives** and a **roleplay prompt**.\n" +
       "**3. Play it in game**, then click how your crew handled it. Your choices (🕊️ clean / 🤝 deal / 🔥 ruthless) decide the **finale**.\n" +
       "**4. Keep going:** `/story next` for the next act. `/log` to record what you did. `/character location` when you travel.\n" +
+      "**Keeping track:** `/status` shows injuries, ship damage and warrants (they carry into stories). `/lore` is your server's canon, `/archive` holds finished stories, and an admin can set a **scribe channel** where one person types quick updates during play.\n" +
       "**Voice:** join a voice channel and the DM reads briefings, twists and finales aloud. `/voice join`, `/voice test`, `/voice leave`.\n" +
       "**Link up:** `/story crossover @player` ties two characters' stories together. Orgs share campaigns (`/org`), and `/comms` sends in-character transmissions.\n" +
       "**The world remembers:** finales, rivalries and new orgs go into the world log and show up in `/comms news`.",
