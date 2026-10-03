@@ -31,7 +31,7 @@ test("without AI, 'what contract do we take?' is answered from the current missi
   const { g, m } = setup();
   const text = await ask.answer(g, { question: "what contract do we take for this?", userId: "a", askerName: "Rich" });
   for (const o of m.objectives) assert.ok(text.includes(o.characterName), text);
-  assert.match(text, /mobiGlas|No contract/);
+  assert.ok(text.includes(m.anchor.contract) && /Accepted.*Share/.test(text), text);
 });
 
 test("with AI, the question goes to the DM with mission, guide and persona; the twist stays secret", async () => {

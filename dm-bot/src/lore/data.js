@@ -267,19 +267,19 @@ export const EVIDENCE = ["a datapad", "a lab journal", "a security recording", "
 // {place} {system} {qty} {cargo} {ore} {evidence} {npc} {antagonist}
 export const OBJECTIVES = {
   haul: [
-    "Deliver at least {qty} SCU of {cargo} to {place} ({system}). A hauling contract or a self-bought cargo run both count.",
-    "Run {cargo} into {place}. Take a hauling contract heading there and log the delivery.",
+    "Deliver at least {qty} SCU of {cargo} to {place} ({system}). A **Hauling** contract or a self-bought cargo run both count.",
+    "Run {cargo} into {place}. Take a **Hauling** contract heading there and log the delivery.",
   ],
   delivery: [
-    "Take a courier/delivery contract and get the package to {place} without losing it. In the story, it's {npc}'s message.",
+    "Take a **Delivery** contract and get the package to {place} without losing it. In the story, it's {npc}'s message.",
     "Make a hand delivery to {place}: land, walk it in and hand it over. Bonus RP: say the code phrase out loud.",
   ],
   bounty: [
-    "Complete a bounty contract in {system}. In the story, the target flies for {antagonist}.",
-    "Hunt: take a bounty contract (any tier) and bring the target down. Screenshot the kill confirmation for your log.",
+    "Take a **Bounty Hunter** contract in {system} and share it with the crew. In the story, the target flies for {antagonist}.",
+    "Take a **Bounty Hunter** contract (pick the tier together) and bring the target down.",
   ],
   fps: [
-    "Clear {place} on foot and recover {evidence} (any datapad or loot crate you find counts).",
+    "Take a **Mercenary** contract to clear a site, or go into {place} on foot, and recover {evidence} (any datapad or loot crate counts).",
     "Storm {place}. Clear hostiles and hold the area for 2 minutes before extracting.",
   ],
   mining: [
@@ -290,19 +290,19 @@ export const OBJECTIVES = {
   ],
   investigate: [
     "Go to {place} and find {evidence}. Take a screenshot of whatever you find as evidence.",
-    "Search {place} for signs of {antagonist}'s people: take an investigation or recovery contract there, or explore it freely.",
+    "Search {place} for signs of {antagonist}'s people. An **Investigation** contract there fits, or just explore it.",
   ],
   patrol: [
     "Fly a patrol route: {place}, then two more points of interest in {system}. Report any contacts you meet.",
   ],
   escort: [
-    "Escort a crewmate's cargo run to {place}. If you're flying solo, take a defence or escort contract in {system}.",
+    "Escort a crewmate's **Hauling** run to {place}. Flying solo? Take a **Mercenary** contract near the route.",
   ],
   combat: [
-    "Take a ship-combat contract in {system}. In the story, these are {antagonist}'s raiders.",
+    "Take a **Mercenary** or **Bounty Hunter** ship-combat contract in {system}. In the story, these are {antagonist}'s raiders.",
   ],
   rescue: [
-    "Answer a rescue or medical beacon in {system} (or carry a med-bed ship to a crewmate in trouble).",
+    "Answer a **Service Beacon** or **ECN** alert in {system}, or take a **Search** contract (or fly a med-bed ship to a crewmate in trouble).",
   ],
   exploration: [
     "Visit {place} and log one thing nobody in your crew has seen before. Screenshot it.",
@@ -481,7 +481,7 @@ export const GAME_RULES = [
   { tags: ["haul", "delivery", "escort", "patrol", "exploration"], short: "Quantum travel", text: "**Long quantum jump?** That's the time to talk in character: plans, doubts, old stories." },
   { tags: ["all"], short: "Other players", text: "**Random players showed up?** They're in the story now. Hostile ones were hired by the other side; helpful ones become contacts." },
   { tags: ["fps", "combat", "rescue"], short: "Dumb NPCs", text: "**T-posing or clueless guards?** Cheap hired guns on bargain stims. Mock them, but cheap guns still kill." },
-  { tags: ["all"], short: "Mission contracts", text: "**Which contract counts?** Any contract or activity that matches your objective. The mobiGlas listing is the cover; the real job is this one." },
+  { tags: ["all"], short: "Mission contracts", text: "**Which contract?** The shared one: one of you accepts it and shares it with the party. Its listing is the cover; the real job is this one." },
 ];
 
 // How two NPCs from different players' stories turn out to be connected.
@@ -518,19 +518,70 @@ export const TITLE_WORDS = {
   b: ["Lanes", "Signal", "Ledger", "Harbour", "Debt", "Light", "Orbit", "Contract", "Ashes", "Static", "Vault", "Tide", "Wake", "Promise", "Cargo", "Frontier", "Echo", "Margin"],
 };
 
-// ── Which in-game contracts fit each objective (Alpha 4.10; names can shift between patches) ──
+// ── Real contracts (Alpha 4.10). Contract Manager tabs: Bounty Hunter, Delivery, Hauling, Investigation,
+// Mercenary, Maintenance, Search, Service Beacon, ECN, Appointment, Racing, PVP. Contract names and
+// givers shift between patches, so these point at tabs and kinds of jobs rather than exact titles.
+export const SHARE_HOW = "One of you accepts it, then mobiGlas → Contracts → **Accepted** → **Share**. Everyone gets the same waypoint, and pay and rep are split. Quantum-link to jump together.";
+
 export const CONTRACT_GUIDE = {
-  haul: "mobiGlas → Contracts → **Hauling** (Covalex, Ling Family Hauling, Red Wind Linehaul). Or buy cargo at a trade terminal and run it yourself.",
-  delivery: "mobiGlas → Contracts → **Delivery / Courier** (Covalex local deliveries). Small packages, hand-carried.",
-  bounty: "mobiGlas → Contracts → **Bounty Hunting**. Pick a tier you can handle. In Pyro, gang reputation decides who offers them.",
-  fps: "mobiGlas → Contracts → **Mercenary** (clear an outpost, eliminate hostiles), an **Onyx Facility** investigation, or a Pyro **contested zone**.",
-  mining: "No contract needed: mine (ship or hand), refine at a station refinery, sell. Pyro and Nyx belts pay more, with more risk.",
-  salvage: "mobiGlas → Contracts → **Salvage** (e.g. Adagio Holdings), or strip any wreck you find. Sell the RMC at a station.",
-  investigate: "mobiGlas → Contracts → **Investigation** (Hockrow Agency, Onyx Facilities) or a **Recovery** contract at the location.",
-  patrol: "No contract needed: fly the route and log contacts. A **Defense** or **Bounty** contract nearby makes it pay.",
-  escort: "A crewmate's cargo run counts. Solo: mobiGlas → Contracts → **Defense / Escort**.",
-  combat: "mobiGlas → Contracts → **Mercenary (ship combat)** or **Defense**. Vanduul encounters are in Nyx.",
-  rescue: "Answer a **rescue beacon** (mobiGlas → Contracts → Services / Search & Rescue), or fly a med-bed ship to a downed crewmate.",
-  exploration: "No contract needed: go there and look around. Screenshot what you find.",
-  rp: "No contract: meet up in person at the location and play the scene.",
+  haul: "**Hauling** tab (Covalex, Ling Family Hauling, Red Wind Linehaul): pick up at a freight elevator, deliver to another. Or buy cargo at a trade terminal and run it yourself.",
+  delivery: "**Delivery** tab: small packages you carry by hand or in a ship box, from one location to another.",
+  bounty: "**Bounty Hunter** tab, ranked by threat (VLRT up to VHRT/ERT). Pick a tier your crew can handle. Pyro gangs offer them by reputation.",
+  fps: "**Mercenary** tab: clear or defend a bunker or outpost (e.g. Defend Occupants), or an **Investigation** contract at an Onyx Facility. In Pyro, contested zones need no contract.",
+  mining: "No contract is needed: mine by ship, ROC or hand, refine at a station refinery, and sell. Some givers (e.g. Recco Battaglia) post mining work.",
+  salvage: "Salvage contracts (e.g. Adagio Holdings), or strip any wreck you find and sell the RMC/CMAT at a station.",
+  investigate: "**Investigation** tab (Hockrow Agency's Onyx/Jorrit dossier missions and similar) or **Search** tab (missing persons).",
+  patrol: "No contract is needed: fly the route. Pick up a **Bounty Hunter** or **Mercenary** job on the way to make it pay.",
+  escort: "A crewmate's hauling run is the escort. For a stand-in, use a **Mercenary** defend job near the route.",
+  combat: "**Bounty Hunter** (ship targets) or **Mercenary** ship-combat contracts. Vanduul-tech smugglers and Vanduul turn up in Nyx.",
+  rescue: "**Search** tab (missing persons), **ECN** alerts, or answer a **Service Beacon**. A crewmate can also create a beacon at the spot.",
+  exploration: "No contract is needed: fly there and look around.",
+  rp: "No contract is needed: meet up in person at the location.",
+};
+
+// One shared contract anchors each mission: its destination stands in for the story's location.
+export const ANCHORS = {
+  heist: [
+    { contract: "a **Mercenary** contract to clear a bunker or outpost", standIn: "The site is {antagonist}'s vault. Whatever loot or datapad you pull out is what you came for." },
+    { contract: "an **Investigation** contract at an Onyx Facility (Stanton) or ASD site", standIn: "The facility is where {antagonist} hid the evidence. The data you recover is the prize." },
+  ],
+  bounty: [
+    { contract: "a **Bounty Hunter** contract (pick the tier together)", standIn: "The bounty target is {antagonist}, or their right hand. The kill or capture is the story beat." },
+  ],
+  salvage: [
+    { contract: "a salvage contract, or any derelict you find together", standIn: "The wreck is the ship tied to {target}. What you find in its cargo or on its crew is the clue." },
+    { contract: "an **Investigation** contract at a derelict or abandoned site", standIn: "The site is where {target}'s trail goes cold. Search it like you mean it." },
+  ],
+  rescue: [
+    { contract: "a **Search** contract (missing person)", standIn: "The missing person is {target}, or someone who knows where they are." },
+    { contract: "an **ECN** alert or a **Service Beacon**", standIn: "The beacon is {target}'s distress call. Whoever's shooting at it works for {antagonist}." },
+  ],
+  smuggle: [
+    { contract: "a **Hauling** contract", standIn: "The cargo is {target}'s package. The legal manifest is the cover." },
+    { contract: "a **Delivery** contract", standIn: "The package is what {target} needs moved. Don't let {antagonist}'s people near it." },
+  ],
+  defense: [
+    { contract: "a **Mercenary** defend contract (e.g. Defend Occupants)", standIn: "The site is {target}'s operation, and the attackers are {antagonist}'s people." },
+    { contract: "a **Hauling** contract flown as a convoy", standIn: "The hauler is {target}'s convoy. Everyone else flies escort. Any attackers are {antagonist}'s." },
+  ],
+};
+
+// What each career does on a shared job (no extra contract needed).
+export const ROLES = {
+  pilot: "Flies cover and gets the crew in and out. You call the approach.",
+  hauler: "Brings the cargo ship and handles anything that needs moving. You own the freight elevator problem.",
+  miner: "Brings tools and a sharp eye for the terrain. If there's a rock to crack or a way through, it's yours.",
+  bounty: "Tracks the target and makes the call on taking them alive. You read the bounty intel.",
+  marine: "First through the door. You lead on foot.",
+  medic: "Keeps everyone breathing. Bring medpens and a med bed if you have one, and stay close to the guns.",
+  salvager: "Strips what matters from the site or wreck, and knows what's worth taking.",
+  explorer: "Scouts ahead. You spot the trouble before it spots the crew.",
+  smuggler: "Knows the back way in and how to talk past security. Hide what needs hiding.",
+};
+
+// A meeting point for the crew: a real place that stands in for the story's rendezvous.
+export const RENDEZVOUS = {
+  Stanton: ["GrimHEX (Yela)", "Area18", "Lorville", "New Babbage", "Orison", "an ArcCorp Lagrange station"],
+  Pyro: ["Ruin Station", "Checkmate Station", "Orbituary", "Patch City"],
+  Nyx: ["Levski"],
 };

@@ -2,7 +2,7 @@
 // using the current mission, the crew's conditions, server canon and the contract guide.
 
 import { EmbedBuilder } from "discord.js";
-import { CONTRACT_GUIDE, GAME_RULES } from "../lore/data.js";
+import { CONTRACT_GUIDE, GAME_RULES, SHARE_HOW } from "../lore/data.js";
 import { askDM, aiEnabled } from "../ai.js";
 import { canonText } from "../engine/records.js";
 import * as store from "../store.js";
@@ -20,9 +20,10 @@ function currentMission(g, char) {
 
 // Without AI we can still answer the most common question: which contract fits each objective.
 function offlineAnswer(question, mission) {
-  if (mission && /contract|mission|take|do we|what do|where/i.test(question)) {
-    return "Here's what fits your current job:\n" +
-      mission.objectives.map((o) => `• **${o.characterName}** (${o.activity}): ${CONTRACT_GUIDE[o.activity] || "Play it however you like."}`).join("\n");
+  if (mission?.anchor && /contract|mission|take|do we|what do|where|share|meet/i.test(question)) {
+    return `Take ${mission.anchor.contract}.\n**In the story:** ${mission.anchor.standIn}\n${mission.anchor.share}` +
+      (mission.rendezvous ? `\n**Meet at:** ${mission.rendezvous}.` : "") +
+      `\n\n${mission.objectives.map((o) => `• **${o.characterName}:** ${o.text}`).join("\n")}`;
   }
   return "I can only answer contract questions without an AI key. Add an OpenRouter key to `.env` and I can answer anything.";
 }
@@ -41,6 +42,7 @@ export async function answer(g, { question, userId, askerName }) {
       canon: canonText(g),
       guide: CONTRACT_GUIDE,
       rules: GAME_RULES.map((r) => r.text),
+      share: SHARE_HOW,
     })
     : null;
   return text || offlineAnswer(question, mission);

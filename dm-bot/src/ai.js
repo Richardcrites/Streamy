@@ -240,14 +240,16 @@ export async function narrateMission({ mission, characters, worldLog, persona, c
       "let the play happen naturally. The heart of it is how the crew's personal stories intertwine: use the crossing " +
       "facts and the characters' hooks so each player has a personal reason to be there. Hard rules: the only named " +
       "people you may mention are the crew and the names in `allowed_names`. Never invent other named characters. " +
-      "Keep every objective's activity and place exactly; you only write one line of flavour for each. 'briefing' is " +
+      "The crew plays it through ONE real shared contract (shared_contract), whose destination stands in for the story's " +
+      "location. Keep it exactly; never invent other contracts or mission names. 'objective_flavour' is one short " +
+      "line per role, in order. 'briefing' is " +
       "2 short paragraphs spoken by the persona. 'crossing' explains in 2–4 sentences how the crew's stories connect. " +
       "'stakes' is 1–2 sentences. 'twist' is a secret revealed only at the end; make it land on the crossing. " +
       "If a character carries an active condition (injury, ship damage, warrant), let it matter: mention it in the briefing or stakes. " +
       "Respect server_canon: it is what has already happened on this server.",
     {
       persona,
-      mission: { type: mission.typeLabel, system: mission.system, antagonist: mission.antagonist, person_at_the_centre: mission.target, draft_briefing: mission.briefing, draft_stakes: mission.stakes, objectives: mission.objectives.map((o) => ({ for: o.characterName, activity: o.activity, place: o.place, text: o.text })) },
+      mission: { type: mission.typeLabel, system: mission.system, antagonist: mission.antagonist, person_at_the_centre: mission.target, draft_briefing: mission.briefing, draft_stakes: mission.stakes, shared_contract: mission.anchor, meet_at: mission.rendezvous, roles: mission.objectives.map((o) => ({ for: o.characterName, career: o.activity, role: o.text })) },
       crossing_facts: mission.crossings,
       allowed_names: mission.names,
       characters: characters.map(charBrief),
@@ -306,19 +308,21 @@ export async function parseScribe({ text, author, characters, missionTitle }) {
 }
 
 // ── Questions: players ask the DM anything ───────────────────────────────────
-export async function askDM({ question, persona, asker, mission, characters, canon, guide, rules }) {
+export async function askDM({ question, persona, asker, mission, characters, canon, guide, rules, share }) {
   if (!aiEnabled()) return null;
   const context =
     `${persona}\n\n` +
     "A player is asking you a question, out of game or in character. Answer in your persona's voice, briefly " +
-    "(under 120 words), practically and truthfully. For game questions (which contract, where to go, how to fix " +
-    "something), give real Star Citizen guidance from the contract guide, the lore and the current mission; if you're " +
-    "not sure something exists in the current patch, say so instead of inventing it. Don't reveal the mission's secret twist.\n\n" +
+    "(under 120 words), practically and truthfully. For 'which contract' questions, point to the mission's shared " +
+    "contract first: which Contract Manager tab, what it stands in for in the story, and how to share it with the " +
+    "party. Only name contract tabs and givers that appear in the contract guide; if you're not sure something exists " +
+    "in the current patch, say so instead of inventing it. Don't reveal the mission's secret twist.\n\n" +
     `CONTRACT GUIDE (by objective type): ${JSON.stringify(guide)}\n` +
+    `SHARING A CONTRACT: ${share}\n` +
     `GAME-AS-RP RULES: ${JSON.stringify(rules)}\n` +
     `SERVER CANON: ${JSON.stringify(canon)}\n` +
     `ASKED BY: ${asker || "a player"}\n` +
-    `CURRENT MISSION: ${mission ? JSON.stringify({ title: mission.title, type: mission.typeLabel, system: mission.system, briefing: mission.briefing, crossings: mission.crossings, stakes: mission.stakes, objectives: mission.objectives.map((o) => ({ for: o.characterName, activity: o.activity, place: o.place, text: o.text })), field_log: mission.scribe || [] }) : "none"}\n` +
+    `CURRENT MISSION: ${mission ? JSON.stringify({ title: mission.title, type: mission.typeLabel, system: mission.system, briefing: mission.briefing, crossings: mission.crossings, stakes: mission.stakes, shared_contract: mission.anchor, meet_at: mission.rendezvous, roles: mission.objectives.map((o) => ({ for: o.characterName, role: o.text })), field_log: mission.scribe || [] }) : "none"}\n` +
     `CREW: ${JSON.stringify(characters.map(charBrief))}`;
   try {
     return await complete({ system: [lore(), context], messages: [{ role: "user", content: question }], maxTokens: 800 });

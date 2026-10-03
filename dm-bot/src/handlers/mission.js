@@ -55,10 +55,15 @@ export async function start(interaction, g) {
     .setDescription(clip(mission.briefing, 3000))
     .addFields(
       ...(mission.crossings.length ? [{ name: "🧬 How your stories cross", value: clip(mission.crossings.join("\n"), 1024) }] : []),
-      ...mission.objectives.map((o) => ({
-        name: `🎮 ${o.characterName}`,
-        value: clip(o.flavour ? `${o.text}\n*${o.flavour}*` : o.text, 1024),
-      })),
+      ...(mission.anchor ? [{
+        name: "🤝 The shared contract",
+        value: clip(`Take ${mission.anchor.contract}.\n**In the story:** ${mission.anchor.standIn}\n${mission.anchor.share}`, 1024),
+      }] : []),
+      ...(mission.rendezvous ? [{ name: "📍 Meet at", value: `${mission.rendezvous}. Party up there before anyone takes the contract.` }] : []),
+      {
+        name: "🎭 Roles",
+        value: clip(mission.objectives.map((o) => `**${o.characterName}:** ${o.text}${o.flavour ? ` *${o.flavour}*` : ""}`).join("\n"), 1024),
+      },
       ...(carrying.length ? [{ name: "🩹 Carrying into this job", value: clip(carrying.join("\n"), 1024) }] : []),
       { name: "⚖️ Stakes", value: clip(mission.stakes, 1024) },
       { name: "🎲 If the game fights back", value: clip(mission.rules.map((r) => `• ${r}`).join("\n"), 1024) },

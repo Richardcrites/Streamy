@@ -7,6 +7,7 @@ import {
   ORIGINS, NAME_POOLS, NPC_POOL, RELICS, LOCATIONS, CARGO, ORES, EVIDENCE,
   OBJECTIVES, ACTIVITY_TAGS, CAMPAIGN_GOALS, THREADS, CAREERS, MISSION_TYPES, MISSION_TWISTS,
   GAME_RULES, NPC_LINKS, KIN_RELATIONS, SIDES, MISSION_STAKES, TITLE_WORDS,
+  ANCHORS, ROLES, RENDEZVOUS, SHARE_HOW,
 } from "../lore/data.js";
 import { pick, pickN, randInt, fill } from "./util.js";
 import { freshName, registerName, isTaken, similar, lastName } from "./names.js";
@@ -477,8 +478,17 @@ export function buildMission(g, characters, typeId) {
   const system = located || pick(threadSystems) || (PLAYABLE_SYSTEMS.includes(lead.system) ? lead.system : pick(PLAYABLE_SYSTEMS));
 
   const vars = { patron: target.name, target: target.name, antagonist: antagonist.name, system };
-  const objectives = characters.map((c) => buildObjective({ vars }, c, type.activities));
-  const activities = objectives.map((o) => o.activity);
+  // One real contract, shared with the party, anchors the job: its destination stands in for the story's place.
+  const anchorTpl = pick(ANCHORS[typeKey]);
+  const anchor = { contract: `${anchorTpl.contract} in ${system}`, standIn: fill(anchorTpl.standIn, vars), share: SHARE_HOW };
+  // Everyone has a role on that one job, based on their career.
+  const objectives = characters.map((c) => ({
+    characterId: c.id,
+    characterName: c.name,
+    activity: c.career,
+    text: ROLES[c.career] || "Back the crew up however the job needs.",
+  }));
+  const activities = type.activities;
 
   return {
     id: newId(),
@@ -492,6 +502,8 @@ export function buildMission(g, characters, typeId) {
     patron: target.name,
     names: [antagonist.name, target.name],
     crossings: crossings.map((c) => c.text),
+    anchor,
+    rendezvous: pick(RENDEZVOUS[system] || ["the nearest station"]),
     objectives,
     briefing: `Spacers. ${fill(pick(type.hooks), vars)} It's going down in ${system}. Pay's decent. The story's better.`,
     stakes: fill(pick(MISSION_STAKES[typeKey]), vars),

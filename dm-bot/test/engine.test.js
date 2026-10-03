@@ -112,6 +112,9 @@ test("missions: objectives for everyone, crossings, rules, no scripted scenes, n
     assert.equal(m.objectives.length, 2);
     assert.ok(m.crossings.length >= 1, "the crew's stories must cross");
     assert.ok(m.rules.length >= 2);
+    assert.match(m.anchor.contract, /\*\*(Mercenary|Investigation|Bounty Hunter|Search|ECN|Hauling|Delivery)\*\*|salvage contract/, m.anchor.contract);
+    assert.match(m.anchor.share, /Share/);
+    assert.ok(m.rendezvous && !unfilled(m.anchor.standIn), m.anchor.standIn);
     assert.equal(m.opening, undefined);
     assert.equal(m.rpPrompts, undefined);
     for (const s of [m.title, m.briefing, m.stakes, m.twist, ...m.crossings, ...m.rules, ...m.objectives.map((o) => o.text), story.missionEpilogue(m, true)]) {
@@ -175,6 +178,9 @@ test("missions: objectives for everyone, crossings, rules, no scripted scenes, n
     assert.equal(m.objectives.length, 2);
     assert.ok(m.crossings.length >= 1, "the crew's stories must cross");
     assert.ok(m.rules.length >= 2);
+    assert.match(m.anchor.contract, /\*\*(Mercenary|Investigation|Bounty Hunter|Search|ECN|Hauling|Delivery)\*\*|salvage contract/, m.anchor.contract);
+    assert.match(m.anchor.share, /Share/);
+    assert.ok(m.rendezvous && !unfilled(m.anchor.standIn), m.anchor.standIn);
     assert.equal(m.opening, undefined);
     assert.equal(m.rpPrompts, undefined);
     for (const s of [m.title, m.briefing, m.stakes, m.twist, ...m.crossings, ...m.rules, ...m.objectives.map((o) => o.text), story.missionEpilogue(m, true)]) {
