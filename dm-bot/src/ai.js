@@ -16,8 +16,14 @@ const LORE_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../
 let client = null;
 let systemPrompt = null;
 
+// An OpenRouter key (sk-or-…) pasted into ANTHROPIC_API_KEY is a common mix-up: route it to OpenRouter.
+if (!process.env.OPENROUTER_API_KEY && process.env.ANTHROPIC_API_KEY?.trim().startsWith("sk-or-")) {
+  process.env.OPENROUTER_API_KEY = process.env.ANTHROPIC_API_KEY.trim();
+  delete process.env.ANTHROPIC_API_KEY;
+}
+
 const provider = () =>
-  process.env.OPENROUTER_API_KEY ? "openrouter" : process.env.ANTHROPIC_API_KEY ? "anthropic" : null;
+  process.env.OPENROUTER_API_KEY?.trim() ? "openrouter" : process.env.ANTHROPIC_API_KEY?.trim() ? "anthropic" : null;
 
 export const aiEnabled = () => provider() !== null;
 
@@ -68,8 +74,10 @@ async function generate(task, payload, schema) {
     const out = which === "openrouter" ? await viaOpenRouter(prompt, schema) : await viaAnthropic(prompt, schema);
     return matchesSchema(out, schema) ? out : null;
   } catch (err) {
-    if (err instanceof Anthropic.APIError) console.warn(`[ai] ${task.slice(0, 40)}… failed: ${err.status} ${err.message}`);
-    else console.warn(`[ai] ${task.slice(0, 40)}… failed:`, err.message);
+    const where = which === "openrouter" ? "OpenRouter" : "Anthropic";
+    if (err.status === 401) console.warn(`[ai] ${where} rejected the API key (401). Check the key in your .env file. Using built-in text for now.`);
+    else if (err instanceof Anthropic.APIError) console.warn(`[ai] Anthropic call failed: ${err.status} ${err.message}`);
+    else console.warn(`[ai] ${where} call failed:`, err.message);
     return null;
   }
 }

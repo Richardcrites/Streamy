@@ -41,3 +41,17 @@ test("bad or incomplete AI output falls back to the engine (null)", async () => 
   globalThis.fetch = async () => new Response("nope", { status: 500 });
   assert.equal(await ai.narrateOrigin(char), null);
 });
+
+test("an OpenRouter key on the ANTHROPIC_API_KEY line is routed to OpenRouter", async () => {
+  delete process.env.OPENROUTER_API_KEY;
+  process.env.ANTHROPIC_API_KEY = "sk-or-v1-mixup";
+  const fresh = await import(`../src/ai.js?mixup=${Date.now()}`);
+  let auth;
+  globalThis.fetch = async (url, opts) => {
+    auth = opts.headers.Authorization;
+    return new Response(JSON.stringify({ choices: [{ message: { content: '{"paragraphs":["Ok."]}' } }] }), { status: 200 });
+  };
+  assert.deepEqual(await fresh.narrateOrigin(char), ["Ok."]);
+  assert.equal(auth, "Bearer sk-or-v1-mixup");
+  assert.match(fresh.aiLabel(), /OpenRouter/);
+});
