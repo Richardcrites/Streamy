@@ -83,9 +83,11 @@ export function buildCharacter(g, { ownerId, originId, career, name, pronouns, s
     return { id: newId(), type: h.type, text: fill(h.text, { ...vars, npc: npc.name }, pronouns), thread: h.thread, npcId: npc.id, status: "open" };
   });
 
-  // The player's seed isn't pasted into the story (it rarely fits the template). It's stored,
-  // the AI narrator weaves it in, and players can write their own with /character backstory.
+  // The player's description is the heart of the character: the AI builds the story around it, and
+  // the built-in text gives it its own paragraph right after the opening.
   const story = [origin.openings[beats[0]], origin.turns[beats[1]], origin.nows[beats[2]]].map((p) => fill(p, vars, pronouns));
+  const seedPara = seedParagraph(seed, vars, pronouns);
+  if (seedPara) story.splice(1, 0, seedPara);
 
   return {
     id: newId(),
@@ -111,6 +113,35 @@ export function buildCharacter(g, { ownerId, originId, career, name, pronouns, s
     journal: [],
     createdAt: new Date().toISOString(),
   };
+}
+
+// Turns the player's description into a paragraph. "a failed comedian who…" reads as who they were;
+// a full sentence ("He grew up…") is used as written; first person ("I…") is quoted.
+const SEED_FRAMES = [
+  "Before any of that mattered, {short} was {seed}. It's the first thing people find out about {them}, and it shaped everything that came after.",
+  "Ask around about {short} and you'll hear the same thing: {short} was {seed}. {They} never quite outran it, and out here, {they} stopped trying.",
+  "Long before the 'Verse knew the name, {short} was {seed}. Everything since has been {their} way of living with that.",
+];
+const NOUN_START = /^(a|an|the|one|some|former|ex|retired|disgraced|failed|washed[- ]up)\b/i;
+
+const SENTENCE_START = /^(he|she|they|his|her|their|it|born|raised)\b/i;
+const VERB_START = /^(grew|was|is|has|had|used|spent|lost|ran|fled|left|took|made|came|went|got|gave|stole|sold|fought|flew|kept|became|never|always|still|once)\b/i;
+
+export function seedParagraph(seed, vars, pronouns) {
+  let text = (seed || "").trim().replace(/\s+/g, " ").replace(/[{}]/g, "");
+  if (!text) return null;
+  if (/^(i|i'm|i've|my|me)\b/i.test(text)) return fill(`In {short}'s own words: "${text.replace(/["“”]/g, "'")}"`, vars, pronouns);
+  text = text.replace(/[.!\s]+$/, "");
+  const nameParts = String(vars.name || "").toLowerCase().split(/[\s"]+/).filter(Boolean);
+  const firstWord = text.split(" ")[0].toLowerCase().replace(/[^a-z'-]/g, "");
+  // A full sentence about the character: use it as written.
+  if (SENTENCE_START.test(text) || nameParts.includes(firstWord)) return `${text[0].toUpperCase()}${text.slice(1)}.`;
+  text = text[0].toLowerCase() + text.slice(1);
+  // "grew up on Terra…" → "Tomothy grew up on Terra…"
+  if ((VERB_START.test(text) || /ed$/.test(firstWord)) && !NOUN_START.test(text)) return `${vars.short} ${text}.`;
+  let phrase = text.replace(/^(was|is)\s+/i, "");
+  if (!/^(a|an|the|one|some)\b/i.test(phrase)) phrase = `${/^[aeiou]/i.test(phrase) ? "an" : "a"} ${phrase}`;
+  return fill(pick(SEED_FRAMES).replace("{seed}", () => phrase), vars, pronouns);
 }
 
 // What the story calls someone after the first mention: callsign if they have one, else first name.

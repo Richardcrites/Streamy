@@ -26,6 +26,7 @@ export function dossierEmbed(char, { full = false } = {}) {
       { name: "Last known location", value: `${char.location || "Unknown"}${char.ship ? `\nShip: ${char.ship}` : ""}`, inline: true },
       { name: "Status", value: { citizen: "UEE citizen", civilian: "UEE civilian (no vote)", none: "Outside UEE law" }[char.citizenship] || char.citizenship, inline: true },
     );
+  if (char.seed) e.addFields({ name: "Concept", value: clip(char.seed, 1024) });
   const hooks = char.hooks.map((h) => `${h.status === "open" ? "◻️" : "✅"} ${h.text}`).join("\n");
   if (hooks) e.addFields({ name: "Story hooks", value: clip(hooks, 1024) });
   const conds = (char.conditions || []).filter((c) => c.status === "active");

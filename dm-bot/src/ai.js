@@ -11,6 +11,8 @@ import Anthropic from "@anthropic-ai/sdk";
 
 const MODEL = process.env.CLAUDE_MODEL || "claude-opus-5-5";
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "openrouter/auto";
+// Optional comma-separated backups, tried by OpenRouter when the main model fails or comes back empty.
+const OPENROUTER_FALLBACKS = (process.env.OPENROUTER_FALLBACK_MODELS || "").split(",").map((m) => m.trim()).filter(Boolean);
 const LORE_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../lore");
 
 let client = null;
@@ -96,6 +98,8 @@ async function openRouter({ system, messages, schema, maxTokens }) {
       last.content += `\n\nReply with only a JSON object (no code fences, no commentary) matching this JSON schema:\n${JSON.stringify(schema)}`;
     }
     const body = { model: OPENROUTER_MODEL, max_tokens: tokens, messages: [{ role: "system", content: sys }, ...msgs] };
+    // On the retry, let OpenRouter fall through to the backup models.
+    if (!fancy && OPENROUTER_FALLBACKS.length) body.models = [OPENROUTER_MODEL, ...OPENROUTER_FALLBACKS].slice(0, 3);
     if (schema && fancy) body.response_format = { type: "json_schema", json_schema: { name: "dm_output", strict: true, schema } };
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -191,7 +195,7 @@ const str = { type: "string" };
 const obj = (properties) => ({ type: "object", properties, required: Object.keys(properties), additionalProperties: false });
 
 const charBrief = (c) => ({
-  name: c.name, pronouns: c.pronouns, origin: c.origin, preferred_crew_role: c.preferredRole || "auto",
+  name: c.name, pronouns: c.pronouns, origin: c.origin, player_description: c.seed || undefined, preferred_crew_role: c.preferredRole || "auto",
   open_hooks: c.hooks.filter((h) => h.status === "open").map((h) => h.text),
   recent_journal: c.journal.slice(-6).map((j) => j.text),
   active_conditions: (c.conditions || []).filter((x) => x.status === "active").map((x) => `${x.kind}: ${x.text} (${x.severity}; clears: ${x.clears})`),
@@ -200,16 +204,18 @@ const charBrief = (c) => ({
 // ── Narration (one-shot JSON) ────────────────────────────────────────────────
 export async function narrateOrigin(character, otherStories = []) {
   const out = await generate(
-    "Write this character's origin story as 3–5 short paragraphs. The draft is only a rough sketch of facts: write a " +
-      "fresh, original story, not a polish of the draft. Invent specific, personal details (a family member, a first " +
-      "ship, a place, a habit, a scar) and a turning point that belongs to this character alone. If the player wrote " +
-      "their own idea (player_seed), it comes first: where it conflicts with the draft, follow the player. Weave in both " +
+    "Write this character's origin story as 3–5 short paragraphs. If player_description is set, it is the heart of " +
+      "the character and the most important instruction here: build the whole story around it, make it obvious in the " +
+      "first two paragraphs, and drop anything in the draft that contradicts it (example: \"a failed comedian who made " +
+      "too many UEE jokes\" means we see the act, the jokes and the night it all went wrong). The draft is only a rough " +
+      "sketch of facts: write a fresh, original story, not a polish of it. Invent specific, personal details (a family " +
+      "member, a first ship, a place, a habit, a scar) and a turning point that belongs to this character alone. Weave in both " +
       "hooks and end with them unresolved; later stories pull on them. Do NOT reuse the plots, events or phrasing of " +
       "the other characters' stories listed in other_characters_on_this_server. Use the full name once, then the short " +
       "name or pronouns.",
     {
-      name: character.name, pronouns: character.pronouns, origin: character.origin,
-      home: character.home, player_seed: character.seed, draft: character.story, hooks: character.hooks.map((h) => h.text),
+      player_description: character.seed || null, name: character.name, pronouns: character.pronouns,
+      origin: character.origin, home: character.home, draft: character.story, hooks: character.hooks.map((h) => h.text),
       other_characters_on_this_server: otherStories,
     },
     obj({ paragraphs: { type: "array", items: str } }),

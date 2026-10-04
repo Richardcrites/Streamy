@@ -6,8 +6,8 @@ import { ORIGINS } from "../lore/data.js";
 import { allRoles, roleInfo, findRole, addCustomRole, removeCustomRole } from "../engine/roles.js";
 import { PermissionFlagsBits } from "discord.js";
 import { PRONOUNS } from "../engine/util.js";
-import { suggestNames, buildCharacter, linkKin } from "../engine/story.js";
-import { narrateOrigin } from "../ai.js";
+import { suggestNames, buildCharacter, linkKin, seedParagraph, shortName } from "../engine/story.js";
+import { narrateOrigin, aiEnabled, aiLabel } from "../ai.js";
 import * as store from "../store.js";
 import { dossierEmbed, broadcast, COLORS, clip } from "../comms.js";
 
@@ -112,6 +112,7 @@ async function finish(interaction, g, draft, name) {
     .map((c) => `${c.name}: ${c.story.join(" ").slice(0, 400)}`);
   const prose = await narrateOrigin(char, others);
   if (prose) char.story = prose;
+  const fallback = !prose && aiEnabled();
 
   g.characters[char.id] = char;
   g.activeChar[interaction.user.id] = char.id;
@@ -123,7 +124,8 @@ async function finish(interaction, g, draft, name) {
   store.save();
 
   await interaction.editReply({
-    embeds: [step(`${char.name} is ready`, "Your dossier has been posted. Next: `/campaign start` for a full story arc, or `/story crossover` to link up with another player.")],
+    embeds: [step(`${char.name} is ready`, "Your dossier has been posted. Next: `/campaign start` for a full story arc, or `/story crossover` to link up with another player." +
+      (fallback ? `\n\n⚠️ The AI (${aiLabel()}) didn't answer, so this is the built-in story with your description worked in. Once the model is fixed, \`/character retell\` rewrites it.` : ""))],
     components: [],
   });
   await broadcast(interaction, g, {
@@ -223,6 +225,35 @@ export async function onBackstory(interaction, g) {
   store.addJournal(char, { kind: "origin", text: "Rewrote their backstory." });
   store.save();
   await interaction.reply({ content: "Backstory saved. Your story hooks are unchanged, so the DM will keep pulling on them.", embeds: [dossierEmbed(char, { full: true })], flags: ephemeral });
+}
+
+// ── /character retell: the DM rewrites the origin story ─────────────────────
+export async function retell(interaction, g) {
+  const char = store.activeCharacter(g, interaction.user.id);
+  if (!char) return interaction.reply({ content: "Create a character first: `/character create`.", flags: ephemeral });
+  const description = interaction.options.getString("description");
+  await interaction.deferReply({ flags: ephemeral });
+  const oldSeed = char.seed;
+  if (description) char.seed = description;
+  const others = Object.values(g.characters).filter((c) => c.id !== char.id).slice(0, 8).map((c) => `${c.name}: ${c.story.join(" ").slice(0, 400)}`);
+  const prose = await narrateOrigin(char, others);
+  if (prose) {
+    char.story = prose;
+  } else {
+    // No AI (or it failed): swap the description paragraph in the built-in story.
+    const vars = { name: char.name, short: shortName(char.name) };
+    const oldPara = oldSeed ? char.story.findIndex((p) => p.includes(oldSeed.trim().replace(/[.!\s]+$/, "").slice(1, 30))) : -1;
+    const para = seedParagraph(char.seed, vars, char.pronouns);
+    if (para && oldPara >= 0) char.story[oldPara] = para;
+    else if (para && !char.story.includes(para)) char.story.splice(1, 0, para);
+  }
+  char.customStory = false;
+  store.addJournal(char, { kind: "origin", text: "Their origin story was retold." });
+  store.save();
+  const note = prose ? "The DM rewrote your story." : aiEnabled()
+    ? `⚠️ The AI (${aiLabel()}) didn't answer, so your description was worked into the built-in story. Try a different \`OPENROUTER_MODEL\` (see the README).`
+    : "No AI key is set, so your description was worked into the built-in story.";
+  await interaction.editReply({ content: note, embeds: [dossierEmbed(char, { full: true })] });
 }
 
 export async function remove(interaction, g) {
