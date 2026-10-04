@@ -88,7 +88,7 @@ function missionMessage(g, mission, crew) {
       {
         name: "🎭 Crew roles",
         value: clip(mission.objectives.map((o) => o.roleLabel
-          ? `${CREW_ROLES[o.role].emoji} **${o.characterName}: ${o.roleLabel}** (${o.why}). ${o.flavour || o.text}`
+          ? `${o.roleEmoji || CREW_ROLES[o.role]?.emoji || "⭐"} **${o.characterName}: ${o.roleLabel}** (${o.why}). ${o.flavour || o.text}`
           : `**${o.characterName}:** ${o.text}`).join("\n"), 1024),
       },
       ...(mission.stops ? [{

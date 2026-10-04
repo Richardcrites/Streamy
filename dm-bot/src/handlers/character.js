@@ -2,7 +2,9 @@ import {
   ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, EmbedBuilder,
   ModalBuilder, TextInputBuilder, TextInputStyle, MessageFlags,
 } from "discord.js";
-import { ORIGINS, CREW_ROLES } from "../lore/data.js";
+import { ORIGINS } from "../lore/data.js";
+import { allRoles, roleInfo, findRole, addCustomRole, removeCustomRole } from "../engine/roles.js";
+import { PermissionFlagsBits } from "discord.js";
 import { PRONOUNS } from "../engine/util.js";
 import { suggestNames, buildCharacter, linkKin } from "../engine/story.js";
 import { narrateOrigin } from "../ai.js";
@@ -156,7 +158,7 @@ export async function list(interaction, g) {
   const chars = store.charactersOf(g, interaction.user.id);
   if (!chars.length) return interaction.reply({ content: "No characters yet. Use `/character create`.", flags: ephemeral });
   const active = g.activeChar[interaction.user.id];
-  await interaction.reply({ content: chars.map((c) => `${c.id === active ? "▶️" : "▫️"} **${c.name}**: ${c.origin}${c.preferredRole ? `, prefers ${CREW_ROLES[c.preferredRole].label}` : ""}`).join("\n"), flags: ephemeral });
+  await interaction.reply({ content: chars.map((c) => `${c.id === active ? "▶️" : "▫️"} **${c.name}**: ${c.origin}${c.preferredRole ? `, prefers ${roleInfo(g, c.preferredRole)?.label ?? "a removed role"}` : ""}`).join("\n"), flags: ephemeral });
 }
 
 export async function switchChar(interaction, g) {
@@ -238,18 +240,93 @@ export async function remove(interaction, g) {
   await interaction.reply({ content: `**${char.name}** has been deleted.`, flags: ephemeral });
 }
 
-// ── /character role: a preferred crew role (or auto) ────────────────────────
+// ── /character role: pick a role, type a new one, or auto ────────────────────
+function applyRole(g, char, key) {
+  char.preferredRole = key;
+  const r = key ? roleInfo(g, key) : null;
+  char.preferredRoleLabel = r?.label ?? null;
+  char.preferredRoleEmoji = r?.emoji ?? null;
+  store.save();
+  return r
+    ? `${r.emoji} **${char.name}** will be the crew's **${r.label}** whenever possible. (If two people pick the same role, one of them gets their next-best fit.)`
+    : `**${char.name}** will get roles that fit their story, and rotate so they try new things.`;
+}
+
 export async function setRole(interaction, g) {
   const char = store.activeCharacter(g, interaction.user.id);
   if (!char) return interaction.reply({ content: "Create a character first: `/character create`.", flags: ephemeral });
-  const role = interaction.options.getString("role");
-  char.preferredRole = role === "auto" ? null : role;
+  const typed = interaction.options.getString("role").trim();
+  if (typed.toLowerCase() === "auto") return interaction.reply({ content: applyRole(g, char, null), flags: ephemeral });
+  const name = typed.startsWith("new:") ? typed.slice(4).trim() : typed;
+  const key = findRole(g, name);
+  if (key) return interaction.reply({ content: applyRole(g, char, key), flags: ephemeral });
+
+  // A role that doesn't exist yet: ask what the job is, then create it for the whole server.
+  const label = name.slice(0, 40);
+  if (label.length < 2) return interaction.reply({ content: "Give the role a name, e.g. `Information Broker`.", flags: ephemeral });
+  g.drafts[`role:${interaction.user.id}`] = { label };
   store.save();
-  const r = CREW_ROLES[char.preferredRole];
-  await interaction.reply({
-    content: r
-      ? `${r.emoji} **${char.name}** will be the crew's **${r.label}** whenever possible. (If two people pick the same role, one of them gets their next-best fit.)`
-      : `**${char.name}** will get roles that fit their story, and rotate so they try new things.`,
-    flags: ephemeral,
+  await interaction.showModal(
+    new ModalBuilder().setCustomId("cr:new").setTitle(clip(`New role: ${label}`, 45)).addComponents(
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder().setCustomId("job").setLabel("What does this role do on a job?").setStyle(TextInputStyle.Paragraph)
+          .setRequired(true).setMinLength(10).setMaxLength(300).setPlaceholder("e.g. Works the comms and contacts, buys intel, and talks the crew out of trouble."),
+      ),
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder().setCustomId("emoji").setLabel("Emoji (optional)").setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(8).setPlaceholder("🕵️"),
+      ),
+    ),
+  );
+}
+
+export async function onNewRole(interaction, g) {
+  const char = store.activeCharacter(g, interaction.user.id);
+  const draft = g.drafts[`role:${interaction.user.id}`];
+  if (!char || !draft) return interaction.reply({ content: "That expired. Run `/character role` again.", flags: ephemeral });
+  delete g.drafts[`role:${interaction.user.id}`];
+  const key = addCustomRole(g, {
+    label: draft.label,
+    job: interaction.fields.getTextInputValue("job"),
+    emoji: interaction.fields.getTextInputValue("emoji"),
+    createdBy: interaction.user.id,
   });
+  const r = roleInfo(g, key);
+  store.logWorld(g, `A new crew role exists on this server: ${r.label}.`);
+  await interaction.reply({ content: `✨ New role created: ${r.emoji} **${r.label}**: ${r.job}\n${applyRole(g, char, key)}\nOthers can pick it too.`, flags: ephemeral });
+}
+
+// Suggestions while typing: auto, built-in roles, this server's custom roles, and "create new".
+export async function roleAutocomplete(interaction, g, { customOnly = false } = {}) {
+  const typed = (interaction.options.getFocused() || "").trim();
+  const q = typed.toLowerCase();
+  const roles = Object.entries(allRoles(g)).filter(([, r]) => !customOnly || r.custom);
+  const options = [
+    ...(customOnly ? [] : [{ name: "🎲 Auto (fit my story, rotate)", value: "auto" }]),
+    ...roles.map(([k, r]) => ({ name: `${r.emoji} ${r.label}${r.custom ? " (custom)" : ""}`, value: k })),
+  ].filter((o) => !q || o.name.toLowerCase().includes(q));
+  if (!customOnly && typed && !findRole(g, typed)) {
+    const create = { name: clip(`✨ New role: "${typed}"`, 100), value: `new:${typed}`.slice(0, 100) };
+    // Existing matches first; "create new" goes last unless nothing matches.
+    if (options.some((o) => o.value !== "auto")) options.splice(24, 0, create);
+    else options.unshift(create);
+  }
+  await interaction.respond(options.slice(0, 25));
+}
+
+// ── /crew-roles ──────────────────────────────────────────────────────────────
+export async function crewRoles(interaction, g, sub) {
+  if (sub === "remove") {
+    const key = interaction.options.getString("role");
+    const r = g.customRoles?.[key];
+    if (!r) return interaction.reply({ content: "That isn't a custom role on this server.", flags: ephemeral });
+    const admin = interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild);
+    if (r.createdBy !== interaction.user.id && !admin) return interaction.reply({ content: "Only the player who created it, or a server admin, can remove it.", flags: ephemeral });
+    removeCustomRole(g, key);
+    store.save();
+    return interaction.reply({ content: `🗑️ Removed the custom role **${r.label}**. Anyone who preferred it is back on Auto.`, flags: ephemeral });
+  }
+  const lines = Object.values(allRoles(g)).map((r) => `${r.emoji} **${r.label}**${r.custom ? " *(custom)*" : ""}: ${r.job}`);
+  const embed = new EmbedBuilder().setColor(COLORS.dossier).setTitle("🎭 Crew roles").setDescription(clip(lines.join("\n"), 4000))
+    .setFooter({ text: "Make your own: /character role, then type a new name." });
+  return interaction.reply({ embeds: [embed] });
 }

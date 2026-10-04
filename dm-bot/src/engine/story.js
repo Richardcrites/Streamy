@@ -11,6 +11,7 @@ import {
 } from "../lore/data.js";
 import { pick, pickN, randInt, fill } from "./util.js";
 import { freshName, registerName, isTaken, similar, lastName } from "./names.js";
+import { customRoleWords } from "./roles.js";
 import { newId } from "../store.js";
 
 const PLAYABLE_SYSTEMS = Object.keys(LOCATIONS);
@@ -504,14 +505,16 @@ export function buildMission(g, characters, typeId) {
   const anchorTpl = pick(ANCHORS[typeKey]);
   const anchor = { contract: `${anchorTpl.contract} in ${system}`, standIn: fill(anchorTpl.standIn, vars), share: SHARE_HOW };
   // Everyone gets a different crew role, based on their story (and their own pick, if they set one).
-  const objectives = assignRoles(characters, typeKey).map(({ char, role, why }) => ({
+  const roles = { ...CREW_ROLES, ...(g.customRoles || {}) };
+  const objectives = assignRoles(characters, typeKey, g.customRoles || {}).map(({ char, role, why }) => ({
     characterId: char.id,
     characterName: char.name,
     activity: role,
     role,
-    roleLabel: CREW_ROLES[role].label,
+    roleLabel: roles[role].label,
+    roleEmoji: roles[role].emoji,
     why,
-    text: CREW_ROLES[role].job,
+    text: roles[role].job,
   }));
   const activities = type.activities;
 
@@ -661,17 +664,21 @@ export function roadRollLabel(d20) {
 // Scores every (character, role) pair, then hands out roles greedily so nobody doubles up.
 // Preferred role > words in their story/name > origin > old career; recent roles are discouraged
 // (so people try new things) unless it's their chosen role. The mission's key role gets a nudge.
-export function assignRoles(characters, typeKey) {
+export function assignRoles(characters, typeKey, customRoles = {}) {
   const needs = MISSION_NEEDS[typeKey] || [];
   const pairs = [];
   for (const c of characters) {
     const text = [c.name, c.seed || "", ...(c.story || [])].join(" ");
     const recent = (c.roleHistory || []).slice(-2).map((r) => r.role);
-    for (const role of Object.keys(CREW_ROLES)) {
+    for (const role of [...Object.keys(CREW_ROLES), ...Object.keys(customRoles)]) {
       let score = Math.random();
       let why = "something new to try";
       if (c.preferredRole === role) { score += 20; why = "your chosen role"; }
-      else {
+      else if (customRoles[role]) {
+        // Custom roles only go to people who chose them or whose story clearly matches them.
+        if (customRoleWords(customRoles[role])?.test(text)) { score += 4; why = "it fits your story"; }
+        else continue;
+      } else {
         if (ROLE_WORDS[role]?.test(text)) { score += 4; why = "it fits your story"; }
         if ((ORIGIN_ROLES[c.originId] || []).includes(role)) { score += 3; if (why === "something new to try") why = `it suits a ${c.origin}`; }
         if (CAREER_TO_ROLE[c.career] === role) score += 2;

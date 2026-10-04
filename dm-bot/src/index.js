@@ -52,6 +52,12 @@ function onReady(c) {
 async function route(interaction) {
   const g = store.guild(interaction.guildId);
 
+  if (interaction.isAutocomplete()) {
+    if (interaction.commandName === "character") return character.roleAutocomplete(interaction, g);
+    if (interaction.commandName === "crew-roles") return character.roleAutocomplete(interaction, g, { customOnly: true });
+    return interaction.respond([]);
+  }
+
   if (interaction.isChatInputCommand()) {
     const sub = interaction.options.getSubcommand(false);
     switch (interaction.commandName) {
@@ -82,6 +88,7 @@ async function route(interaction) {
       case "comms": return play.comms(interaction, g, sub);
       case "mission": return mission.start(interaction, g);
       case "mission-cancel": return mission.cancelLatest(interaction, g);
+      case "crew-roles": return character.crewRoles(interaction, g, sub);
       case "roll": return play.rollCommand(interaction, g);
       case "voice": return play.voiceCommand(interaction, g, sub);
       case "dm-admin":
@@ -111,6 +118,7 @@ async function route(interaction) {
     if (action === "modal") return character.onCustomName(interaction, g);
     if (action === "bs") return character.onBackstory(interaction, g);
   }
+  if (kind === "cr") return character.onNewRole(interaction, g);
   if (kind === "ms") return mission.onButton(interaction, g, args[0], args[1]);
   if (kind === "msm") return mission.onReport(interaction, g, args[0], args[1]);
   if (kind === "st") return records.onClearSelect(interaction, g, args[0]);

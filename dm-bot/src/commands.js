@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, PermissionFlagsBits, ChannelType } from "discord.js";
-import { CAMPAIGN_GOALS, LOCATIONS, MISSION_TYPES, CREW_ROLES } from "./lore/data.js";
+import { CAMPAIGN_GOALS, LOCATIONS, MISSION_TYPES } from "./lore/data.js";
 import { EDGE_VOICES } from "./voice.js";
 
 export const commands = [
@@ -12,9 +12,8 @@ export const commands = [
       .addUserOption((o) => o.setName("player").setDescription("Whose character (default: yours)")))
     .addSubcommand((s) => s.setName("story").setDescription("Read the full origin story")
       .addUserOption((o) => o.setName("player").setDescription("Whose character (default: yours)")))
-    .addSubcommand((s) => s.setName("role").setDescription("Your preferred crew role on missions (or auto: fit your story and rotate)")
-      .addStringOption((o) => o.setName("role").setDescription("Role").setRequired(true)
-        .addChoices({ name: "🎲 Auto (fit my story, rotate)", value: "auto" }, ...Object.entries(CREW_ROLES).map(([k, r]) => ({ name: `${r.emoji} ${r.label}`, value: k })))))
+    .addSubcommand((s) => s.setName("role").setDescription("Your preferred crew role: pick one, type a new one, or auto")
+      .addStringOption((o) => o.setName("role").setDescription("Start typing: Pilot, Engineer… or a brand-new role name").setRequired(true).setMaxLength(40).setAutocomplete(true)))
     .addSubcommand((s) => s.setName("backstory").setDescription("Write or edit your active character's backstory in your own words"))
     .addSubcommand((s) => s.setName("delete").setDescription("Delete one of your characters")
       .addStringOption((o) => o.setName("name").setDescription("Character name").setRequired(true)))
@@ -62,6 +61,13 @@ export const commands = [
     .setDescription("Roll dice for the story, e.g. 1d20 or 2d6+1")
     .addStringOption((o) => o.setName("dice").setDescription("Dice to roll (default 1d20)").setMaxLength(20))
     .addStringOption((o) => o.setName("for").setDescription("What's riding on it, e.g. finding a way past the guards").setMaxLength(200)),
+
+  new SlashCommandBuilder()
+    .setName("crew-roles")
+    .setDescription("Crew roles on this server, including custom ones")
+    .addSubcommand((s) => s.setName("list").setDescription("All roles, built-in and custom"))
+    .addSubcommand((s) => s.setName("remove").setDescription("Delete a custom role (its creator or an admin)")
+      .addStringOption((o) => o.setName("role").setDescription("Custom role").setRequired(true).setAutocomplete(true))),
 
   new SlashCommandBuilder()
     .setName("mission-cancel")

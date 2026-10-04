@@ -20,7 +20,7 @@ export function dossierEmbed(char, { full = false } = {}) {
     .setDescription(clip(full ? char.story.join("\n\n") : char.story[0], 4000))
     .addFields(
       { name: "Origin", value: char.origin, inline: true },
-      { name: "Crew role", value: char.preferredRole ? `${CREW_ROLES[char.preferredRole].emoji} ${CREW_ROLES[char.preferredRole].label}` : "Auto (fits the story)", inline: true },
+      { name: "Crew role", value: char.preferredRole ? `${char.preferredRoleEmoji || CREW_ROLES[char.preferredRole]?.emoji || "⭐"} ${char.preferredRoleLabel || CREW_ROLES[char.preferredRole]?.label || "Custom"}` : "Auto (fits the story)", inline: true },
       { name: "Pronouns", value: char.pronounsLabel || char.pronouns, inline: true },
       { name: "Home", value: char.home, inline: true },
       { name: "Last known location", value: char.location || "Unknown", inline: true },

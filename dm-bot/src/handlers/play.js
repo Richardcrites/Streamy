@@ -412,7 +412,7 @@ export async function help(interaction) {
       "**2. Start a story:** `/campaign start` (solo or with your org). Each act gives you real **in-game objectives** and a **roleplay prompt**.\n" +
       "**3. Play it in game**, then click how your crew handled it. Your choices (🕊️ clean / 🤝 deal / 🔥 ruthless) decide the **finale**.\n" +
       "**4. Keep going:** `/story next` for the next act. `/log` to record what you did. `/character location` when you travel.\n" +
-      "**Crew roles:** on every mission each person gets a different role (Pilot, Engineer, XO, Gunner, Medic, Loadmaster, Scout, Boarding Lead, Salvage, Quartermaster) that fits their story. Pick a favourite with `/character role`.\n" +
+      "**Crew roles:** on every mission each person gets a different role (Pilot, Engineer, XO, Gunner, Medic, Loadmaster, Scout, Boarding Lead, Salvage, Quartermaster) that fits their story. Pick a favourite, or invent your own, with `/character role`.\n" +
       "**Ask the DM:** `/ask what contract do we take for this?`, or start a message with `?` in the scribe channel.\n" +
       "**Dice:** `/roll` (default d20, or `2d6+1`). Missions roll a d20 for the road, which decides your forced stops.\n" +
       "**Keeping track:** `/status` shows injuries, ship damage and warrants (they carry into stories). `/lore` is your server's canon, `/archive` holds finished stories, and an admin can set a **scribe channel** where one person types quick updates during play.\n" +

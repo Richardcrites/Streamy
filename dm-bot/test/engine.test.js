@@ -298,3 +298,34 @@ test("campaign chapters hand different crew members different activities when th
     assert.notEqual(ch.objectives[0].activity, ch.objectives[1].activity);
   }
 });
+
+test("custom roles: created, found by name, only given to people who chose them or fit them, removable", async () => {
+  const roles = await import("../src/engine/roles.js");
+  const g = store.guild(`custom-${Math.random()}`);
+  const key = roles.addCustomRole(g, { label: "Information Broker", job: "Buys intel and talks the crew out of trouble.", emoji: "🕵️", createdBy: "a" });
+  assert.equal(key, "c:information-broker");
+  assert.equal(roles.findRole(g, "information broker"), key);
+  assert.equal(roles.findRole(g, "Pilot"), "pilot");
+  assert.equal(roles.findRole(g, "Bartender"), null);
+  const mk = (u, name, extra = {}) => {
+    const c = story.buildCharacter(g, { ownerId: u, originId: "terran_noble", career: null, name, pronouns: "she" });
+    Object.assign(c, extra);
+    g.characters[c.id] = c;
+    return c;
+  };
+  const broker = mk("a", "Vera Lane", { preferredRole: key });
+  const twin = mk("b", "Ivy Lane", { preferredRole: key });
+  const fan = mk("c", "Nell Moss", { seed: "an information broker who sells secrets" });
+  const plain = mk("d", "Ora Pike");
+  for (let i = 0; i < 40; i++) {
+    const r = story.assignRoles([broker, twin, fan, plain], "heist", g.customRoles);
+    assert.equal(new Set(r.map((x) => x.role)).size, 4, "custom roles are never doubled either");
+    assert.ok(r.filter((x) => x.role === key).length === 1);
+    assert.notEqual(r[3].role, key, "nobody gets a custom role they didn't pick or fit");
+  }
+  const m = story.buildMission(g, [broker], "heist");
+  assert.equal(m.objectives[0].roleLabel, "Information Broker");
+  assert.equal(m.objectives[0].roleEmoji, "🕵️");
+  assert.ok(roles.removeCustomRole(g, key));
+  assert.equal(broker.preferredRole, null);
+});
