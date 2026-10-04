@@ -329,3 +329,22 @@ test("custom roles: created, found by name, only given to people who chose them 
   assert.ok(roles.removeCustomRole(g, key));
   assert.equal(broker.preferredRole, null);
 });
+
+test("Pyro stops and objectives use real, named places", async () => {
+  const { PYRO_POIS, PYRO_STATIONS, poiLabel } = await import("../src/lore/pyro.js");
+  const { STOP_PLACES, LOCATIONS } = await import("../src/lore/data.js");
+  assert.ok(PYRO_POIS.length >= 40 && PYRO_STATIONS.length >= 10);
+  for (const p of PYRO_POIS) {
+    assert.match(p.body, /^(Pyro I|Monox|Bloom|Pyro IV|Ignis|Vatra|Adir|Fairo|Fuego|Vuur|Terminus)$/, p.name);
+    assert.ok(["hostile", "friendly", "resupply", "wreck"].includes(p.kind), p.name);
+    const label = poiLabel(p);
+    assert.ok((label.match(/\(/g) || []).length === 1, `one bracket pair: ${label}`);
+  }
+  for (const s of STOP_PLACES.Pyro) assert.doesNotMatch(s.place, /^an? (derelict|gang|cave|abandoned|wreck)/i, `exact names only: ${s.place}`);
+  for (let i = 0; i < 200; i++) {
+    const r = story.rollStops([{ name: "RJ", conditions: [{ status: "active", kind: "ship" }] }], "Pyro");
+    const repair = r.stops.find((x) => x.forced);
+    assert.match(repair.place, /Station|Exchange|Refueling|Supplies|Gaslight|Endgame|Nest|Daughters|Patch City|Orbituary|trading post|Chawla's Beach|Seer's Canyon|Prophet's Peak|Arid Reach|Frigid Knot|Canard View/, `repairs happen where there are services: ${repair.place}`);
+  }
+  assert.ok(LOCATIONS.Pyro.places.some((p) => p.name.startsWith("Carver's Ridge")));
+});

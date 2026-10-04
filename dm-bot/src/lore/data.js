@@ -1,3 +1,4 @@
+import { PYRO_POIS, PYRO_STATIONS, poiLabel, stationLabel } from "./pyro.js";
 // Structured lore for the procedural story engine. The prose codex lives in /lore/*.md
 // (that's what the optional Claude writer reads); this file is the machine-usable subset:
 // origins, name pools, playable locations and activities, factions, NPC pools, campaign templates.
@@ -328,18 +329,20 @@ export const LOCATIONS = {
   },
   Pyro: {
     law: "lawless",
+    // Real points of interest (see lore/pyro.js), tagged by what you can do there.
     places: [
-      { name: "Ruin Station", tags: ["outlaw", "social", "trade"] },
-      { name: "Checkmate Station", tags: ["outlaw", "social", "trade"] },
-      { name: "Orbituary", tags: ["outlaw", "trade"] },
-      { name: "Patch City", tags: ["outlaw", "social"] },
-      { name: "a contested zone station", tags: ["fps", "outlaw"] },
-      { name: "ASD data centres on Pyro IV", tags: ["fps", "investigate"] },
-      { name: "an ASD facility in the Pyro I storms", tags: ["fps", "investigate"] },
-      { name: "the asteroid fields around Pyro V", tags: ["mining", "salvage"] },
-      { name: "a gang outpost on Bloom", tags: ["fps", "outlaw"] },
-      { name: "a derelict settlement on Monox", tags: ["salvage", "investigate"] },
-      { name: "Terminus", tags: ["patrol", "trade"] },
+      ...PYRO_STATIONS.map((st) => ({ name: stationLabel(st), tags: st.contested ? ["outlaw", "social", "trade", "fps"] : ["outlaw", "social", "trade"] })),
+      ...PYRO_POIS.map((p) => ({
+        name: poiLabel(p),
+        tags: {
+          hostile: ["fps", "outlaw", "investigate"],
+          friendly: ["social", "trade"],
+          resupply: ["trade", "social"],
+          wreck: ["salvage", "investigate"],
+        }[p.kind].concat(/mining/.test(p.type) ? ["mining"] : [], /salvage/.test(p.type) ? ["salvage"] : []),
+      })),
+      { name: "the asteroid fields around Pyro V", tags: ["mining", "salvage", "patrol", "combat"] },
+      { name: "the space lanes between Monox and Bloom", tags: ["patrol", "combat"] },
     ],
   },
   Nyx: {
@@ -720,12 +723,12 @@ export const MISSION_NEEDS = {
 // A meeting point for the crew: a real place that stands in for the story's rendezvous.
 export const RENDEZVOUS = {
   Stanton: ["GrimHEX (Yela)", "Area18", "Lorville", "New Babbage", "Orison", "an ArcCorp Lagrange station"],
-  Pyro: ["Ruin Station", "Checkmate Station", "Orbituary", "Patch City"],
+  Pyro: PYRO_STATIONS.map(stationLabel),
   Nyx: ["Levski"],
 };
 
 // ── Forced stops on the way (rolled per mission) ─────────────────────────────
-// Kinds of places that exist in each system; players pick a matching one on the starmap.
+// Pyro uses exact named places. Stanton and Nyx still use kinds of places (pick one on the starmap).
 export const STOP_PLACES = {
   Stanton: [
     { place: "an abandoned settlement on Daymar", kind: "hostile" },
@@ -736,14 +739,14 @@ export const STOP_PLACES = {
     { place: "an Onyx Facility on Cellin", kind: "hostile" },
     { place: "a wreck in the Yela asteroid belt", kind: "wreck" },
   ],
+  // Pyro: every named outpost, depot, salvage yard and station (lore/pyro.js).
   Pyro: [
-    { place: "a derelict outpost on Bloom", kind: "hostile" },
-    { place: "a Citizens for Prosperity holdout on Monox", kind: "hostile" },
-    { place: "a gang-held outpost on Pyro IV", kind: "hostile" },
-    { place: "an abandoned settlement on Terminus", kind: "camp" },
-    { place: "a cave system on Bloom", kind: "hostile" },
-    { place: "Checkmate Station or Orbituary", kind: "resupply" },
-    { place: "a wreck field around Pyro V's moons", kind: "wreck" },
+    ...PYRO_POIS.map((p) => ({
+      place: poiLabel(p),
+      kind: p.kind === "hostile" && ["Headhunters", "XenoThreat"].includes(p.faction) ? "held" : p.kind,
+      faction: p.faction,
+    })),
+    ...PYRO_STATIONS.map((st) => ({ place: stationLabel(st), kind: "resupply" })),
   ],
   Nyx: [
     { place: "an abandoned station in the Keeger Belt", kind: "hostile" },
@@ -774,6 +777,14 @@ export const STOP_ACTIONS = {
   camp: [
     "Set up camp: secure the doors and sleep in shifts.",
     "Make camp and scavenge whatever's useful from the lockers.",
+  ],
+  held: [
+    "This is {ground}. Sneak in and lie low, or clear them out and take it for the night. Either way, they'll know you were here.",
+    "{faction} hold this place. Talk your way in (they respect money and nerve), or go in shooting and hold it until morning.",
+  ],
+  friendly: [
+    "Ask for shelter for the night. They'll help, but they want news, a favour, or a hand with their own trouble in return.",
+    "Stay on your best behaviour: you're guests. Trade what you can spare for food, water and a bunk.",
   ],
   resupply: [
     "Resupply: food, water, ammo and med pens. Someone here is watching you, though.",

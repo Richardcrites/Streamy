@@ -624,13 +624,17 @@ export function rollStops(characters, system) {
 
   const damaged = characters.find((c) => (c.conditions || []).some((x) => x.status === "active" && x.kind === "ship"));
   const hurt = characters.find((c) => (c.conditions || []).some((x) => x.status === "active" && x.kind === "injury"));
-  if (damaged) stops.push(makeStop(places.filter((p) => p.kind !== "resupply"), fill(pick(STOP_REASONS.ship), { who: damaged.name }), "Patch the hull before anything else. The rest of the crew covers the repair.", damaged.name));
-  if (hurt && stops.length < 2) stops.push(makeStop(places.filter((p) => p.kind === "camp" || p.kind === "resupply"), fill(pick(STOP_REASONS.injury), { who: hurt.name }), null, hurt.name));
+  // Repairs need a pad and services; healing needs somewhere safe.
+  const repairs = places.filter((p) => p.kind === "resupply");
+  const safe = places.filter((p) => p.kind === "friendly" || p.kind === "resupply" || p.kind === "camp");
+  if (damaged) stops.push(makeStop(repairs.length ? repairs : places, fill(pick(STOP_REASONS.ship), { who: damaged.name }), "Land and patch the hull before anything else. The rest of the crew keeps watch while it's done.", damaged.name));
+  if (hurt && stops.length < 2) stops.push(makeStop((safe.length ? safe : places).filter((p) => !stops.some((x) => x.place === p.place)), fill(pick(STOP_REASONS.injury), { who: hurt.name }), null, hurt.name));
 
   const used = new Set(stops.map((x) => x.place));
   while (stops.length < count) {
-    const wantHostile = hostileBias && !stops.some((x) => x.kind === "hostile");
-    let pool = places.filter((p) => !used.has(p.place) && (!wantHostile || p.kind === "hostile"));
+    const isHostile = (k) => k === "hostile" || k === "held";
+    const wantHostile = hostileBias && !stops.some((x) => isHostile(x.kind));
+    let pool = places.filter((p) => !used.has(p.place) && (!wantHostile || isHostile(p.kind)));
     if (!pool.length) pool = places.filter((p) => !used.has(p.place));
     const stop = makeStop(pool.length ? pool : places, pick(STOP_REASONS.any));
     used.add(stop.place);
@@ -646,7 +650,10 @@ function makeStop(pool, reason, action = null, forcedBy = null) {
     place: p.place,
     kind: p.kind,
     reason,
-    action: action || pick(STOP_ACTIONS[p.kind]),
+    action: action || fill(pick(STOP_ACTIONS[p.kind] || STOP_ACTIONS.hostile), {
+      faction: p.faction ? (p.faction.endsWith("s") ? `The ${p.faction}` : p.faction) : "Someone",
+      ground: p.faction ? `${p.faction.replace(/s$/, "")} ground` : "someone else's ground",
+    }),
     need: pick(STOP_NEEDS),
     forced: Boolean(forcedBy),
     forcedBy,
