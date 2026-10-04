@@ -82,6 +82,33 @@ Built on the lore codex in [`../lore`](../lore) (year 2956, Alpha 4.10).
 - **Player → player:** crossovers create connections. Org campaigns give everyone a role.
 - **Story → world:** finales, new orgs and rivalries go into the **world log**, which feeds the news and the AI narrator, so one crew's ending becomes another crew's rumour.
 
+## DM Link: connect your game (optional)
+
+DM Link is a small companion app each player runs on their own PC while playing. It reads Star Citizen's
+`Game.log` (read-only, the same way Stelliverse and other companion tools do; it never touches the game) and posts
+story events to a **game feed** channel. The bot records them on that player's character automatically:
+
+| In game | What the DM records |
+|---|---|
+| Contract accepted / shared / completed / withdrawn | Journal and mission field log. Taking the mission's **shared contract** is ticked off automatically. |
+| Objective complete | Mission field log |
+| Injury detected (body part, tier) | 🩸 an injury condition on `/status` |
+| Med bed surgery | Clears the injuries it treated |
+| CrimeStat increased / fined | ⚖️ a CrimeStat condition (raised count) / journal |
+| Downed (emergency services called) | Journal, with a nudge to roleplay the imprint echo |
+| Location, quantum arrival, ship boarded | Your character's location and ship, in readable names (e.g. "Rest stop at Bloom (Pyro III) low orbit") |
+| aUEC awarded | Added up into one line, not 100 pings |
+
+**Setup**
+1. Admin: `/dm-admin game-feed #game-feed` (the bot needs **Manage Webhooks** there; the invite link in the bot's
+   window includes it). **Message Content Intent** must be on in the developer portal.
+2. Each player: `/link` gives a personal code.
+3. Each player double-clicks **`link.bat`** (needs Node.js), pastes the code, and leaves the window open while
+   playing. It finds `Game.log` automatically or asks where Star Citizen is installed.
+
+Only the events above are sent, never the raw log. The code is personal: anyone holding it could post fake events as
+you. Re-run `/dm-admin game-feed` to reset everyone's codes.
+
 ## Picking an AI model (OpenRouter)
 
 `OPENROUTER_MODEL=openrouter/auto` lets OpenRouter choose, but it sometimes picks a "thinking" model that returns

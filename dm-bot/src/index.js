@@ -7,6 +7,7 @@ import * as mission from "./handlers/mission.js";
 import * as voice from "./voice.js";
 import * as records from "./handlers/records.js";
 import * as ask from "./handlers/ask.js";
+import * as feed from "./handlers/feed.js";
 import { aiLabel } from "./ai.js";
 import { linkKin } from "./engine/story.js";
 import { registerName } from "./engine/names.js";
@@ -44,6 +45,7 @@ function onReady(c) {
     permissions: [
       PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks,
       PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.Connect, PermissionFlagsBits.Speak,
+      PermissionFlagsBits.ManageWebhooks, PermissionFlagsBits.AddReactions,
     ],
   });
   console.log(`Invite / fix permissions link (open it and pick your server):\n${invite}`);
@@ -94,10 +96,12 @@ async function route(interaction) {
       case "dm-admin":
         if (sub === "persona") return mission.editPersona(interaction, g);
         if (sub === "scribe-channel") return records.setScribeChannel(interaction, g);
+        if (sub === "game-feed") return feed.setFeedChannel(interaction, g);
         return play.admin(interaction, g, sub);
       case "dm-help": return play.help(interaction);
       case "rp-rules": return play.rpRules(interaction);
       case "ask": return ask.ask(interaction, g);
+      case "link": return feed.linkCode(interaction, g);
       case "status": return records.status(interaction, g, sub);
       case "lore": return records.lore(interaction, g, sub);
       case "archive": return records.archive(interaction, g, sub);
@@ -128,8 +132,13 @@ async function route(interaction) {
 }
 
 async function onMessage(message) {
-  if (message.author.bot || !message.guildId) return;
+  if (!message.guildId) return;
   const g = store.guild(message.guildId);
+  // Game events from players' DM Link apps arrive through our own webhook.
+  if (message.webhookId && message.webhookId === g.settings.feedWebhookId) {
+    return feed.onFeedMessage(message, g).catch((err) => console.error("[feed]", err));
+  }
+  if (message.author.bot) return;
   if (message.channelId !== g.settings.scribeChannelId) return;
   try {
     await records.onScribeMessage(message, g);

@@ -122,6 +122,8 @@ export const commands = [
     .addSubcommand((s) => s.setName("comms-channel").setDescription("Channel where story transmissions are posted")
       .addChannelOption((o) => o.setName("channel").setDescription("Channel").setRequired(true).addChannelTypes(ChannelType.GuildText)))
     .addSubcommand((s) => s.setName("persona").setDescription("Change the DM's name and personality"))
+    .addSubcommand((s) => s.setName("game-feed").setDescription("Channel where players' DM Link apps post game events")
+      .addChannelOption((o) => o.setName("channel").setDescription("Channel").setRequired(true).addChannelTypes(ChannelType.GuildText)))
     .addSubcommand((s) => s.setName("scribe-channel").setDescription("Channel where a scribe types quick updates during play")
       .addChannelOption((o) => o.setName("channel").setDescription("Channel").setRequired(true).addChannelTypes(ChannelType.GuildText)))
     .addSubcommand((s) => s.setName("voice").setDescription("Turn the DM's spoken voice on or off")
@@ -167,6 +169,8 @@ export const commands = [
     .setName("ask")
     .setDescription("Ask the DM anything, e.g. what contract do we take for this?")
     .addStringOption((o) => o.setName("question").setDescription("Your question").setRequired(true).setMaxLength(500)),
+
+  new SlashCommandBuilder().setName("link").setDescription("Connect your game: get your code for the DM Link app"),
 
   new SlashCommandBuilder().setName("rp-rules").setDescription("How the game's bugs and limits become part of the story"),
 

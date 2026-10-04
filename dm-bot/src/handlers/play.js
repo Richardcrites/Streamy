@@ -415,6 +415,7 @@ export async function help(interaction) {
       "**Crew roles:** on every mission each person gets a different role (Pilot, Engineer, XO, Gunner, Medic, Loadmaster, Scout, Boarding Lead, Salvage, Quartermaster) that fits their story. Pick a favourite, or invent your own, with `/character role`.\n" +
       "**Ask the DM:** `/ask what contract do we take for this?`, or start a message with `?` in the scribe channel.\n" +
       "**Dice:** `/roll` (default d20, or `2d6+1`). Missions roll a d20 for the road, which decides your forced stops.\n" +
+      "**Connect your game:** `/link` + `link.bat` sends contracts, injuries, CrimeStat, locations and ships from your Game.log straight to your character.\n" +
       "**Keeping track:** `/status` shows injuries, ship damage and warrants (they carry into stories). `/lore` is your server's canon, `/archive` holds finished stories, and an admin can set a **scribe channel** where one person types quick updates during play.\n" +
       "**Voice:** join a voice channel and the DM reads briefings, twists and finales aloud. `/voice join`, `/voice test`, `/voice leave`.\n" +
       "**Link up:** `/story crossover @player` ties two characters' stories together. Orgs share campaigns (`/org`), and `/comms` sends in-character transmissions.\n" +
