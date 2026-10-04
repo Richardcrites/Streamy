@@ -11,6 +11,12 @@ Built on the lore codex in [`../lore`](../lore) (year 2956, Alpha 4.10).
 | Command | What happens |
 |---|---|
 | `/character create` | Pick an origin (8 lore backgrounds), pronouns, then a **name from suggestions** (or type your own). The DM writes your origin story with 2 personal **hooks** that later stories pull on. |
+| `/character retell` | The DM rewrites your origin story (optionally with a new description). Use it if the AI was down when you made your character. Your description from `seed` is always in the story and on your dossier as **Concept**, even without AI. |
+| `/saga start` | **The long story.** A server-wide saga across Stanton, Pyro and Nyx, with a villain known only by an alias, five acts and ten **leads**. Every lead is something real you do in game: Hockrow's Jorrit Dossier at the Onyx Facilities, the Farro data centres and Lazarus labs (Storm Breaker), InterSec's Vanduul-Tech Smugglers, Tactical Strike, QV Breaker Stations, Hunt Frontier Fighters, the Siege of Orison, Hathor's Align & Mine, Wikelo's Emporium, the contested zones and the Executive Hangar. Four sagas: *The Hyperion Inheritance*, *Embers of the Frontier*, *The Quiet at Virgil* and *Terra's Long Knife*. |
+| 🧭 Missions follow the saga | While a saga runs, every `/mission` is built around the next lead: its place, its real contract, and what to look for. Succeed and you find the clue (two clues finish an act); fail and the villain's **threat** rises. At 10/10 they counterstrike, and losing that costs you a lead. After act V comes the **finale**, also played through real content. |
+| 🧩 Personal secrets and the big reveal | Every character gets secrets tied to their own story (their home, the NPCs from their hooks), each hidden at a real place in game. They come out as you find leads and do side jobs. They all point at one **big reveal** at the finale that ties the whole crew together. `/saga secrets` shows yours and where to look next. |
+| `/saga job` + DM Link | Every contract you take has a purpose. Tell the DM (`/saga job`), or let **DM Link** spot it in your Game.log: if it's the lead's contract, completing it finds the clue. Anything else is a **side job** with a reason in the story, and every 2 side jobs dig up one of your secrets. |
+| `/saga status` / `recap` / `end` | Where the story stands (acts, clues, threat, the next lead's place and contract); "previously on…" read aloud; an admin can abandon a saga. Finished sagas go into `/archive`. |
 | `/character role` | Your preferred **crew role** on missions: Pilot, Engineer, XO, Gunner, Medic, Loadmaster, Scout, Boarding Lead, Salvage Specialist, Quartermaster, **or make your own**: type a new name (e.g. *Information Broker*), describe the job, pick an emoji. Custom roles are shared with the server. Or **Auto**: roles that fit your story, rotating so you try new things. Nobody on a mission ever gets the same role as someone else. |
 | `/crew-roles list` / `remove` | See every role (built-in and custom). Remove a custom role (its creator or an admin). |
 | `/character sheet` / `story` / `list` / `switch` | Your dossier, full story, and multiple characters. |
@@ -119,7 +125,9 @@ nothing, and the writing style changes from call to call. For reliable stories, 
 3. In `.env`, set `OPENROUTER_MODEL=` to that ID and restart the bot.
 
 If the bot window shows `[ai] OpenRouter gave an empty answer (model …)`, the bot retries automatically; if it says
-`Still empty`, switch to a different model.
+`Still empty`, switch to a different model. You can also list backups with `OPENROUTER_FALLBACK_MODELS=` (comma-separated
+model IDs); OpenRouter tries them when the main model fails. When the AI doesn't answer, the bot uses its built-in text,
+which is shorter and more generic, but still includes your character's description.
 
 ## Scribe channel setup
 

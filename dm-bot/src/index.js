@@ -6,6 +6,7 @@ import * as play from "./handlers/play.js";
 import * as mission from "./handlers/mission.js";
 import * as voice from "./voice.js";
 import * as records from "./handlers/records.js";
+import * as saga from "./handlers/saga.js";
 import * as ask from "./handlers/ask.js";
 import * as feed from "./handlers/feed.js";
 import { aiLabel } from "./ai.js";
@@ -102,6 +103,7 @@ async function route(interaction) {
       case "dm-help": return play.help(interaction);
       case "rp-rules": return play.rpRules(interaction);
       case "ask": return ask.ask(interaction, g);
+      case "saga": return saga.command(interaction, g, sub);
       case "link": return feed.linkCode(interaction, g);
       case "status": return records.status(interaction, g, sub);
       case "lore": return records.lore(interaction, g, sub);

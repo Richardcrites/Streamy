@@ -41,3 +41,22 @@ A campaign should have **one end goal**, 3–5 acts, and clear in-game objective
 
 Progress should track real things players can show: aUEC earned, cargo SCU delivered, reputation ranks, bounties
 completed, locations visited, and items or loot recovered.
+
+## Sagas (in the bot: `/saga`)
+
+The bot's long story arcs are built from these threads and from missions that really exist in Alpha 4.x, so every
+lead is something a crew can go and do. Real chains they use:
+
+| Content | Where | How you get it |
+|---|---|---|
+| **Jorrit Dossier** (Onyx Facilities) | Stanton's moons | Hockrow Agency (lead investigator Arken Mallor), Investigation tab. Phase 1 personnel/engineering/research files, Phase 2 energy anomaly data, Phase 3 the Reagent and Catalyst codes and the experiment in **Site-B**. |
+| **Storm Breaker** | Pyro IV, Pyro I | No contract: take the **Farro Data Centers** on Pyro IV (turrets, the ASD maintenance keycard), then the **Lazarus** labs (Phoenix, Tithonus) in the Pyro I storms by automated shuttle, print the **Specimen Cache Access** card, and summon the **Apex Valakkar** at the altar. Lore: Jorrit's "Second Life Initiative" harvested irradiated Valakkar pearls. |
+| **Vanduul-Tech Smugglers** | Nyx | InterSec Defense Solutions (Junior Contractor rank): raid a QV Logistics station held by the Shattered Blade; the Vanduul parts were sold to ASD's Onyx labs. |
+| **Tactical Strike Group** | Nyx | InterSec: a 7+ ship op against a Shattered Blade QV Extraction station to rescue People's Alliance pilot **Gabe Windell**. |
+| **Operation Breaker Stations** | Keeger Belt, Nyx | Restore a QV Breaker station, fire the laser (12 Sadaryx for 3 lenses), go into the asteroid. |
+| **Alliance Aid** | Nyx, Stanton | Molina Mold at Levski (faulty Gyson filters): transport, collection, and defence against the Moraine gang. Then the Levski Municipal Works. |
+| **Hunt Frontier Fighters** / **Clear Citizens for Prosperity Servers** | Pyro | CFP or Headhunter contracts; the Mercenary job against the CFP's servers. |
+| **Siege of Orison** | Stanton | Instanced: take the platforms, disable the IFF inverters, kill Mendo Ren. |
+| **Align & Mine** | Daymar, Aberdeen | Hathor's planetary alignment facilities (PAFs) and orbital laser platforms (Attritus, Lamina, Ruptura, Vivere). |
+| **Contested zones** / **Executive Hangar** | Pyro | Checkmate, Orbituary and Ruin Station (Ghost Arena); seven compboards open PYAM-EXHANG-0-1. |
+| **Wikelo Emporium** | Stanton | Kinga (microTech), Selo (Yela), Dasi (Hurston): barter, including irradiated Valakkar pearls. |

@@ -44,3 +44,16 @@ Galactapedia and Comm-Link lore.
 - Citizen History: Alien Week / first contact — https://citizen-history.com/article/star-citizen-lore-alien-week-first-contact
 - PC Gamer: Squadron 42 — https://www.pcgamer.com/star-citizen-squadron-42-release-date-trailer/
 - Wccftech: S42 40+ hours, 2026 — https://wccftech.com/squadron-42-is-40-hours-long-will-launch-in-2026-confirms-chris-roberts/
+
+## Saga research (Oct 2026)
+- Onyx Facilities / Jorrit Dossier: https://www.mmopixel.com/news/star-citizen-4-3-asd-onyx-facilities-guide, https://www.tradealliance.nl/community/star-citizen/onyx-facilities-faq/
+- Storm Breaker / Lazarus: https://www.mmopixel.com/news/star-citizen-4-2-0-new-event-stormbreaker-guide, https://scquickguides.com/guides/activities/lazarus/, https://starcitizen.tools/Lazarus_Phoenix_Research_Lab
+- Vanduul-Tech Smugglers: https://www.thexboxhub.com/star-citizen-4-4-vanduul-tech-smugglers-guide/
+- Tactical Strike Group: https://www.neowin.net/news/star-citizen-alpha-48-lands-showing-off-a-large-scale-multi-phase-rescue-mission/, https://expcarry.com/star-citizen-tactical-strike
+- Breaker Stations: https://expcarry.com/star-citizen-4-7-breaker-station
+- Align & Mine: https://scquickguides.com/guides/activities/hathor/
+- Alliance Aid: https://scopique.com/2026/01/31/clear-the-air-event-in-star-citizen/
+- Executive Hangar / contested zones: https://expcarry.com/star-citizen-executive-hangar-guide
+- Wikelo: https://expcarry.com/star-citizen-wikelo-favors-guid
+- Fight for Pyro / Hunt Frontier Fighters: https://www.mmopixel.com/news/star-citizen-4-3-2-frontier-fighters-finale-event-guide
+- Mission databases: https://scmdb.net, https://sc-market.space/missions, https://hubcitizen.com/missions

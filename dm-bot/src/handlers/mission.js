@@ -12,8 +12,9 @@ import { narrateMission, narrateMissionEnd } from "../ai.js";
 import * as store from "../store.js";
 import { broadcast, COLORS, clip } from "../comms.js";
 import * as voice from "../voice.js";
-import { activeConditions, conditionLine, canonText, archiveMission } from "../engine/records.js";
+import { activeConditions, conditionLine, canonText, archiveMission, archiveSaga } from "../engine/records.js";
 import { parseAndApply } from "./records.js";
+import { activeSaga, sagaBeat, sagaForAI, resolveSagaBeat, ensureTidbits, threatBar, leadLines } from "../engine/saga.js";
 
 const ephemeral = MessageFlags.Ephemeral;
 export const persona = (g) => g.settings.persona || DEFAULT_PERSONA;
@@ -39,9 +40,17 @@ export async function start(interaction, g) {
 async function createMission(g, crew, type, ownerId) {
   g.missions ??= {};
   const snap = snapshot(g);
-  const mission = buildMission(g, crew, type);
+  // Every job carries the saga forward: the next lead, a counterstrike, or the finale.
+  const saga = activeSaga(g);
+  const beat = sagaBeat(saga);
+  const mission = buildMission(g, crew, type, { play: beat?.play, sagaTitle: saga?.title });
   mission.requestedType = type || null;
-  const ai = await narrateMission({ mission, characters: crew, worldLog: g.worldLog, persona: persona(g), canon: canonText(g) });
+  if (saga && beat) {
+    for (const c of crew) ensureTidbits(g, saga, c);
+    mission.saga = { id: saga.id, title: saga.title, beat };
+    mission.sagaNames = [saga.shadow, saga.lieutenant.name, ...(beat.kind === "finale" ? [saga.truename] : [])];
+  }
+  const ai = await narrateMission({ mission, characters: crew, worldLog: g.worldLog, persona: persona(g), canon: canonText(g), saga: sagaForAI(g, saga, beat, crew) });
   if (ai) {
     // The AI rewrites why each stop happens (more vivid, tied to the story); places and actions stay as rolled.
     if (Array.isArray(ai.stop_reasons) && ai.stop_reasons.length === mission.stops?.length) {
@@ -58,6 +67,13 @@ async function createMission(g, crew, type, ownerId) {
     mission.stakes = ai.stakes;
     mission.twist = ai.twist;
     ai.objective_flavour.forEach((f, i) => { if (mission.objectives[i]) mission.objectives[i].flavour = f; });
+  }
+  if (!ai && mission.saga) {
+    const b = mission.saga.beat;
+    mission.briefing += b.kind === "finale"
+      ? ` This is it. ${b.text}`
+      : b.kind === "counterstrike" ? ` ${b.text}`
+      : ` And this one matters: it's how you find the next piece of what ${saga.shadow} is hiding. Get to ${b.play.where} and look for ${b.play.find || "anything that doesn't belong"}.`;
   }
   mission.created = createdSince(g, snap);
   for (const o of mission.objectives) {
@@ -79,6 +95,7 @@ function missionMessage(g, mission, crew) {
     .setTitle(clip(mission.title, 250))
     .setDescription(clip(mission.briefing, 3000))
     .addFields(
+      ...(mission.saga ? [{ name: `🧭 ${mission.saga.title}: ${{ lead: "a lead", counterstrike: "counterstrike", finale: "THE FINALE" }[mission.saga.beat.kind]}`, value: clip(sagaField(g, mission.saga.beat), 1024) }] : []),
       ...(mission.crossings.length ? [{ name: "🧬 How your stories cross", value: clip(mission.crossings.join("\n"), 1024) }] : []),
       ...(mission.anchor ? [{
         name: "🤝 The shared contract",
@@ -109,6 +126,14 @@ function missionMessage(g, mission, crew) {
     new ButtonBuilder().setCustomId(`ms:${mission.id}:scrap`).setLabel("Scrap").setEmoji("🗑️").setStyle(ButtonStyle.Secondary),
   );
   return { content: `${crew.map((c) => `<@${c.ownerId}>`).join(" ")} you have a job.`, embeds: [embed], components: [row] };
+}
+
+function sagaField(g, beat) {
+  const saga = g.saga;
+  const why = beat.kind === "finale" ? "Every lead is found. This is where it ends."
+    : beat.kind === "counterstrike" ? beat.text
+    : `Act ${beat.act + 1}, ${saga.acts[beat.act].name}: ${saga.acts[beat.act].goal}`;
+  return [why, ...leadLines(beat.play), `☠️ ${saga.shadow}'s threat: ${threatBar(saga.threat)}`].join("\n");
 }
 
 // ── Scrap / reroll: undo the mission as if it never happened ──────────────────
@@ -165,7 +190,11 @@ export async function onReport(interaction, g, missionId, result) {
   mission.status = success ? "complete" : "failed";
   // The report notes go through the scribe parser too, so injuries and damage are recorded automatically.
   const recorded = notes ? await parseAndApply(g, notes, interaction.user.username, { mission }) : null;
-  const ai = await narrateMissionEnd({ mission, success, notes, characters: crew, persona: persona(g) });
+  // The long story moves: a lead found (and maybe a personal secret), threat raised, or the finale's big reveal.
+  const saga = mission.saga && g.saga?.id === mission.saga.id && activeSaga(g);
+  const sagaOut = saga ? resolveSagaBeat(g, saga, mission.saga.beat, { success, missionTitle: mission.title, chars: crew }) : null;
+  if (sagaOut) mission.sagaResult = sagaOut;
+  const ai = await narrateMissionEnd({ mission, success, notes, characters: crew, persona: persona(g), sagaResult: sagaOut && sagaSummary(sagaOut) });
   mission.epilogue = ai?.epilogue || missionEpilogue(mission, success);
   mission.notes = notes;
 
@@ -176,6 +205,10 @@ export async function onReport(interaction, g, missionId, result) {
   }
   store.logWorld(g, `${crew.map((c) => c.name).join(", ")} ${success ? "pulled off" : "failed"} "${mission.title}".`);
   archiveMission(g, mission, crew);
+  if (sagaOut?.finale) {
+    archiveSaga(g, saga, sagaOut.bond);
+    store.logWorld(g, `${saga.title} is over. ${saga.shadow} was ${saga.truename}, and ${crew.map((c) => c.name).join(", ")} ${success ? "brought them down" : "couldn't stop them"}.`);
+  }
   store.save();
 
   await interaction.editReply({ components: [] }).catch(() => {});
@@ -186,8 +219,39 @@ export async function onReport(interaction, g, missionId, result) {
     .setDescription(clip(`${mission.epilogue}${notes ? `\n\n**Crew report:** ${notes}` : ""}`, 4000))
     .setFooter({ text: "Archived (/archive) and logged to everyone's journal. Run /mission for the next job." });
   if (recorded?.lines.length) embed.addFields({ name: "📝 Recorded", value: clip(recorded.lines.join("\n"), 1024) });
-  voice.narrate(interaction, g, mission.epilogue);
+  if (sagaOut) embed.addFields(...sagaFields(g, sagaOut));
+  voice.narrate(interaction, g, `${mission.epilogue}${sagaOut ? ` ${sagaSpoken(g, sagaOut)}` : ""}`);
   await broadcast(interaction, g, { embeds: [embed], userIds: [] });
+}
+
+// ── Saga results, for the AI, the embed and the voice ────────────────────────
+const sagaSummary = (o) => ({
+  clue_found: o.revealed, act_finished: o.actDone, personal_secret: o.tidbit && `${o.tidbit.character}: ${o.tidbit.text}`,
+  threat_now: o.threat, counterstrike: o.counterstrike || undefined, finale: o.finale || undefined, big_reveal: o.bond,
+});
+
+export function sagaFields(g, o) {
+  const saga = g.saga;
+  const fields = [];
+  if (o.finale) {
+    fields.push({ name: `🧭 ${saga.title}: the end (${saga.outcome})`, value: clip(`**The truth:** ${saga.truth}`, 1024) });
+    fields.push({ name: "💥 The big reveal", value: clip(o.bond, 1024) });
+    return fields;
+  }
+  const lines = [];
+  if (o.revealed) lines.push(`🔓 **Clue found:** ${o.revealed}`);
+  if (o.actDone) lines.push(`🎬 **Act done:** ${o.actDone}. Next: act ${saga.act + 1}, ${saga.acts[saga.act].name}.`);
+  if (o.counterstrike) lines.push(o.threat <= 6 ? "🛡️ You held off the counterstrike." : "💔 The counterstrike hit. A lead went cold.");
+  if (!o.revealed && !o.counterstrike) lines.push(`${saga.shadow} gained ground.`);
+  lines.push(`☠️ Threat: ${threatBar(o.threat)}`);
+  fields.push({ name: `🧭 ${saga.title}`, value: clip(lines.join("\n"), 1024) });
+  if (o.tidbit) fields.push({ name: `🧩 Something about ${o.tidbit.character}`, value: clip(`${o.tidbit.text}${o.tidbit.bond ? "\n*This one is bigger than one person.*" : ""}`, 1024) });
+  return fields;
+}
+
+export function sagaSpoken(g, o) {
+  if (o.finale) return `And now you know the truth. ${o.bond}`;
+  return [o.revealed && `Here's what you found: ${o.revealed}`, o.actDone && `That closes a chapter: ${o.actDone}.`, o.tidbit && `And ${o.tidbit.text}`].filter(Boolean).join(" ");
 }
 
 // ── /dm-admin persona ────────────────────────────────────────────────────────

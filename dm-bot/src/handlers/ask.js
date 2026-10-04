@@ -9,6 +9,7 @@ import * as store from "../store.js";
 import { COLORS, clip } from "../comms.js";
 import { persona } from "./mission.js";
 import * as voice from "../voice.js";
+import { activeSaga, sagaBeat, sagaForAI, leadLines } from "../engine/saga.js";
 
 const personaName = (g) => persona(g).match(/"([^"]+)"/)?.[1] || "The DM";
 
@@ -19,7 +20,11 @@ function currentMission(g, char) {
 }
 
 // Without AI we can still answer the most common question: which contract fits each objective.
-function offlineAnswer(question, mission) {
+function offlineAnswer(question, mission, saga) {
+  if (saga && (!mission || /saga|lead|next|clue|story|where.*(go|look)/i.test(question))) {
+    const beat = sagaBeat(saga);
+    return `For **${saga.title}**: ${beat.kind === "finale" ? "it's time for the finale." : beat.kind === "counterstrike" ? beat.text : "here's your next lead."}\n${leadLines(beat.play).join("\n")}\n\nRun \`/mission\` and I'll build the job around it, or just go: complete the contract and I'll notice.`;
+  }
   if (mission?.anchor && /contract|mission|take|do we|what do|where|share|meet/i.test(question)) {
     return `Take ${mission.anchor.contract}.\n**In the story:** ${mission.anchor.standIn}\n${mission.anchor.share}` +
       (mission.rendezvous ? `\n**Meet at:** ${mission.rendezvous}.` : "") +
@@ -43,9 +48,10 @@ export async function answer(g, { question, userId, askerName }) {
       guide: CONTRACT_GUIDE,
       rules: GAME_RULES.map((r) => r.text),
       share: SHARE_HOW,
+      saga: activeSaga(g) && sagaForAI(g, g.saga, sagaBeat(g.saga), crew),
     })
     : null;
-  return text || offlineAnswer(question, mission);
+  return text || offlineAnswer(question, mission, activeSaga(g));
 }
 
 export function answerEmbed(g, question, text) {

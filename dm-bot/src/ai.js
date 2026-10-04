@@ -261,7 +261,7 @@ export async function narrateFinale({ campaign, finale, characters }) {
   );
 }
 
-export async function narrateMission({ mission, characters, worldLog, persona, canon = [] }) {
+export async function narrateMission({ mission, characters, worldLog, persona, canon = [], saga = null }) {
   return generate(
     "Write this one-shot mission in the persona's voice. It is played in Star Citizen and roleplayed in voice chat, " +
       "so DO NOT script scenes, dialogue or what the players do: give them a situation, stakes and a reason to care, and " +
@@ -279,12 +279,16 @@ export async function narrateMission({ mission, characters, worldLog, persona, c
       "'stop_reasons' has exactly one entry per stop in stops_on_the_way, in order: a vivid, specific reason the crew " +
       "MUST stop there, tied to the story, the crossing or a character's condition (2 sentences max). Don't change the " +
       "place or the action; a stop forced by a crew condition must keep that condition as its reason. Make at least " +
-      "one stop carry action or danger when it fits.",
+      "one stop carry action or danger when it fits. If `saga` is set, this job is a chapter of the server's long story: " +
+      "give it that purpose. The briefing should make clear why this place and this contract matter to the saga, tie it to " +
+      "what the characters have already learned about themselves, and foreshadow (never reveal) the clue. For a finale, " +
+      "the twist IS saga.this_mission.the_big_reveal, told so it lands on every character. Everything must be doable in the real game.",
     {
       persona,
       mission: { type: mission.typeLabel, system: mission.system, antagonist: mission.antagonist, person_at_the_centre: mission.target, draft_briefing: mission.briefing, draft_stakes: mission.stakes, shared_contract: mission.anchor, meet_at: mission.rendezvous, crew_roles: mission.objectives.map((o) => ({ for: o.characterName, role: o.roleLabel || o.activity, job: o.text, chosen_because: o.why })), stops_on_the_way: (mission.stops || []).map((st) => ({ place: st.place, draft_reason: st.reason, action: st.action, forced_by_crew_condition: st.forced })) },
       crossing_facts: mission.crossings,
-      allowed_names: mission.names,
+      allowed_names: [...mission.names, ...(mission.sagaNames || [])],
+      saga,
       characters: characters.map(charBrief),
       world_log: worldLog.slice(-8).map((w) => w.text),
       server_canon: canon,
@@ -295,17 +299,20 @@ export async function narrateMission({ mission, characters, worldLog, persona, c
   );
 }
 
-export async function narrateMissionEnd({ mission, success, notes, characters, persona }) {
+export async function narrateMissionEnd({ mission, success, notes, characters, persona, sagaResult = null }) {
   return generate(
     "The crew has finished this mission. Only mention the crew and the allowed names. In the persona's voice, reveal the twist (if it hasn't come out already) " +
       "and write a short epilogue (one or two paragraphs) on what it means for them. Base it on the outcome and on " +
-      "the players' notes about what they actually did. Don't contradict the notes. Then write one journal line per character.",
+      "the players' notes about what they actually did. Don't contradict the notes. If saga_result is set, the job moved " +
+      "the server's long story: work what was revealed (the clue, a character's personal secret, or for a finale the big " +
+      "reveal that ties the crew together) into the epilogue. Then write one journal line per character.",
     {
       persona,
       mission: { title: mission.title, briefing: mission.briefing, crossing: mission.crossings, twist: mission.twist, antagonist: mission.antagonist, person_at_the_centre: mission.target },
-      allowed_names: mission.names,
+      allowed_names: [...mission.names, ...(mission.sagaNames || [])],
       outcome: success ? "success" : "failure",
       player_notes: notes || "(none)",
+      saga_result: sagaResult,
       characters: characters.map((c) => ({ name: c.name, pronouns: c.pronouns })),
     },
     obj({ epilogue: str, journal: { type: "array", items: obj({ name: str, entry: str }) } }),
@@ -343,7 +350,7 @@ export async function parseScribe({ text, author, characters, missionTitle }) {
 }
 
 // ── Questions: players ask the DM anything ───────────────────────────────────
-export async function askDM({ question, persona, asker, mission, characters, canon, guide, rules, share }) {
+export async function askDM({ question, persona, asker, mission, characters, canon, guide, rules, share, saga = null }) {
   if (!aiEnabled()) return null;
   const context =
     `${persona}\n\n` +
@@ -358,7 +365,8 @@ export async function askDM({ question, persona, asker, mission, characters, can
     `SERVER CANON: ${JSON.stringify(canon)}\n` +
     `ASKED BY: ${asker || "a player"}\n` +
     `CURRENT MISSION: ${mission ? JSON.stringify({ title: mission.title, type: mission.typeLabel, system: mission.system, briefing: mission.briefing, crossings: mission.crossings, stakes: mission.stakes, shared_contract: mission.anchor, meet_at: mission.rendezvous, crew_roles: mission.objectives.map((o) => ({ for: o.characterName, role: o.roleLabel, job: o.text })), stops: mission.stops || [], field_log: mission.scribe || [] }) : "none"}\n` +
-    `CREW: ${JSON.stringify(characters.map(charBrief))}`;
+    `CREW: ${JSON.stringify(characters.map(charBrief))}\n` +
+    `THE SAGA (the server's long story; point players to the next lead's real place and contract when they ask what to do next, never reveal hidden clues, the villain's identity or the big reveal): ${saga ? JSON.stringify(saga) : "none running"}`;
   try {
     return await complete({ system: [lore(), context], messages: [{ role: "user", content: question }], maxTokens: 800 });
   } catch (err) {

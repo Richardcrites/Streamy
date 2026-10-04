@@ -1,3 +1,4 @@
+import { SAGAS } from "./lore/sagas.js";
 import { SlashCommandBuilder, PermissionFlagsBits, ChannelType } from "discord.js";
 import { CAMPAIGN_GOALS, LOCATIONS, MISSION_TYPES } from "./lore/data.js";
 import { EDGE_VOICES } from "./voice.js";
@@ -175,6 +176,22 @@ export const commands = [
   new SlashCommandBuilder().setName("link").setDescription("Connect your game: get your code for the DM Link app"),
 
   new SlashCommandBuilder().setName("rp-rules").setDescription("How the game's bugs and limits become part of the story"),
+
+  new SlashCommandBuilder()
+    .setName("saga")
+    .setDescription("The long story: a server-wide saga that every mission and contract moves forward")
+    .addSubcommand((s) => s.setName("start").setDescription("Begin a new saga (one at a time per server)")
+      .addStringOption((o) => o.setName("story").setDescription("Which saga (default: one you haven't played)").addChoices(
+        ...SAGAS.map((t) => ({ name: `${t.title} (${t.systems.join(", ")})`, value: t.id })))))
+    .addSubcommand((s) => s.setName("status").setDescription("Where the saga stands: act, clues found, threat, and where to go next"))
+    .addSubcommand((s) => s.setName("recap").setDescription("'Previously on…': the DM recaps the saga (read aloud if he's in voice)"))
+    .addSubcommand((s) => s.setName("secrets").setDescription("What your character has learned about themselves, and where to look for more"))
+    .addSubcommand((s) => s.setName("job").setDescription("Tell the DM about a contract you took in game, and he'll tie it into the story")
+      .addStringOption((o) => o.setName("contract").setDescription("The contract's name, e.g. 'Hunt Frontier Fighters' or 'Mercenary: Defend Occupants'").setRequired(true).setMaxLength(150))
+      .addStringOption((o) => o.setName("stage").setDescription("Did you just take it, or is it done?").setRequired(true).addChoices(
+        { name: "Took it", value: "accepted" }, { name: "Completed it", value: "complete" }, { name: "Failed it", value: "failed" }))
+      .addUserOption((o) => o.setName("player").setDescription("Who took it (default: you)")))
+    .addSubcommand((s) => s.setName("end").setDescription("Admin: abandon the current saga")),
 
   new SlashCommandBuilder().setName("dm-help").setDescription("How to use the Star Citizen DM"),
 ].map((c) => c.toJSON());

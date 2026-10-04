@@ -2,9 +2,12 @@
 // through a webhook this bot created. Here we turn those events into records on the player's
 // active character: injuries, CrimeStat, location, ship, contracts, the mission field log.
 
-import { MessageFlags, PermissionFlagsBits, ChannelType } from "discord.js";
+import { MessageFlags, PermissionFlagsBits, ChannelType, EmbedBuilder } from "discord.js";
 import * as store from "../store.js";
 import { addCondition, activeConditions, clearCondition } from "../engine/records.js";
+import { activeSaga, noteContract, threatBar } from "../engine/saga.js";
+import { COLORS, clip } from "../comms.js";
+import * as voice from "../voice.js";
 
 const ephemeral = MessageFlags.Ephemeral;
 const PREFIX = "DMLINK:";
@@ -79,9 +82,18 @@ function matchesAnchor(mission, title) {
   return Boolean(re && re.test(title));
 }
 
-export function applyFeedEvents(g, char, events) {
+// sagaNotes (optional array): filled with what each contract means for the saga, for the bot to post.
+export function applyFeedEvents(g, char, events, sagaNotes = []) {
   const mission = missionFor(g, char);
   const logs = [];
+  const saga = activeSaga(g);
+  const sagaNote = (title, stage) => {
+    if (!saga) return;
+    const out = noteContract(g, saga, char, { title, stage });
+    if (out.isLead && out.resolved) note(`Found a lead for ${saga.title}: ${out.resolved.revealed}`);
+    if (out.tidbit) note(`Learned something about themselves: ${out.tidbit.text}`);
+    sagaNotes.push({ title, stage, ...out });
+  };
   const note = (text) => {
     store.addJournal(char, { kind: "game", text });
     if (mission) (mission.scribe ??= []).push(`${char.name}: ${text}`);
@@ -106,11 +118,12 @@ export function applyFeedEvents(g, char, events) {
           mission.anchorTaken = { by: char.name, title: e.title, at: e.at };
           note(`That's the shared contract for "${mission.title}".`);
         }
+        if (e.type === "contract_accepted") sagaNote(e.title, "accepted");
         break;
       }
-      case "contract_complete": note(`Completed the contract "${e.title}".`); break;
+      case "contract_complete": note(`Completed the contract "${e.title}".`); sagaNote(e.title, "complete"); break;
       case "contract_withdrawn": note(`Dropped the contract "${e.title}".`); break;
-      case "contract_failed": note(`Failed the contract "${e.title}".`); break;
+      case "contract_failed": note(`Failed the contract "${e.title}".`); sagaNote(e.title, "failed"); break;
       case "objective": if (mission) (mission.scribe ??= []).push(`${char.name}: objective done: ${e.text}`); break;
       case "crimestat": {
         const cs = activeConditions(char).find((c) => c.kind === "legal" && c.source === "crimestat");
@@ -158,6 +171,42 @@ export async function onFeedMessage(message, g) {
   if (!data) return;
   const char = store.activeCharacter(g, data.d);
   if (!char) return message.react("❓").catch(() => {});
-  applyFeedEvents(g, char, data.events);
+  const sagaNotes = [];
+  applyFeedEvents(g, char, data.events, sagaNotes);
   await message.react("✅").catch(() => {});
+  const embed = sagaNotes.length ? jobEmbed(g, char, sagaNotes) : null;
+  if (embed) {
+    await message.reply({ embeds: [embed], allowedMentions: { parse: [] } }).catch(() => {});
+    const spoken = sagaNotes.map(spokenNote).filter(Boolean).join(" ");
+    if (spoken) voice.sayIfConnected(message.guild, g, spoken);
+  }
+}
+
+// ── What a real contract means for the saga ─────────────────────────────────
+export function jobEmbed(g, char, notes) {
+  const saga = g.saga;
+  const lines = notes.flatMap((n) => {
+    if (n.stage === "accepted") return [`📄 **${n.title}**: ${n.isLead ? "🧭 " : ""}${n.purpose}`];
+    if (n.stage === "failed") return n.isLead ? [`💀 **${n.title}** failed. That was the lead, and ${saga.shadow} noticed. Threat ${threatBar(saga.threat)}`] : [];
+    const out = [];
+    if (n.resolved) {
+      out.push(`🔓 **${n.title}** done. **Clue found:** ${n.resolved.revealed}`);
+      if (n.resolved.actDone) out.push(`🎬 Act done: ${n.resolved.actDone}.`);
+      out.push(`☠️ Threat ${threatBar(n.resolved.threat)}`);
+    } else {
+      out.push(`✅ **${n.title}** done. Side job for ${saga.title}.`);
+    }
+    const tb = n.tidbit || n.resolved?.tidbit;
+    if (tb) out.push(`🧩 **Something about ${tb.character}:** ${tb.text}`);
+    return out;
+  });
+  if (!lines.length) return null;
+  return new EmbedBuilder().setColor(COLORS.chapter).setAuthor({ name: `🧭 ${saga.title.toUpperCase()} · ${char.name}` }).setDescription(clip(lines.join("\n"), 4000));
+}
+
+function spokenNote(n) {
+  if (n.stage === "accepted" && n.isLead) return `Good. That contract is the lead. ${n.purpose}`;
+  if (n.stage === "complete" && n.resolved) return `That's it. ${n.resolved.revealed}${n.resolved.tidbit ? ` And ${n.resolved.tidbit.text}` : ""}`;
+  if (n.stage === "complete" && n.tidbit) return n.tidbit.text;
+  return null;
 }

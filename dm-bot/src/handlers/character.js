@@ -8,6 +8,7 @@ import { PermissionFlagsBits } from "discord.js";
 import { PRONOUNS } from "../engine/util.js";
 import { suggestNames, buildCharacter, linkKin, seedParagraph, shortName } from "../engine/story.js";
 import { narrateOrigin, aiEnabled, aiLabel } from "../ai.js";
+import { activeSaga, ensureTidbits } from "../engine/saga.js";
 import * as store from "../store.js";
 import { dossierEmbed, broadcast, COLORS, clip } from "../comms.js";
 
@@ -117,6 +118,8 @@ async function finish(interaction, g, draft, name) {
   g.characters[char.id] = char;
   g.activeChar[interaction.user.id] = char.id;
   const kin = linkKin(g, char);
+  // A saga is running: the newcomer has secrets in it too.
+  if (activeSaga(g)) ensureTidbits(g, g.saga, char);
   delete g.drafts[interaction.user.id];
   store.addJournal(char, { kind: "origin", text: `${char.name} entered the 'Verse: ${char.origin}.` });
   store.logWorld(g, `${char.name} (${char.origin}) arrived in the 'Verse.`);

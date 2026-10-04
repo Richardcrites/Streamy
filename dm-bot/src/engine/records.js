@@ -139,6 +139,32 @@ export function archiveCampaign(g, campaign, crew) {
   return pushArchive(g, { kind: "campaign", title: campaign.title, characterIds: crew.map((c) => c.id), text: lines.join("\n") });
 }
 
+// A finished (or abandoned) saga, as a readable story: premise, clues in order, secrets, the reveal.
+export function archiveSaga(g, saga, bond) {
+  g.archive ??= [];
+  const names = Object.keys(saga.tidbits || {}).map((id) => g.characters?.[id]).filter(Boolean);
+  const lines = [
+    `# ${saga.title}`,
+    `*Saga, season ${saga.season} · ${date(saga.createdAt)} → ${date()} · ${saga.outcome || saga.status}*`,
+    "",
+    saga.premise,
+    "",
+    "## What was found",
+    ...saga.leads.filter((l) => l.found).map((l) => `- **${l.where}** (${l.found.by}, "${l.found.mission}"): ${l.text}`),
+    "",
+    "## What they learned about themselves",
+    ...names.flatMap((c) => (saga.tidbits[c.id] || []).filter((t) => t.revealed).map((t) => `- **${c.name}:** ${t.text}`)),
+    "",
+    "## The truth",
+    saga.truth,
+    ...(bond ? ["", "## The big reveal", bond] : []),
+    "",
+    "## Timeline",
+    ...saga.timeline.map((t) => `- ${date(t.at)}: ${t.text}`),
+  ];
+  return pushArchive(g, { kind: "saga", title: saga.title, characterIds: names.map((c) => c.id), text: lines.join("\n") });
+}
+
 function pushArchive(g, entry) {
   const e = { id: newId(), at: new Date().toISOString(), ...entry };
   g.archive.push(e);

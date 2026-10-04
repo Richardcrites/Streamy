@@ -515,8 +515,13 @@ export function rulesFor(activities, n = 3) {
   return [...pickN(relevant, n - 1), pick(general)].filter(Boolean);
 }
 
-export function buildMission(g, characters, typeId) {
-  const typeKey = MISSION_TYPES[typeId] ? typeId : pick(Object.keys(MISSION_TYPES));
+// What kind of mission fits a saga lead's in-game activity.
+const ACTIVITY_TYPE = { investigate: "heist", fps: "heist", bounty: "bounty", combat: "defense", haul: "smuggle", delivery: "smuggle", escort: "defense", rescue: "rescue", mining: "salvage", salvage: "salvage", rp: "smuggle" };
+
+// play (optional): a saga lead or finale ({system, where, contract, find, activity}). The mission happens
+// there, through that contract, so the job moves the long story forward.
+export function buildMission(g, characters, typeId, { play = null, sagaTitle = null } = {}) {
+  const typeKey = MISSION_TYPES[typeId] ? typeId : play ? ACTIVITY_TYPE[play.activity] || pick(Object.keys(MISSION_TYPES)) : pick(Object.keys(MISSION_TYPES));
   const type = MISSION_TYPES[typeKey];
   const { crossings, focus, foil } = findCrossings(g, characters);
 
@@ -529,12 +534,21 @@ export function buildMission(g, characters, typeId) {
   const lead = characters[0];
   const threadSystems = THREADS[enemyFirst[0]?.hook.thread]?.systems?.filter((s) => PLAYABLE_SYSTEMS.includes(s)) || [];
   const located = PLAYABLE_SYSTEMS.find((s) => lead.location?.includes(s));
-  const system = located || pick(threadSystems) || (PLAYABLE_SYSTEMS.includes(lead.system) ? lead.system : pick(PLAYABLE_SYSTEMS));
+  const system = (play && PLAYABLE_SYSTEMS.includes(play.system) ? play.system : null)
+    || located || pick(threadSystems) || (PLAYABLE_SYSTEMS.includes(lead.system) ? lead.system : pick(PLAYABLE_SYSTEMS));
 
   const vars = { patron: target.name, target: target.name, antagonist: antagonist.name, system };
   // One real contract, shared with the party, anchors the job: its destination stands in for the story's place.
+  // A saga lead brings its own: the real place and activity where the clue is.
   const anchorTpl = pick(ANCHORS[typeKey]);
-  const anchor = { contract: `${anchorTpl.contract} in ${system}`, standIn: fill(anchorTpl.standIn, vars), share: SHARE_HOW };
+  const anchor = play
+    ? {
+      contract: `${play.contract}, at ${play.where}`,
+      standIn: `This job is part of ${sagaTitle || "the long story"}.${play.find ? ` The clue is ${play.find}: get it, and the story moves.` : ""} ${fill(anchorTpl.standIn, vars)}`,
+      share: SHARE_HOW,
+      saga: true,
+    }
+    : { contract: `${anchorTpl.contract} in ${system}`, standIn: fill(anchorTpl.standIn, vars), share: SHARE_HOW };
   // Everyone gets a different crew role, based on their story (and their own pick, if they set one).
   const roles = { ...CREW_ROLES, ...(g.customRoles || {}) };
   const objectives = assignRoles(characters, typeKey, g.customRoles || {}).map(({ char, role, why }) => ({
