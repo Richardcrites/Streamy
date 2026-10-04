@@ -17,6 +17,8 @@ import { parseAndApply } from "./records.js";
 import { activeSaga, sagaBeat, sagaForAI, resolveSagaBeat, ensureTidbits, threatBar, leadLines } from "../engine/saga.js";
 
 const ephemeral = MessageFlags.Ephemeral;
+// Ten built-in crew roles; past that people share roles.
+const MAX_CREW = 10;
 export const persona = (g) => g.settings.persona || DEFAULT_PERSONA;
 const personaName = (g) => persona(g).match(/"([^"]+)"/)?.[1] || "The DM";
 
@@ -25,10 +27,19 @@ export async function start(interaction, g) {
   if (!lead) return interaction.reply({ content: "Create a character first: `/character create`.", flags: ephemeral });
 
   const crew = [lead];
-  for (const opt of ["with1", "with2", "with3"]) {
-    const user = interaction.options.getUser(opt);
-    const c = user && store.activeCharacter(g, user.id);
-    if (c && !crew.includes(c)) crew.push(c);
+  const add = (userId) => {
+    const c = store.activeCharacter(g, userId);
+    if (c && !crew.includes(c) && crew.length < MAX_CREW) crew.push(c);
+  };
+  for (let i = 1; i <= 7; i++) {
+    const user = interaction.options.getUser(`with${i}`);
+    if (user) add(user.id);
+  }
+  // "voice: true" brings everyone in the caller's voice channel who has a character.
+  if (interaction.options.getBoolean?.("voice")) {
+    const channel = interaction.member?.voice?.channel;
+    if (!channel) return interaction.reply({ content: "Join a voice channel first (or leave `voice` off and pick people with `with1`–`with7`).", flags: ephemeral });
+    for (const member of channel.members.values()) if (!member.user.bot) add(member.id);
   }
   await interaction.deferReply();
   const { mission, message } = await createMission(g, crew, interaction.options.getString("type"), interaction.user.id);
@@ -63,7 +74,10 @@ async function createMission(g, crew, type, ownerId) {
     }
     mission.title = ai.title;
     mission.briefing = ai.briefing;
-    mission.crossings = [ai.crossing];
+    // The AI's crossing comes first; procedural ties stay for anyone it didn't mention.
+    const firstName = (n) => n.replace(/".*?"\s*/, "").split(" ")[0];
+    const left = crew.filter((c) => !ai.crossing.includes(firstName(c.name)));
+    mission.crossings = [ai.crossing, ...mission.crossings.filter((x) => left.some((c) => x.includes(c.name)))];
     mission.stakes = ai.stakes;
     mission.twist = ai.twist;
     ai.objective_flavour.forEach((f, i) => { if (mission.objectives[i]) mission.objectives[i].flavour = f; });
@@ -96,18 +110,15 @@ function missionMessage(g, mission, crew) {
     .setDescription(clip(mission.briefing, 3000))
     .addFields(
       ...(mission.saga ? [{ name: `🧭 ${mission.saga.title}: ${{ lead: "a lead", counterstrike: "counterstrike", finale: "THE FINALE" }[mission.saga.beat.kind]}`, value: clip(sagaField(g, mission.saga.beat), 1024) }] : []),
-      ...(mission.crossings.length ? [{ name: "🧬 How your stories cross", value: clip(mission.crossings.join("\n"), 1024) }] : []),
+      ...splitField("🧬 How your stories cross", mission.crossings),
       ...(mission.anchor ? [{
         name: "🤝 The shared contract",
         value: clip(`Take ${mission.anchor.contract}.\n**In the story:** ${mission.anchor.standIn}\n${mission.anchor.share}`, 1024),
       }] : []),
       ...(mission.rendezvous ? [{ name: "📍 Meet at", value: `${mission.rendezvous}. Party up there before anyone takes the contract.` }] : []),
-      {
-        name: "🎭 Crew roles",
-        value: clip(mission.objectives.map((o) => o.roleLabel
-          ? `${o.roleEmoji || CREW_ROLES[o.role]?.emoji || "⭐"} **${o.characterName}: ${o.roleLabel}** (${o.why}). ${o.flavour || o.text}`
-          : `**${o.characterName}:** ${o.text}`).join("\n"), 1024),
-      },
+      ...splitField(`🎭 Crew roles (${mission.objectives.length})`, mission.objectives.map((o) => o.roleLabel
+        ? `${o.roleEmoji || CREW_ROLES[o.role]?.emoji || "⭐"} **${o.characterName}: ${o.roleLabel}** (${o.why}). ${o.flavour || o.text}`
+        : `**${o.characterName}:** ${o.text}`), mission.objectives.length > 4 ? 300 : 1024),
       ...(mission.stops ? [{
         name: `🛑 Stops on the way · 🎲 d20 rolled ${mission.roadRoll}: ${roadRollLabel(mission.roadRoll)}`,
         value: clip(mission.stops.length
@@ -125,7 +136,57 @@ function missionMessage(g, mission, crew) {
     new ButtonBuilder().setCustomId(`ms:${mission.id}:reroll`).setLabel("Reroll").setEmoji("🎲").setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId(`ms:${mission.id}:scrap`).setLabel("Scrap").setEmoji("🗑️").setStyle(ButtonStyle.Secondary),
   );
-  return { content: `${crew.map((c) => `<@${c.ownerId}>`).join(" ")} you have a job.`, embeds: [embed], components: [row] };
+  return { content: `${crew.map((c) => `<@${c.ownerId}>`).join(" ")} you have a job.`, embeds: fitEmbeds(embed), components: [row] };
+}
+
+// Discord caps one embed at 6000 characters and 25 fields. A big crew with AI-written text can pass that,
+// so overflow fields move into a follow-on embed instead of the post failing.
+const EMBED_BUDGET = 5800;
+export function fitEmbeds(embed) {
+  const data = embed.toJSON();
+  const size = (f) => f.name.length + f.value.length;
+  const head = (data.title || "").length + (data.description || "").length + (data.author?.name || "").length + (data.footer?.text || "").length;
+  const first = [];
+  const rest = [];
+  let used = head;
+  for (const f of data.fields || []) {
+    if (!rest.length && used + size(f) <= EMBED_BUDGET && first.length < 25) {
+      first.push(f);
+      used += size(f);
+    } else rest.push(f);
+  }
+  if (!rest.length) return [embed];
+  const out = [EmbedBuilder.from({ ...data, fields: first, footer: undefined })];
+  let cur = [];
+  let curSize = 0;
+  for (const f of rest) {
+    if (cur.length && (curSize + size(f) > EMBED_BUDGET || cur.length === 25)) {
+      out.push(new EmbedBuilder().setColor(data.color ?? null).addFields(cur));
+      cur = [];
+      curSize = 0;
+    }
+    cur.push(f);
+    curSize += size(f);
+  }
+  out.push(new EmbedBuilder().setColor(data.color ?? null).addFields(cur).setFooter(data.footer));
+  return out.slice(0, 10);
+}
+
+// Lines spread over as many fields as they need (Discord caps a field at 1024 characters).
+// perLine trims each line so a big crew still fits in one message.
+function splitField(name, lines, perLine = 1024) {
+  const fields = [];
+  let cur = [];
+  for (const raw of lines.filter(Boolean)) {
+    const line = clip(raw, perLine);
+    if (cur.length && [...cur, line].join("\n").length > 1024) {
+      fields.push(cur);
+      cur = [];
+    }
+    cur.push(line);
+  }
+  if (cur.length) fields.push(cur);
+  return fields.map((f, i) => ({ name: i ? `${name} (cont.)` : name, value: f.join("\n") }));
 }
 
 function sagaField(g, beat) {

@@ -148,3 +148,37 @@ test("the player's description is always in the built-in story", () => {
   assert.match(story.seedParagraph("I just want to fly.", v, "he"), /own words: "I just want to fly\."/);
   assert.equal(story.seedParagraph("", v, "he"), null);
 });
+
+test("missions take a crew of 8: unique roles and everyone tied into the story", () => {
+  const g = store.guild(`crew8-${Math.random()}`);
+  const origins = ["pyro_outlaw", "navy_veteran", "levski_born", "hurston_worker", "terran_noble", "tevarin", "microtech_engineer", "banu_trader"];
+  const cs = origins.map((originId, i) => {
+    const c = story.buildCharacter(g, { ownerId: `u${i}`, originId, career: null, name: story.suggestNames(originId, 1, g)[0], pronouns: "they" });
+    g.characters[c.id] = c;
+    return c;
+  });
+  for (let run = 0; run < 10; run++) {
+    const m = story.buildMission(g, cs, null);
+    assert.equal(m.objectives.length, 8);
+    assert.equal(new Set(m.objectives.map((o) => o.role)).size, 8, "nobody shares a role");
+    for (const c of cs) assert.ok(m.crossings.some((x) => x.includes(c.name)), `${c.name} is tied into the story`);
+  }
+  // Past the 10 built-in roles, people double up instead of being left out.
+  const more = [...cs, ...cs.slice(0, 4).map((c, i) => ({ ...c, id: `extra${i}`, name: `Extra ${i}` }))];
+  assert.ok(story.assignRoles(more, "heist").every(Boolean));
+});
+
+test("an oversized mission post splits into several embeds instead of failing", async () => {
+  const { EmbedBuilder } = await import("discord.js");
+  const { fitEmbeds } = await import("../src/handlers/mission.js");
+  const e = new EmbedBuilder().setTitle("Big").setDescription("x".repeat(3000)).setFooter({ text: "footer" })
+    .addFields(Array.from({ length: 12 }, (_, i) => ({ name: `F${i}`, value: "y".repeat(1000) })));
+  const out = fitEmbeds(e).map((x) => x.toJSON());
+  assert.ok(out.length >= 3);
+  for (const x of out) {
+    const n = (x.title || "").length + (x.description || "").length + (x.footer?.text || "").length + (x.fields || []).reduce((s, f) => s + f.name.length + f.value.length, 0);
+    assert.ok(n <= 6000, `embed is ${n}`);
+  }
+  assert.equal(out.flatMap((x) => x.fields || []).length, 12, "no field is lost");
+  assert.equal(out.at(-1).footer.text, "footer");
+});

@@ -55,9 +55,14 @@ export const commands = [
     .setDescription("Get a one-shot mission from the DM to play in game and in voice")
     .addStringOption((o) => o.setName("type").setDescription("Kind of job (default: surprise me)")
       .addChoices(...Object.entries(MISSION_TYPES).map(([k, v]) => ({ name: `${v.emoji} ${v.label}`, value: k }))))
+    .addBooleanOption((o) => o.setName("voice").setDescription("Bring everyone in your voice channel who has a character"))
     .addUserOption((o) => o.setName("with1").setDescription("Crew member"))
     .addUserOption((o) => o.setName("with2").setDescription("Crew member"))
-    .addUserOption((o) => o.setName("with3").setDescription("Crew member")),
+    .addUserOption((o) => o.setName("with3").setDescription("Crew member"))
+    .addUserOption((o) => o.setName("with4").setDescription("Crew member"))
+    .addUserOption((o) => o.setName("with5").setDescription("Crew member"))
+    .addUserOption((o) => o.setName("with6").setDescription("Crew member"))
+    .addUserOption((o) => o.setName("with7").setDescription("Crew member")),
 
   new SlashCommandBuilder()
     .setName("roll")

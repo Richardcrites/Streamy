@@ -272,7 +272,8 @@ export async function narrateMission({ mission, characters, worldLog, persona, c
       "location. Keep it exactly; never invent other contracts or mission names. Each crew member has a different crew " +
       "role (crew_roles); 'objective_flavour' is one short line per crew member, in order, saying what their role means " +
       "on THIS job, tied to their story. 'briefing' is " +
-      "2 short paragraphs spoken by the persona. 'crossing' explains in 2–4 sentences how the crew's stories connect. " +
+      "2 short paragraphs spoken by the persona. 'crossing' explains how the crew's stories connect: 2–4 sentences for a small crew; " +
+      "for a big crew, one short sentence per crew member, so EVERY person has a personal stake and a tie to someone else on the crew. " +
       "'stakes' is 1–2 sentences. 'twist' is a secret revealed only at the end; make it land on the crossing. " +
       "If a character carries an active condition (injury, ship damage, warrant), let it matter: mention it in the briefing or stakes. " +
       "Respect server_canon: it is what has already happened on this server. " +

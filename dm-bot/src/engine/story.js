@@ -493,6 +493,18 @@ export function findCrossings(g, crew) {
     foil = pick(all.filter((p) => p.npc.id !== focus?.npc.id)) || null;
     if (focus && foil) crossings.push({ kind: "npc", text: `${npcLink(g, focus.npc, foil.npc)} Both of them are part of ${focus.char.name}'s story.` });
   }
+  // Big crews: everyone gets tied in. Anyone not in a crossing yet is linked to another crew member
+  // through the people in their pasts, so nobody is just along for the ride.
+  const inCrossing = (c) => crossings.some((x) => x.text.includes(c.name)) || [focus, foil].some((p) => p?.char.id === c.id);
+  for (const c of crew) {
+    if (crew.length < 3 || inCrossing(c)) continue;
+    const mine = pools[crew.indexOf(c)];
+    const others = crew.filter((o) => o.id !== c.id && pools[crew.indexOf(o)].length);
+    const partner = pick(others.filter((o) => !inCrossing(o))) || pick(others);
+    const x = pick(mine);
+    const y = partner && pick(pools[crew.indexOf(partner)].filter((q) => q.npc.id !== x?.npc.id));
+    if (x && y) crossings.push({ kind: "pair", text: `${npcLink(g, x.npc, y.npc)} ${x.npc.name} is from ${c.name}'s past; ${y.npc.name} from ${partner.name}'s.` });
+  }
   return { crossings, focus, foil };
 }
 
@@ -749,5 +761,7 @@ export function assignRoles(characters, typeKey, customRoles = {}) {
     taken.add(p.role);
     done.set(p.char.id, p);
   }
+  // More people than roles (10 built-in): the rest double up on their best fit.
+  for (const p of pairs) if (!done.has(p.char.id)) done.set(p.char.id, { ...p, why: `${p.why}, sharing the job` });
   return characters.map((c) => done.get(c.id));
 }
