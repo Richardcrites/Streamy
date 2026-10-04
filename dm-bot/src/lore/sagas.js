@@ -226,7 +226,7 @@ export const SAGAS = [
         text: "{lieutenant} keeps a recorded call with {shadow} as insurance. Mendo Ren had a copy." },
       { system: "Stanton", where: "an Onyx Facility", activity: "investigate", contract: "An **Investigation** contract at an Onyx Facility", find: "the shell company's records in ASD's files", match: /investigat|onyx|dossier/i,
         text: "The Area18 shell company's real owner is a senior Earth-loyalist political fixer, and ASD's lawyers set it up." },
-      { system: "Stanton", where: "the microTech shipment's route", activity: "escort", contract: "Fly escort on a crewmate's **Hauling** run, or a **Mercenary** defend job", find: "the attackers on the run (shooting them down is the stand-in)", match: /defend|escort|mercenary/i,
+      { system: "Stanton", where: "around microTech (New Babbage)", activity: "combat", contract: "A **Mercenary** defend contract or a **Bounty Hunter** contract around microTech: the hostiles are the strike team", find: "the strike team (bringing them down is the stand-in)", match: /defend|bounty|mercenary|protect/i,
         text: "{shadow} will be in Stanton in person, to watch the crisis unfold. For once, they can be reached." },
     ],
     tidbits: [
@@ -239,7 +239,7 @@ export const SAGAS = [
     ],
     bondHint: { text: "The shell company's payroll has {short}'s name on it, and every crewmate's, each paid for one piece of the plan.", find: "an Investigation contract at an Onyx Facility (the shell company's files)" },
     finale: "Stop the strike on the medical shipment and get {lieutenant}'s recording to someone who'll use it, before {truename} disappears.",
-    finalePlay: { system: "Stanton", where: "a run to New Babbage (microTech)", contract: "One crewmate takes a **Hauling** contract carrying medical supplies to New Babbage, the rest fly escort; a **Mercenary** defend or **Bounty Hunter** contract on the way stands in for the strike team. A **Delivery** to Area18 afterwards is the recording reaching the press", activity: "escort" },
+    finalePlay: { system: "Stanton", where: "a run to New Babbage (microTech)", contract: "A **Mercenary** defend contract around microTech: what you're protecting stands in for the medical shipment, and the attackers are the strike team. Then a **Delivery** contract to Area18: that's the recording reaching the press", activity: "combat" },
     sideJobs: {
       Mercenary: "Every gang you hit in Stanton is someone {shadow} paid. Check their pockets.",
       "Bounty Hunter": "Bounty targets in Stanton have been very well paid lately. Find out by whom.",

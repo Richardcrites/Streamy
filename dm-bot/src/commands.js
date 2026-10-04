@@ -55,6 +55,8 @@ export const commands = [
     .setDescription("Get a one-shot mission from the DM to play in game and in voice")
     .addStringOption((o) => o.setName("type").setDescription("Kind of job (default: surprise me)")
       .addChoices(...Object.entries(MISSION_TYPES).map(([k, v]) => ({ name: `${v.emoji} ${v.label}`, value: k }))))
+    .addStringOption((o) => o.setName("contract").setDescription("The contract you pulled in game, as it's named in your mobiGlas. The mission is built around it").setMaxLength(150))
+    .addStringOption((o) => o.setName("location").setDescription("Where that contract sends you (e.g. Carver's Ridge, Bloom)").setMaxLength(120))
     .addBooleanOption((o) => o.setName("voice").setDescription("Bring everyone in your voice channel who has a character"))
     .addUserOption((o) => o.setName("with1").setDescription("Crew member"))
     .addUserOption((o) => o.setName("with2").setDescription("Crew member"))

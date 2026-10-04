@@ -14,7 +14,8 @@ import { broadcast, COLORS, clip } from "../comms.js";
 import * as voice from "../voice.js";
 import { activeConditions, conditionLine, canonText, archiveMission, archiveSaga } from "../engine/records.js";
 import { parseAndApply } from "./records.js";
-import { activeSaga, sagaBeat, sagaForAI, resolveSagaBeat, ensureTidbits, threatBar, leadLines } from "../engine/saga.js";
+import { activeSaga, sagaBeat, sagaForAI, resolveSagaBeat, ensureTidbits, threatBar, leadLines, leadMatches, noteContract, contractTab, sagaTemplate } from "../engine/saga.js";
+import { fill } from "../engine/util.js";
 import { SAGAS } from "../lore/sagas.js";
 
 const ephemeral = MessageFlags.Ephemeral;
@@ -42,21 +43,32 @@ export async function start(interaction, g) {
     if (!channel) return interaction.reply({ content: "Join a voice channel first (or leave `voice` off and pick people with `with1`–`with7`).", flags: ephemeral });
     for (const member of channel.members.values()) if (!member.user.bot) add(member.id);
   }
+  // contract: the real contract the crew pulled in game. It becomes the mission's spine.
+  const title = interaction.options.getString("contract")?.trim();
+  const pulled = title ? { title, location: interaction.options.getString("location")?.trim() || null } : null;
   await interaction.deferReply();
-  const { mission, message } = await createMission(g, crew, interaction.options.getString("type"), interaction.user.id);
+  const { mission, message } = await createMission(g, crew, interaction.options.getString("type"), interaction.user.id, pulled);
   await interaction.editReply(message);
   voice.narrate(interaction, g, `${mission.title}. ${mission.briefing} ${mission.crossings.join(" ")} ${mission.stakes}` +
     (mission.stops?.length ? ` And you won't make it in one go. ${mission.stops.map((st, i) => `Stop ${i + 1}: ${st.place}, because ${st.reason}.`).join(" ")}` : ""));
 }
 
-async function createMission(g, crew, type, ownerId) {
+export async function createMission(g, crew, type, ownerId, pulled = null) {
   g.missions ??= {};
   const snap = snapshot(g);
   // Every job carries the saga forward: the next lead, a counterstrike, or the finale.
+  // A pulled contract only carries the saga's beat if it IS the lead (or the finale/counterstrike is due);
+  // otherwise it's a side job with a purpose in the story.
   const saga = activeSaga(g);
-  const beat = sagaBeat(saga);
-  const mission = buildMission(g, crew, type, { play: beat?.play, sagaTitle: saga?.title });
+  let beat = sagaBeat(saga);
+  if (pulled && beat?.kind === "lead" && !leadMatches(saga, pulled.title)) beat = null;
+  const mission = buildMission(g, crew, type, { play: beat?.play, sagaTitle: saga?.title, pulled });
   mission.requestedType = type || null;
+  if (saga && pulled && !beat) {
+    const t = sagaTemplate(saga);
+    mission.sagaSide = { id: saga.id, title: saga.title, purpose: fill(t.sideJobs[contractTab(pulled.title)] || t.sideJobs.other, { shadow: saga.shadow, lieutenant: saga.lieutenant.name }) };
+    for (const c of crew) ensureTidbits(g, saga, c);
+  }
   if (saga && beat) {
     for (const c of crew) ensureTidbits(g, saga, c);
     mission.saga = { id: saga.id, title: saga.title, beat };
@@ -113,10 +125,14 @@ function missionMessage(g, mission, crew) {
       ...(mission.saga ? [{ name: `🧭 ${mission.saga.title}: ${{ lead: "a lead", counterstrike: "counterstrike", finale: "THE FINALE" }[mission.saga.beat.kind]}`, value: clip(sagaField(g, mission.saga.beat), 1024) }] : []),
       ...splitField("🧬 How your stories cross", mission.crossings),
       ...(mission.anchor ? [{
-        name: "🤝 The shared contract",
-        value: clip(`Take ${mission.anchor.contract}.\n**In the story:** ${mission.anchor.standIn}\n${mission.anchor.share}`, 1024),
+        name: mission.anchor.pulled ? "📄 Your contract (this is the job)" : "🤝 The shared contract",
+        value: clip(mission.anchor.pulled
+          ? `${mission.anchor.contract}${mission.anchor.where ? `\n📍 **${mission.anchor.where}**` : ""}\n**In the story:** ${mission.anchor.standIn}\nNot shared yet? ${mission.anchor.share}`
+          : `Take ${mission.anchor.contract}.\n**In the story:** ${mission.anchor.standIn}\n${mission.anchor.share}`, 1024),
       }] : []),
-      ...(mission.rendezvous ? [{ name: "📍 Meet at", value: `${mission.rendezvous}. Party up there before anyone takes the contract.` }] : []),
+      ...(mission.sagaSide ? [{ name: `🧭 ${mission.sagaSide.title}: a side job`, value: clip(`${mission.sagaSide.purpose}\nFinish it and it counts toward digging up your secrets (\`/saga secrets\`).`, 1024) }] : []),
+      ...(mission.addon ? [{ name: "➕ Optional extra", value: clip(mission.addon, 1024) }] : []),
+      ...(mission.rendezvous && !mission.pulled ? [{ name: "📍 Meet at", value: `${mission.rendezvous}. Party up there before anyone takes the contract.` }] : []),
       ...splitField(`🎭 Crew roles (${mission.objectives.length})`, mission.objectives.map((o) => o.roleLabel
         ? `${o.roleEmoji || CREW_ROLES[o.role]?.emoji || "⭐"} **${o.characterName}: ${o.roleLabel}** (${o.why}). ${o.flavour || o.text}`
         : `**${o.characterName}:** ${o.text}`), mission.objectives.length > 4 ? 300 : 1024),
@@ -208,7 +224,7 @@ async function scrapOrReroll(interaction, g, mission, reroll) {
   if (!reroll || !crew.length) {
     return interaction.editReply({ content: `🗑️ *"${title}" was scrapped. It never happened.*`, embeds: [], components: [] });
   }
-  const { mission: fresh, message } = await createMission(g, crew, mission.requestedType, mission.ownerId);
+  const { mission: fresh, message } = await createMission(g, crew, mission.requestedType, mission.ownerId, mission.pulled ? { title: mission.pulled.title, location: mission.pulled.location } : null);
   await interaction.editReply(message);
   voice.narrate(interaction, g, `Scratch that. ${fresh.title}. ${fresh.briefing}`);
 }
@@ -256,6 +272,17 @@ export async function onReport(interaction, g, missionId, result) {
   const saga = mission.saga && g.saga?.id === mission.saga.id && activeSaga(g);
   const sagaOut = saga ? resolveSagaBeat(g, saga, mission.saga.beat, { success, missionTitle: mission.title, chars: crew }) : null;
   if (sagaOut) mission.sagaResult = sagaOut;
+  // A pulled contract that wasn't the lead still counts as a side job for everyone on it (unless DM Link already logged it).
+  let sideOut = null;
+  const sideSaga = mission.sagaSide && g.saga?.id === mission.sagaSide.id && activeSaga(g);
+  if (success && sideSaga) {
+    for (const c of crew) {
+      const logged = sideSaga.jobs.some((j) => j.characterId === c.id && j.stage === "complete" && j.title === mission.pulled.title && j.at >= mission.createdAt);
+      if (logged) continue;
+      const out = noteContract(g, sideSaga, c, { title: mission.pulled.title, stage: "complete" });
+      if (out.tidbit) (sideOut ??= []).push(out.tidbit);
+    }
+  }
   const next = whatsNext(g, mission, crew, success, sagaOut);
   const ai = await narrateMissionEnd({ mission, success, notes, characters: crew, persona: persona(g), sagaResult: sagaOut && sagaSummary(sagaOut), nextUp: next.forAI });
   mission.epilogue = ai?.epilogue || `${missionEpilogue(mission, success)} ${next.teaser}`;
@@ -283,6 +310,7 @@ export async function onReport(interaction, g, missionId, result) {
     .setFooter({ text: "Archived (/archive) and logged to everyone's journal. ▶️ Next job starts the next one with the same crew." });
   if (recorded?.lines.length) embed.addFields({ name: "📝 Recorded", value: clip(recorded.lines.join("\n"), 1024) });
   if (sagaOut) embed.addFields(...sagaFields(g, sagaOut));
+  for (const tb of sideOut || []) embed.addFields({ name: `🧩 Something about ${tb.character}`, value: clip(tb.text, 1024) });
   embed.addFields(...splitField("⏭️ What's next", next.lines));
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(`mn:${mission.id}`).setLabel("Next job (same crew)").setEmoji("▶️").setStyle(ButtonStyle.Primary),
@@ -329,8 +357,26 @@ export function whatsNext(g, mission, crew, success, sagaOut) {
   return { lines, spoken, teaser, forAI: lines.filter((l) => !l.startsWith("▶️")).join("\n") };
 }
 
-// ▶️ Next job: same crew, straight into the next mission.
+// ▶️ Next job: same crew. A modal asks what contract they pulled (optional); blank means the DM picks.
 export async function onNextJob(interaction, g, missionId) {
+  const prev = g.missions?.[missionId];
+  if (!prev) return interaction.reply({ content: "I can't find that mission any more. Use `/mission`.", flags: ephemeral });
+  const isCrew = prev.characterIds.some((id) => g.characters[id]?.ownerId === interaction.user.id);
+  if (!isCrew) return interaction.reply({ content: "Only that crew can start their next job. Use `/mission` for your own.", flags: ephemeral });
+  if (prev.nextMissionId && g.missions[prev.nextMissionId]?.status === "active") {
+    return interaction.reply({ content: `Your next job, "${g.missions[prev.nextMissionId].title}", is already posted.`, flags: ephemeral });
+  }
+  await interaction.showModal(
+    new ModalBuilder().setCustomId(`mnm:${missionId}`).setTitle("Next job").addComponents(
+      new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId("contract").setLabel("Contract you pulled (blank: the DM picks)")
+        .setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(150).setPlaceholder("e.g. Defend Occupants")),
+      new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId("location").setLabel("Where it sends you")
+        .setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(120).setPlaceholder("e.g. Carver's Ridge, Bloom")),
+    ),
+  );
+}
+
+export async function onNextJobModal(interaction, g, missionId) {
   const prev = g.missions?.[missionId];
   if (!prev) return interaction.reply({ content: "I can't find that mission any more. Use `/mission`.", flags: ephemeral });
   const isCrew = prev.characterIds.some((id) => g.characters[id]?.ownerId === interaction.user.id);
@@ -340,8 +386,10 @@ export async function onNextJob(interaction, g, missionId) {
   }
   const crew = prev.characterIds.map((id) => g.characters[id]).filter(Boolean);
   if (!crew.length) return interaction.reply({ content: "That crew's characters are gone. Use `/mission`.", flags: ephemeral });
+  const title = interaction.fields?.getTextInputValue("contract")?.trim();
+  const pulled = title ? { title, location: interaction.fields.getTextInputValue("location")?.trim() || null } : null;
   await interaction.deferReply();
-  const { mission, message } = await createMission(g, crew, null, interaction.user.id);
+  const { mission, message } = await createMission(g, crew, null, interaction.user.id, pulled);
   prev.nextMissionId = mission.id;
   store.save();
   await interaction.editReply(message);

@@ -3,6 +3,7 @@
 // structure (objectives, locations, hooks, choices) always comes from here, so quests
 // stay grounded in content that actually exists in the game.
 
+import { classifyContract, systemOf, pulledAnchor, pickAddon } from "./contract.js";
 import {
   ORIGINS, NAME_POOLS, NPC_POOL, RELICS, LOCATIONS, CARGO, ORES, EVIDENCE,
   OBJECTIVES, ACTIVITY_TAGS, CAMPAIGN_GOALS, THREADS, CAREERS, MISSION_TYPES, MISSION_TWISTS,
@@ -532,8 +533,11 @@ const ACTIVITY_TYPE = { investigate: "heist", fps: "heist", bounty: "bounty", co
 
 // play (optional): a saga lead or finale ({system, where, contract, find, activity}). The mission happens
 // there, through that contract, so the job moves the long story forward.
-export function buildMission(g, characters, typeId, { play = null, sagaTitle = null } = {}) {
-  const typeKey = MISSION_TYPES[typeId] ? typeId : play ? ACTIVITY_TYPE[play.activity] || pick(Object.keys(MISSION_TYPES)) : pick(Object.keys(MISSION_TYPES));
+// pulled (optional): a real contract the crew already took in game ({title, location}). It becomes the
+// mission's spine: its place, its kind of job, and the story is written around it.
+export function buildMission(g, characters, typeId, { play = null, sagaTitle = null, pulled = null } = {}) {
+  const kind = pulled ? classifyContract(pulled.title) : null;
+  const typeKey = kind?.type || (MISSION_TYPES[typeId] ? typeId : play ? ACTIVITY_TYPE[play.activity] || pick(Object.keys(MISSION_TYPES)) : pick(Object.keys(MISSION_TYPES)));
   const type = MISSION_TYPES[typeKey];
   const { crossings, focus, foil } = findCrossings(g, characters);
 
@@ -546,14 +550,22 @@ export function buildMission(g, characters, typeId, { play = null, sagaTitle = n
   const lead = characters[0];
   const threadSystems = THREADS[enemyFirst[0]?.hook.thread]?.systems?.filter((s) => PLAYABLE_SYSTEMS.includes(s)) || [];
   const located = PLAYABLE_SYSTEMS.find((s) => lead.location?.includes(s));
-  const system = (play && PLAYABLE_SYSTEMS.includes(play.system) ? play.system : null)
+  const pulledSystem = pulled && (systemOf(pulled.location) || systemOf(pulled.title));
+  const system = pulledSystem || (play && PLAYABLE_SYSTEMS.includes(play.system) ? play.system : null)
     || located || pick(threadSystems) || (PLAYABLE_SYSTEMS.includes(lead.system) ? lead.system : pick(PLAYABLE_SYSTEMS));
 
   const vars = { patron: target.name, target: target.name, antagonist: antagonist.name, system };
   // One real contract, shared with the party, anchors the job: its destination stands in for the story's place.
   // A saga lead brings its own: the real place and activity where the clue is.
   const anchorTpl = pick(ANCHORS[typeKey]);
-  const anchor = play
+  const anchor = pulled
+    ? {
+      ...pulledAnchor(kind, pulled, vars),
+      ...(play ? { standIn: `${pulledAnchor(kind, pulled, vars).standIn} And this is the lead for ${sagaTitle}:${play.find ? ` the clue is ${play.find}.` : " get it done and the story moves."}` } : {}),
+      share: SHARE_HOW,
+      saga: Boolean(play),
+    }
+    : play
     ? {
       contract: `${play.contract}, at ${play.where}`,
       standIn: `This job is part of ${sagaTitle || "the long story"}.${play.find ? ` The clue is ${play.find}: get it, and the story moves.` : ""} ${fill(anchorTpl.standIn, vars)}`,
@@ -588,10 +600,13 @@ export function buildMission(g, characters, typeId, { play = null, sagaTitle = n
     names: [antagonist.name, target.name],
     crossings: crossings.map((c) => c.text),
     anchor,
+    ...(pulled ? { pulled: { title: pulled.title, location: pulled.location || null, kind: kind.key }, addon: pickAddon(kind, vars) } : {}),
     rendezvous: pick(RENDEZVOUS[system] || ["the nearest station"]),
     ...rollStops(characters, system),
     objectives,
-    briefing: `Spacers. ${fill(pick(type.hooks), vars)} It's going down in ${system}. Pay's decent. The story's better.`,
+    briefing: pulled
+      ? `Spacers. You pulled ${kind.label}: "${pulled.title}"${pulled.location ? ` at ${pulled.location}` : ""}. Fine. Here's what it really is. ${anchor.standIn} Do the job the contract asks. The story's in how you do it.`
+      : `Spacers. ${fill(pick(type.hooks), vars)} It's going down in ${system}. Pay's decent. The story's better.`,
     stakes: fill(pick(MISSION_STAKES[typeKey]), vars),
     rules: rulesFor(activities).map((r) => r.text),
     twist: fill(pick(MISSION_TWISTS), vars),

@@ -396,7 +396,7 @@ export const OBJECTIVES = {
     "Fly a patrol route: {place}, then two more points of interest in {system}. Report any contacts you meet.",
   ],
   escort: [
-    "Escort a crewmate's **Hauling** run to {place}. Flying solo? Take a **Mercenary** contract near the route.",
+    "Take a **Mercenary** defend contract near {place} and keep the people there alive until it's over.",
   ],
   combat: [
     "Take a **Mercenary** or **Bounty Hunter** ship-combat contract in {system}. In the story, these are {antagonist}'s raiders.",
@@ -548,7 +548,7 @@ export const MISSION_TYPES = {
   ] },
   defense: { label: "Hold the Line", emoji: "🛡️", activities: ["combat", "patrol", "escort"], hooks: [
     "{antagonist} is about to hit {patron}'s operation. The crew is the only thing standing in the way.",
-    "{patron} needs the convoy to make it. {antagonist} has other plans.",
+    "{patron}'s people are holding a site {antagonist} wants. They won't hold it alone.",
   ] },
 };
 
@@ -632,7 +632,7 @@ export const CONTRACT_GUIDE = {
   salvage: "Salvage contracts (e.g. Adagio Holdings), or strip any wreck you find and sell the RMC/CMAT at a station.",
   investigate: "**Investigation** tab (Hockrow Agency's Onyx/Jorrit dossier missions and similar) or **Search** tab (missing persons).",
   patrol: "No contract is needed: fly the route. Pick up a **Bounty Hunter** or **Mercenary** job on the way to make it pay.",
-  escort: "A crewmate's hauling run is the escort. For a stand-in, use a **Mercenary** defend job near the route.",
+  escort: "**Mercenary** defend contracts (protect a site, its occupants or a ship), or in Nyx the **Alliance Aid** defence missions, where you really do protect ships from the Moraine gang.",
   combat: "**Bounty Hunter** (ship targets) or **Mercenary** ship-combat contracts. Vanduul-tech smugglers and Vanduul turn up in Nyx.",
   rescue: "**Search** tab (missing persons), **ECN** alerts, or answer a **Service Beacon**. A crewmate can also create a beacon at the spot.",
   exploration: "No contract is needed: fly there and look around.",
@@ -662,7 +662,7 @@ export const ANCHORS = {
   ],
   defense: [
     { contract: "a **Mercenary** defend contract (e.g. Defend Occupants)", standIn: "The site is {target}'s operation, and the attackers are {antagonist}'s people." },
-    { contract: "a **Hauling** contract flown as a convoy", standIn: "The hauler is {target}'s convoy. Everyone else flies escort. Any attackers are {antagonist}'s." },
+    { contract: "an **ECN** alert or a **Service Beacon** where someone is under attack", standIn: "The ship in trouble is {target}'s. Whoever is shooting at it works for {antagonist}." },
   ],
 };
 

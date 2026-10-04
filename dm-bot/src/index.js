@@ -129,6 +129,9 @@ async function route(interaction) {
   if (kind === "ms") return mission.onButton(interaction, g, args[0], args[1]);
   if (kind === "msm") return mission.onReport(interaction, g, args[0], args[1]);
   if (kind === "mn") return mission.onNextJob(interaction, g, args[0]);
+  if (kind === "mnm") return mission.onNextJobModal(interaction, g, args[0]);
+  if (kind === "mk") return feed.onBuildPulled(interaction, g, args[0]);
+  if (kind === "mkm") return feed.onBuildPulledModal(interaction, g, args[0]);
   if (kind === "st") return records.onClearSelect(interaction, g, args[0]);
   if (kind === "persona") return mission.savePersona(interaction, g);
   if (kind === "ch") return play.onChoice(interaction, g, args[0], args[1], Number(args[2]));

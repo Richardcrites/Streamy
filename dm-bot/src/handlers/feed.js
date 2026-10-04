@@ -2,12 +2,13 @@
 // through a webhook this bot created. Here we turn those events into records on the player's
 // active character: injuries, CrimeStat, location, ship, contracts, the mission field log.
 
-import { MessageFlags, PermissionFlagsBits, ChannelType, EmbedBuilder } from "discord.js";
+import { MessageFlags, PermissionFlagsBits, ChannelType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } from "discord.js";
 import * as store from "../store.js";
 import { addCondition, activeConditions, clearCondition } from "../engine/records.js";
 import { activeSaga, noteContract, threatBar } from "../engine/saga.js";
 import { COLORS, clip } from "../comms.js";
 import * as voice from "../voice.js";
+import { createMission } from "./mission.js";
 
 const ephemeral = MessageFlags.Ephemeral;
 const PREFIX = "DMLINK:";
@@ -77,13 +78,32 @@ const missionFor = (g, char) => Object.values(g.missions || {})
 // The shared contract counts as taken when an accepted/shared contract's title fits its Contract Manager tab.
 const TAB_WORDS = { "Bounty Hunter": /bounty/i, Mercenary: /defend|retake|eliminate|clear|hitter|assault|platform|outpost|bunker|call to arms/i, Investigation: /dossier|investigat|onyx|facility|research/i, Search: /search|missing|locate|find/i, Hauling: /haul|cargo|freight|supply/i, Delivery: /deliver|package|courier/i, ECN: /ecn|emergency/i };
 function matchesAnchor(mission, title) {
+  if (mission?.pulled) return mission.pulled.title.toLowerCase().trim() === String(title).toLowerCase().trim();
   const tab = mission?.anchor?.contract?.match(/\*\*([^*]+)\*\*/)?.[1];
   const re = TAB_WORDS[tab] || (/salvage/i.test(mission?.anchor?.contract || "") ? /salvag|wreck|derelict/i : null);
   return Boolean(re && re.test(title));
 }
 
+// A contract someone accepted in game, waiting to be turned into a mission. Players it's shared with join it.
+const PULL_WINDOW_MS = 3 * 60 * 60 * 1000;
+function trackPulled(g, char, title, accepted) {
+  g.pulled ??= {};
+  const now = Date.now();
+  for (const [id, p] of Object.entries(g.pulled)) if (now - p.at > PULL_WINDOW_MS) delete g.pulled[id];
+  const key = title.toLowerCase().trim();
+  let entry = Object.values(g.pulled).find((p) => p.key === key && !p.missionId);
+  const isNew = !entry;
+  if (!entry) {
+    entry = { id: store.newId(), key, title, charIds: [], at: now };
+    g.pulled[entry.id] = entry;
+  }
+  if (!entry.charIds.includes(char.id)) entry.charIds.push(char.id);
+  return accepted || isNew ? entry : null;
+}
+
 // sagaNotes (optional array): filled with what each contract means for the saga, for the bot to post.
-export function applyFeedEvents(g, char, events, sagaNotes = []) {
+// offers (optional array): contracts accepted by someone with no active mission, to offer as the next mission.
+export function applyFeedEvents(g, char, events, sagaNotes = [], offers = []) {
   const mission = missionFor(g, char);
   const logs = [];
   const saga = activeSaga(g);
@@ -119,6 +139,10 @@ export function applyFeedEvents(g, char, events, sagaNotes = []) {
           note(`That's the shared contract for "${mission.title}".`);
         }
         if (e.type === "contract_accepted") sagaNote(e.title, "accepted");
+        if (!mission) {
+          const entry = trackPulled(g, char, e.title, e.type === "contract_accepted");
+          if (entry && e.type === "contract_accepted" && !offers.includes(entry)) offers.push(entry);
+        }
         break;
       }
       case "contract_complete": note(`Completed the contract "${e.title}".`); sagaNote(e.title, "complete"); break;
@@ -172,8 +196,19 @@ export async function onFeedMessage(message, g) {
   const char = store.activeCharacter(g, data.d);
   if (!char) return message.react("❓").catch(() => {});
   const sagaNotes = [];
-  applyFeedEvents(g, char, data.events, sagaNotes);
+  const offers = [];
+  applyFeedEvents(g, char, data.events, sagaNotes, offers);
   await message.react("✅").catch(() => {});
+  // "We pulled a contract": offer to build the mission around it. Whoever it's shared with joins the crew.
+  for (const offer of offers.slice(0, 2)) {
+    await message.reply({
+      content: `📄 **${char.name}** took **${offer.title}**. Share it with your crew, then build tonight's mission around it.`,
+      components: [new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(`mk:${offer.id}`).setLabel("Build our mission around this").setEmoji("🎬").setStyle(ButtonStyle.Primary),
+      )],
+      allowedMentions: { parse: [] },
+    }).catch(() => {});
+  }
   const embed = sagaNotes.length ? jobEmbed(g, char, sagaNotes) : null;
   if (embed) {
     await message.reply({ embeds: [embed], allowedMentions: { parse: [] } }).catch(() => {});
@@ -209,4 +244,31 @@ function spokenNote(n) {
   if (n.stage === "complete" && n.resolved) return `That's it. ${n.resolved.revealed}${n.resolved.tidbit ? ` And ${n.resolved.tidbit.text}` : ""}`;
   if (n.stage === "complete" && n.tidbit) return n.tidbit.text;
   return null;
+}
+
+// ── 🎬 Build our mission around this ─────────────────────────────────────────
+export async function onBuildPulled(interaction, g, pulledId) {
+  const entry = g.pulled?.[pulledId];
+  if (!entry) return interaction.reply({ content: "That contract is too old now. Use `/mission contract:` instead.", flags: ephemeral });
+  if (entry.missionId) return interaction.reply({ content: "There's already a mission built on that contract.", flags: ephemeral });
+  const input = new TextInputBuilder().setCustomId("location").setLabel("Where does it send you?").setStyle(TextInputStyle.Short)
+    .setRequired(false).setMaxLength(120).setPlaceholder("e.g. Carver's Ridge, Bloom (as shown on the contract)");
+  await interaction.showModal(new ModalBuilder().setCustomId(`mkm:${pulledId}`).setTitle(clip(entry.title, 45)).addComponents(new ActionRowBuilder().addComponents(input)));
+}
+
+export async function onBuildPulledModal(interaction, g, pulledId) {
+  const entry = g.pulled?.[pulledId];
+  if (!entry || entry.missionId) return interaction.reply({ content: "That contract already has a mission (or expired).", flags: ephemeral });
+  const crew = entry.charIds.map((id) => g.characters[id]).filter(Boolean);
+  const mine = store.activeCharacter(g, interaction.user.id);
+  if (mine && !crew.includes(mine)) crew.push(mine);
+  if (!crew.length) return interaction.reply({ content: "Nobody on that contract has a character. `/character create` first.", flags: ephemeral });
+  await interaction.deferReply();
+  const location = interaction.fields.getTextInputValue("location")?.trim() || null;
+  const { mission, message } = await createMission(g, crew.slice(0, 10), null, interaction.user.id, { title: entry.title, location });
+  entry.missionId = mission.id;
+  mission.anchorTaken = { by: crew[0].name, title: entry.title, at: new Date().toISOString() };
+  store.save();
+  await interaction.editReply(message);
+  voice.narrate(interaction, g, `${mission.title}. ${mission.briefing} ${mission.crossings.join(" ")} ${mission.stakes}`);
 }
