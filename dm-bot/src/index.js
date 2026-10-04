@@ -128,6 +128,7 @@ async function route(interaction) {
   if (kind === "cr") return character.onNewRole(interaction, g);
   if (kind === "ms") return mission.onButton(interaction, g, args[0], args[1]);
   if (kind === "msm") return mission.onReport(interaction, g, args[0], args[1]);
+  if (kind === "mn") return mission.onNextJob(interaction, g, args[0]);
   if (kind === "st") return records.onClearSelect(interaction, g, args[0]);
   if (kind === "persona") return mission.savePersona(interaction, g);
   if (kind === "ch") return play.onChoice(interaction, g, args[0], args[1], Number(args[2]));

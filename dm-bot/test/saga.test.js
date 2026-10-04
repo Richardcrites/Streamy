@@ -182,3 +182,22 @@ test("an oversized mission post splits into several embeds instead of failing", 
   assert.equal(out.flatMap((x) => x.fields || []).length, 12, "no field is lost");
   assert.equal(out.at(-1).footer.text, "footer");
 });
+
+test("after a mission the DM says what's next: the next lead, loose threads and what to fix first", async () => {
+  const { whatsNext } = await import("../src/handlers/mission.js");
+  const g = store.guild(`next-${Math.random()}`);
+  const cs = crew(g, 2);
+  cs[0].conditions = [{ id: "a", kind: "ship", text: "Hull breach", status: "active", severity: "major", clears: "repair" }];
+  const m = story.buildMission(g, cs, "heist");
+
+  const plain = whatsNext(g, m, cs, false, null);
+  assert.ok(plain.lines.some((l) => l.includes(m.antagonist)), "a failed job leaves the antagonist as a loose thread");
+  assert.ok(plain.lines.some((l) => /saga start/.test(l)));
+  assert.ok(plain.lines.some((l) => /Hull breach/.test(l)), "conditions to fix before the next job");
+
+  const s = (g.saga = saga.createSaga(g, cs, "embers"));
+  saga.resolveSagaBeat(g, s, saga.sagaBeat(s), { success: true, missionTitle: "x", chars: cs });
+  const withSaga = whatsNext(g, m, cs, true, null);
+  assert.ok(withSaga.lines.some((l) => l.includes(s.leads[1].where)), "points at the next lead's real place");
+  assert.ok(withSaga.teaser && withSaga.spoken);
+});

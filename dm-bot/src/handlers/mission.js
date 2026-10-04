@@ -7,7 +7,7 @@ import {
   ModalBuilder, TextInputBuilder, TextInputStyle,
 } from "discord.js";
 import { DEFAULT_PERSONA, CREW_ROLES } from "../lore/data.js";
-import { buildMission, missionEpilogue, snapshot, createdSince, rollbackMission, roadRollLabel } from "../engine/story.js";
+import { buildMission, missionEpilogue, snapshot, createdSince, rollbackMission, roadRollLabel, shortName } from "../engine/story.js";
 import { narrateMission, narrateMissionEnd } from "../ai.js";
 import * as store from "../store.js";
 import { broadcast, COLORS, clip } from "../comms.js";
@@ -15,6 +15,7 @@ import * as voice from "../voice.js";
 import { activeConditions, conditionLine, canonText, archiveMission, archiveSaga } from "../engine/records.js";
 import { parseAndApply } from "./records.js";
 import { activeSaga, sagaBeat, sagaForAI, resolveSagaBeat, ensureTidbits, threatBar, leadLines } from "../engine/saga.js";
+import { SAGAS } from "../lore/sagas.js";
 
 const ephemeral = MessageFlags.Ephemeral;
 // Ten built-in crew roles; past that people share roles.
@@ -255,8 +256,9 @@ export async function onReport(interaction, g, missionId, result) {
   const saga = mission.saga && g.saga?.id === mission.saga.id && activeSaga(g);
   const sagaOut = saga ? resolveSagaBeat(g, saga, mission.saga.beat, { success, missionTitle: mission.title, chars: crew }) : null;
   if (sagaOut) mission.sagaResult = sagaOut;
-  const ai = await narrateMissionEnd({ mission, success, notes, characters: crew, persona: persona(g), sagaResult: sagaOut && sagaSummary(sagaOut) });
-  mission.epilogue = ai?.epilogue || missionEpilogue(mission, success);
+  const next = whatsNext(g, mission, crew, success, sagaOut);
+  const ai = await narrateMissionEnd({ mission, success, notes, characters: crew, persona: persona(g), sagaResult: sagaOut && sagaSummary(sagaOut), nextUp: next.forAI });
+  mission.epilogue = ai?.epilogue || `${missionEpilogue(mission, success)} ${next.teaser}`;
   mission.notes = notes;
 
   for (const c of crew) {
@@ -278,11 +280,72 @@ export async function onReport(interaction, g, missionId, result) {
     .setAuthor({ name: `📡 ${personaName(g).toUpperCase()} · ${success ? "JOB DONE" : "JOB FAILED"}` })
     .setTitle(clip(mission.title, 250))
     .setDescription(clip(`${mission.epilogue}${notes ? `\n\n**Crew report:** ${notes}` : ""}`, 4000))
-    .setFooter({ text: "Archived (/archive) and logged to everyone's journal. Run /mission for the next job." });
+    .setFooter({ text: "Archived (/archive) and logged to everyone's journal. ▶️ Next job starts the next one with the same crew." });
   if (recorded?.lines.length) embed.addFields({ name: "📝 Recorded", value: clip(recorded.lines.join("\n"), 1024) });
   if (sagaOut) embed.addFields(...sagaFields(g, sagaOut));
-  voice.narrate(interaction, g, `${mission.epilogue}${sagaOut ? ` ${sagaSpoken(g, sagaOut)}` : ""}`);
-  await broadcast(interaction, g, { embeds: [embed], userIds: [] });
+  embed.addFields(...splitField("⏭️ What's next", next.lines));
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(`mn:${mission.id}`).setLabel("Next job (same crew)").setEmoji("▶️").setStyle(ButtonStyle.Primary),
+  );
+  voice.narrate(interaction, g, [mission.epilogue, sagaOut && sagaSpoken(g, sagaOut), next.spoken].filter(Boolean).join(" "));
+  await broadcast(interaction, g, { embeds: fitEmbeds(embed), components: [row], userIds: [] });
+}
+
+// ── What's next: the next lead, loose threads, and anything to fix before the next job ──
+export function whatsNext(g, mission, crew, success, sagaOut) {
+  const lines = [];
+  let spoken = "";
+  let teaser = "";
+  const saga = activeSaga(g);
+  if (sagaOut?.finale) {
+    const left = SAGAS.filter((t) => !(g.sagaHistory || []).some((h) => h.templateId === t.id)).length;
+    lines.push(`🏁 **${g.saga.title}** is over. ${left ? `\`/saga start\` begins season ${(g.sagaHistory || []).length + 1}.` : "You've played every saga. `/saga start` runs one again with a new villain."}`);
+    teaser = "Rest up. The 'Verse never stays quiet for long.";
+    spoken = "That story's over. When you're ready, start the next one.";
+  } else if (saga) {
+    const beat = sagaBeat(saga);
+    const head = beat.kind === "finale" ? `💥 **Every lead is found. Next is the finale of ${saga.title}.**`
+      : beat.kind === "counterstrike" ? `⚠️ **${saga.shadow} is coming for you.** The next job is a counterstrike: win it or lose a lead.`
+      : `🧭 **Next lead** (act ${beat.act + 1}: ${saga.acts[beat.act].name}). ${saga.acts[beat.act].goal}`;
+    lines.push(head, ...leadLines(beat.play));
+    teaser = beat.kind === "finale" ? `Next, it ends. ${beat.text}` : beat.kind === "counterstrike" ? beat.text : `Next, ${beat.play.where}. That's where the trail goes.`;
+    spoken = beat.kind === "finale" ? `Next is the finale, at ${beat.play.where}.` : beat.kind === "counterstrike" ? `Watch yourselves. ${saga.shadow} is coming.` : `Next lead: ${beat.play.where}, in ${beat.play.system}.`;
+  } else {
+    // No saga: a loose thread from the job, or a crew member's open hook.
+    const hooks = crew.flatMap((c) => (c.hooks || []).filter((h) => h.status === "open").map((h) => ({ c, h })));
+    const hook = hooks[Math.floor(Math.random() * hooks.length)];
+    if (!success) lines.push(`🧵 ${mission.antagonist} will remember your faces. Expect them again.`);
+    else if (hook) lines.push(`🧵 Loose thread for ${hook.c.name}: ${hook.h.text}`);
+    lines.push("🧭 No long story is running. `/saga start` begins one, and every job after that follows its leads.");
+    teaser = !success ? `${mission.antagonist} isn't done with you.` : hook ? `And ${shortName(hook.c.name)}, don't forget: ${hook.h.text}` : "";
+    spoken = "";
+  }
+  // Conditions carried out of the job: fix them first, or they force a stop next time.
+  const carrying = crew.flatMap((c) => activeConditions(c).map((x) => `**${c.name}:** ${conditionLine(x)}`));
+  if (carrying.length) {
+    lines.push(`🩹 **Before the next job** (or it'll force a stop on the way):`, ...carrying.slice(0, 6), ...(carrying.length > 6 ? [`…and ${carrying.length - 6} more (\`/status view\`).`] : []));
+  }
+  lines.push("▶️ Press **Next job** when you're ready, or `/mission` for a different crew.");
+  return { lines, spoken, teaser, forAI: lines.filter((l) => !l.startsWith("▶️")).join("\n") };
+}
+
+// ▶️ Next job: same crew, straight into the next mission.
+export async function onNextJob(interaction, g, missionId) {
+  const prev = g.missions?.[missionId];
+  if (!prev) return interaction.reply({ content: "I can't find that mission any more. Use `/mission`.", flags: ephemeral });
+  const isCrew = prev.characterIds.some((id) => g.characters[id]?.ownerId === interaction.user.id);
+  if (!isCrew) return interaction.reply({ content: "Only that crew can start their next job. Use `/mission` for your own.", flags: ephemeral });
+  if (prev.nextMissionId && g.missions[prev.nextMissionId]?.status === "active") {
+    return interaction.reply({ content: `Your next job, "${g.missions[prev.nextMissionId].title}", is already posted.`, flags: ephemeral });
+  }
+  const crew = prev.characterIds.map((id) => g.characters[id]).filter(Boolean);
+  if (!crew.length) return interaction.reply({ content: "That crew's characters are gone. Use `/mission`.", flags: ephemeral });
+  await interaction.deferReply();
+  const { mission, message } = await createMission(g, crew, null, interaction.user.id);
+  prev.nextMissionId = mission.id;
+  store.save();
+  await interaction.editReply(message);
+  voice.narrate(interaction, g, `${mission.title}. ${mission.briefing} ${mission.crossings.join(" ")} ${mission.stakes}`);
 }
 
 // ── Saga results, for the AI, the embed and the voice ────────────────────────

@@ -300,13 +300,15 @@ export async function narrateMission({ mission, characters, worldLog, persona, c
   );
 }
 
-export async function narrateMissionEnd({ mission, success, notes, characters, persona, sagaResult = null }) {
+export async function narrateMissionEnd({ mission, success, notes, characters, persona, sagaResult = null, nextUp = null }) {
   return generate(
     "The crew has finished this mission. Only mention the crew and the allowed names. In the persona's voice, reveal the twist (if it hasn't come out already) " +
       "and write a short epilogue (one or two paragraphs) on what it means for them. Base it on the outcome and on " +
       "the players' notes about what they actually did. Don't contradict the notes. If saga_result is set, the job moved " +
       "the server's long story: work what was revealed (the clue, a character's personal secret, or for a finale the big " +
-      "reveal that ties the crew together) into the epilogue. Then write one journal line per character.",
+      "reveal that ties the crew together) into the epilogue. End the epilogue with one or two sentences in the persona's " +
+      "voice teasing what comes next (next_up): where they're headed and why it matters, without revealing hidden clues. " +
+      "Then write one journal line per character.",
     {
       persona,
       mission: { title: mission.title, briefing: mission.briefing, crossing: mission.crossings, twist: mission.twist, antagonist: mission.antagonist, person_at_the_centre: mission.target },
@@ -314,6 +316,7 @@ export async function narrateMissionEnd({ mission, success, notes, characters, p
       outcome: success ? "success" : "failure",
       player_notes: notes || "(none)",
       saga_result: sagaResult,
+      next_up: nextUp,
       characters: characters.map((c) => ({ name: c.name, pronouns: c.pronouns })),
     },
     obj({ epilogue: str, journal: { type: "array", items: obj({ name: str, entry: str }) } }),
