@@ -262,11 +262,13 @@ export async function narrateOrigin(character, otherStories = []) {
         "night it all went wrong). The draft is only a rough sketch: write a fresh, original story, not a polish of it. Invent " +
         "specific, personal details (a family member, a first ship, a place, a habit, a scar) and a turning point that " +
         "belongs to this character alone. ") +
+      "If background_in_their_own_words is set, that is who they are: the story must fit it exactly. " +
       "Weave in both hooks and leave them unresolved; later stories pull on them. This story must be UNIQUE: do NOT reuse the " +
       "structure, plot, events, family set-up or phrasing of any story in other_characters_on_this_server. Use the full " +
       "name once, then the short name or pronouns.",
     {
       ...(written ? { player_written_story: written } : { player_idea: character.seed || null }),
+      ...(character.background ? { background_in_their_own_words: character.background } : {}),
       name: character.name, pronouns: character.pronouns,
       origin: character.origin, home: character.home, draft: character.story, hooks: character.hooks.map((h) => h.text),
       other_characters_on_this_server: otherStories,

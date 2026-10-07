@@ -417,7 +417,7 @@ export async function help(interaction) {
     .setTitle("Star Citizen DM: how to play")
     .setDescription(
       `Your personal Game Master for the 'Verse (year ${CURRENT_YEAR}, ${CURRENT_PATCH}).\n\n` +
-      "**1. Make a character:** `/character create` (add your own description in `seed`; pick an origin, pronouns and name; the DM writes your origin story and its hooks. `/character retell` rewrites it).\n" +
+      "**1. Make a character:** `/character create` (✍️ write your own background and story in your own words, or pick a suggested origin; then pronouns and a name. Every word you write is kept. `/character retell` rewrites it).\n" +
       "**The long story:** `/saga start` begins a server-wide saga across Stanton, Pyro and Nyx. Every `/mission` follows its next **lead**: a real place and real contract (Onyx Facilities, Storm Breaker, Vanduul-Tech Smugglers, Siege of Orison…). Find clues, uncover secrets about your own character, and build to a big reveal that ties you all together. `/saga status` shows where to go next, `/saga secrets` shows yours, `/saga recap` reads the story so far, and `/saga job` (or DM Link) ties any contract you take into the story.\n" +
       "**Contract first:** pull a contract in game, then `/mission contract: <its name> location: <where>` (or press 🎬 when DM Link spots it). The DM builds the story around that real job.\n" +
       "**Quick job:** `/mission` (up to 8 players with `with1`–`with7`, or `voice: True` for everyone in your voice channel) gives your crew a one-shot mission in the DM's voice. Play it in game and in voice, then click ✅ or 💀. Don't like it? 🎲 Reroll or 🗑️ Scrap.\n" +

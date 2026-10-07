@@ -148,3 +148,31 @@ function composed({ choose, bits, name, short, pronouns, origin, seedLine, tags 
   ];
   return pick(frames)().map((p) => p.trim()).filter(Boolean);
 }
+
+// ── Typed backgrounds ────────────────────────────────────────────────────────
+// A player who writes their own background ("failed comedian from Lorville") still needs a home system,
+// fitting names and fill-in pieces. The closest preset origin supplies those behind the scenes; with no
+// clear match, the neutral "drifter" base does. Their words stay the label everyone sees.
+const ORIGIN_WORDS = {
+  hurston_worker: /\b(hurston|lorville|arial|aberdeen|magda|debt-?worker)\b/gi,
+  terran_noble: /\b(terra|terran|prime|noble|heir|aristocrat|old money)\b/gi,
+  pyro_outlaw: /\b(pyro|ruin station|checkmate|patch city|outlaw|pirate|headhunters?|bloom|monox|terminus|gang)\b/gi,
+  navy_veteran: /\b(navy|marines?|soldier|military|veteran|squadron|uee navy|cdf)\b/gi,
+  tevarin: /\b(tevarin|kaleeth|elysium)\b/gi,
+  levski_born: /\b(levski|nyx|delamar|people's alliance|glaciem|keeger)\b/gi,
+  microtech_engineer: /\b(microtech|new babbage|engineer|scientist|researcher|asd|clio|calliope|euterpe)\b/gi,
+  banu_trader: /\b(banu|wikelo|souli|merchantman)\b/gi,
+};
+export function inferOrigin(text) {
+  const t = String(text || "");
+  const scored = Object.entries(ORIGIN_WORDS).map(([id, re]) => [id, (t.match(re) || []).length]).filter(([, n]) => n > 0)
+    .sort((a, b) => b[1] - a[1]);
+  return scored[0]?.[0] || "drifter";
+}
+
+// "failed comedian from lorville" → "Failed comedian from lorville" (kept short for the dossier).
+export function backgroundLabel(text) {
+  const t = String(text || "").trim().replace(/\s+/g, " ").replace(/[.!]+$/, "");
+  const short = t.length > 60 ? `${t.slice(0, 59).replace(/\s+\S*$/, "")}…` : t;
+  return short ? short[0].toUpperCase() + short.slice(1) : null;
+}

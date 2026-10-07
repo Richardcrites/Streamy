@@ -7,7 +7,7 @@ import { allRoles, roleInfo, findRole, addCustomRole, removeCustomRole } from ".
 import { PermissionFlagsBits } from "discord.js";
 import { PRONOUNS } from "../engine/util.js";
 import { suggestNames, buildCharacter, linkKin, seedParagraph, shortName } from "../engine/story.js";
-import { buildBackstory, isWrittenStory } from "../engine/backstory.js";
+import { buildBackstory, isWrittenStory, inferOrigin, backgroundLabel } from "../engine/backstory.js";
 import { narrateOrigin, aiEnabled, aiLabel } from "../ai.js";
 import { activeSaga, ensureTidbits } from "../engine/saga.js";
 import * as store from "../store.js";
@@ -17,33 +17,68 @@ const ephemeral = MessageFlags.Ephemeral;
 
 const step = (title, text) => new EmbedBuilder().setColor(COLORS.dossier).setAuthor({ name: "CHARACTER CREATION" }).setTitle(title).setDescription(text);
 
-// ── /character create → origin → career → pronouns → name → story ───────────
+// ── /character create → background → pronouns → name → story ───────────────
+// Step 1 leads with "write your own": the player types who they are in their own words. The preset
+// origins are only suggestions underneath, for anyone who'd rather pick.
 export async function create(interaction, g) {
   g.drafts[interaction.user.id] = { seed: interaction.options.getString("seed") || null, at: Date.now() };
   store.save();
   const menu = new StringSelectMenuBuilder()
     .setCustomId("cc:origin")
-    .setPlaceholder("Choose your origin")
+    .setPlaceholder("…or start from a suggested origin")
     .addOptions(Object.entries(ORIGINS).map(([id, o]) => ({ label: o.label, value: id, emoji: o.emoji, description: clip(o.home, 100) })));
   await interaction.reply({
-    embeds: [step("Step 1 of 4: Where are you from?", "Your origin sets your home, your loyalties and the old wounds your stories will pull on.")],
-    components: [new ActionRowBuilder().addComponents(menu)],
+    embeds: [step("Step 1 of 4: Who are you?", "✍️ **Write my own background**: who you are and where you're from, in your own words (*\"failed comedian from Lorville\"*, *\"ex-Navy medic who deserted\"*). You can write your whole story there too.\n\nOr pick a suggested origin below if you'd like a starting point.")],
+    components: [
+      new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId("cc:bg").setLabel("Write my own background").setEmoji("✍️").setStyle(ButtonStyle.Primary)),
+      new ActionRowBuilder().addComponents(menu),
+    ],
     flags: ephemeral,
   });
+}
+
+export async function onBackground(interaction, g) {
+  const draft = g.drafts[interaction.user.id];
+  if (!draft) return expired(interaction);
+  const who = new TextInputBuilder().setCustomId("who").setLabel("Who are you? (a few words)").setStyle(TextInputStyle.Short)
+    .setRequired(true).setMinLength(3).setMaxLength(100).setPlaceholder("e.g. Failed comedian from Lorville");
+  const story = new TextInputBuilder().setCustomId("story").setLabel("Your story (optional, as long as you like)").setStyle(TextInputStyle.Paragraph)
+    .setRequired(false).setMaxLength(4000).setPlaceholder("Where you came from, what happened, what you want. Every word is kept.");
+  if (draft.seed) story.setValue(clip(draft.seed, 4000));
+  await interaction.showModal(new ModalBuilder().setCustomId("cc:bgm").setTitle("Your background").addComponents(
+    new ActionRowBuilder().addComponents(who), new ActionRowBuilder().addComponents(story),
+  ));
+}
+
+export async function onBackgroundWritten(interaction, g) {
+  const draft = g.drafts[interaction.user.id];
+  if (!draft) return expired(interaction);
+  draft.background = interaction.fields.getTextInputValue("who").trim();
+  const story = interaction.fields.getTextInputValue("story")?.trim();
+  if (story) draft.seed = story;
+  draft.originId = inferOrigin(`${draft.background} ${draft.seed || ""}`);
+  store.save();
+  await interaction.update(pronounStep(draft));
+}
+
+const draftLabel = (draft) => draft.background ? backgroundLabel(draft.background) : ORIGINS[draft.originId].label;
+
+function pronounStep(draft) {
+  return {
+    embeds: [step("Step 2 of 4: Pronouns", `**${draftLabel(draft)}**. How should the story refer to your character?`)],
+    components: [new ActionRowBuilder().addComponents(
+      Object.entries(PRONOUNS).map(([k, p]) => new ButtonBuilder().setCustomId(`cc:pr:${k}`).setLabel(p.label).setStyle(ButtonStyle.Secondary)),
+    )],
+  };
 }
 
 export async function onOrigin(interaction, g) {
   const draft = g.drafts[interaction.user.id];
   if (!draft) return expired(interaction);
   draft.originId = interaction.values[0];
+  draft.background = null;
   store.save();
-  const row = new ActionRowBuilder().addComponents(
-    Object.entries(PRONOUNS).map(([k, p]) => new ButtonBuilder().setCustomId(`cc:pr:${k}`).setLabel(p.label).setStyle(ButtonStyle.Secondary)),
-  );
-  await interaction.update({
-    embeds: [step("Step 2 of 4: Pronouns", `**${ORIGINS[draft.originId].label}**. How should the story refer to your character?`)],
-    components: [row],
-  });
+  await interaction.update(pronounStep(draft));
 }
 
 export async function onPronouns(interaction, g, key) {
@@ -59,7 +94,7 @@ async function showNames(interaction, draft, g) {
   store.save();
   const nameButtons = draft.names.map((n, i) => new ButtonBuilder().setCustomId(`cc:name:${i}`).setLabel(clip(n, 80)).setStyle(ButtonStyle.Primary));
   await interaction.update({
-    embeds: [step("Step 3 of 4: Choose a name", `Names that fit a **${ORIGINS[draft.originId].label}**. Pick one, roll new ones, or type your own.`)],
+    embeds: [step("Step 3 of 4: Choose a name", `Names that fit **${draftLabel(draft)}**. Pick one, roll new ones, or type your own.`)],
     components: [
       new ActionRowBuilder().addComponents(nameButtons.slice(0, 3)),
       new ActionRowBuilder().addComponents(nameButtons.slice(3, 6)),
@@ -92,7 +127,7 @@ export async function onNamePicked(interaction, g, index) {
   if (!draft?.names?.[index]) return expired(interaction);
   draft.name = draft.names[index];
   store.save();
-  await showStoryStep(interaction, draft, false);
+  await showStoryStep(interaction, g, draft, false);
 }
 
 export async function onCustomName(interaction, g) {
@@ -102,11 +137,16 @@ export async function onCustomName(interaction, g) {
   draft.name = name;
   store.save();
   await interaction.deferUpdate();
-  await showStoryStep(interaction, draft, true);
+  await showStoryStep(interaction, g, draft, true);
 }
 
 // ── Step 4: the player's own story (kept word for word), or the DM writes one ──
-async function showStoryStep(interaction, draft, deferred) {
+async function showStoryStep(interaction, g, draft, deferred) {
+  // They already wrote their story with their background: go straight to writing it up.
+  if (isWrittenStory(draft.seed)) {
+    if (!deferred) await interaction.deferUpdate();
+    return finish(interaction, g, draft, draft.name);
+  }
   const msg = {
     embeds: [step("Step 4 of 4: Your story", `**${draft.name}**. Tell me who they are.\n\n` +
       "✍️ **Write my story:** as much or as little as you like, a line or a page. The DM keeps every word, and only adds what you left out (where they're from, who raised them, what they want).\n" +
@@ -188,7 +228,7 @@ export async function onRestory(interaction, g, charId) {
 async function finish(interaction, g, draft, name) {
   await interaction.editReply({ embeds: [step("Writing your story…", `The DM is writing ${name}'s origin.`)], components: [] });
 
-  const char = buildCharacter(g, { ownerId: interaction.user.id, originId: draft.originId, career: null, name, pronouns: draft.pronouns, seed: draft.seed });
+  const char = buildCharacter(g, { ownerId: interaction.user.id, originId: draft.originId, career: null, name, pronouns: draft.pronouns, seed: draft.seed, background: draft.background });
   char.pronounsLabel = PRONOUNS[char.pronouns].label;
   const prose = await narrateOrigin(char, otherStories(g, char));
   if (prose) char.story = prose;

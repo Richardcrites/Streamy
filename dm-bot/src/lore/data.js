@@ -264,6 +264,28 @@ export const ORIGINS = {
       { type: "lost", text: "{short}'s trading partner, {npc}, vanished with half their shared cargo and a Banu artefact that wasn't theirs to take.", thread: "banu" },
     ],
   },
+  // A neutral base: used when a player writes their own background, and for anyone who'd rather not pick.
+  // Its hooks fit almost any life, so they never contradict what the player wrote.
+  drifter: {
+    label: "Spacer",
+    emoji: "🌌",
+    names: "common",
+    home: "Wherever the ship is docked",
+    system: "Stanton",
+    citizenship: "civilian",
+    ties: { friendly: [], hostile: [] },
+    openings: [], turns: [], nows: [],
+    hooks: [
+      { type: "debt", text: "{short} owes {npc}, a fixer who works out of GrimHEX, for a favour that was never written down. {npc} has started calling it in.", thread: "ninetails" },
+      { type: "enemy", text: "{npc} blames {short} for the worst day of their life, and has just turned up in the same system.", thread: "headhunters" },
+      { type: "lost", text: "{npc}, the person who taught {short} everything worth knowing, went quiet two years ago. Their last message came from Pyro.", thread: "frontier" },
+      { type: "secret", text: "{short} holds something that belonged to {npc}: a datapad nobody was supposed to keep. Someone is finally asking about it.", thread: "asd" },
+      { type: "oath", text: "{short} once promised {npc} to finish a job they couldn't. The job is still out there, waiting.", thread: "vanduul_nyx" },
+      { type: "debt", text: "{npc} paid {short}'s way out of trouble once, no questions asked. Now {npc} needs something back, and won't say what yet.", thread: "terra" },
+      { type: "enemy", text: "{npc} runs a crew that has wanted {short} out of the picture ever since a deal went wrong at Checkmate.", thread: "headhunters" },
+      { type: "lost", text: "Somewhere in the 'Verse is {npc}, family {short} has never met, and they've just started looking for {short}.", thread: "molina" },
+    ],
+  },
 };
 
 // ── Name pools ─────────────────────────────────────────────────────────────
@@ -691,6 +713,7 @@ export const ORIGIN_ROLES = {
   levski_born: ["engineer", "medic", "loadmaster"],
   microtech_engineer: ["engineer", "medic", "salvage"],
   banu_trader: ["quartermaster", "loadmaster", "xo"],
+  drifter: [],
 };
 
 // Words in a character's name, callsign, idea or backstory that point at a role.

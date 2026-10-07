@@ -118,6 +118,8 @@ async function route(interaction) {
   if (kind === "cc") {
     const [action, value] = args;
     if (action === "origin") return character.onOrigin(interaction, g);
+    if (action === "bg") return character.onBackground(interaction, g);
+    if (action === "bgm") return character.onBackgroundWritten(interaction, g);
     if (action === "career") return character.onCareer(interaction, g);
     if (action === "pr") return character.onPronouns(interaction, g, value);
     if (action === "name") return character.onNamePicked(interaction, g, Number(value));

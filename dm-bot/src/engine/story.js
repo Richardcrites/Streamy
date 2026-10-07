@@ -4,7 +4,7 @@
 // stay grounded in content that actually exists in the game.
 
 import { classifyContract, systemOf, pulledAnchor, pickAddon } from "./contract.js";
-import { buildBackstory, isWrittenStory } from "./backstory.js";
+import { buildBackstory, isWrittenStory, backgroundLabel } from "./backstory.js";
 import {
   ORIGINS, NAME_POOLS, NPC_POOL, RELICS, LOCATIONS, CARGO, ORES, EVIDENCE,
   OBJECTIVES, ACTIVITY_TAGS, CAMPAIGN_GOALS, THREADS, CAREERS, MISSION_TYPES, MISSION_TWISTS,
@@ -50,15 +50,21 @@ export function createNpc(g, role, extra = {}) {
 const npcName = (g, id) => g.npcs[id]?.name || "someone";
 
 // ── Origin story ─────────────────────────────────────────────────────────────
-export function buildCharacter(g, { ownerId, originId, career, name, pronouns, seed }) {
-  const origin = ORIGINS[originId];
+// background (optional): the player's own words for who they are ("failed comedian from Lorville"). It becomes
+// the origin everyone sees; originId is then only the closest preset, for names, home system and fill-ins.
+export function buildCharacter(g, { ownerId, originId, career, name, pronouns, seed, background = null }) {
+  const base = ORIGINS[originId] || ORIGINS.drifter;
+  const label = backgroundLabel(background);
+  // A written background gets the neutral hooks, so nothing preset contradicts what they wrote.
+  const origin = label ? { ...base, label, hooks: ORIGINS.drifter.hooks } : base;
+  const hookSet = label ? "custom" : originId;
   registerName(g, name);
   const surname = name.replace(/".*?"\s*/, "").split(" ").slice(-1)[0];
   const relic = pick(RELICS);
   const vars = { name, short: shortName(name), surname, home: origin.home, relic };
 
   // Other characters on this server with the same origin: avoid giving them the same hooks.
-  const siblings = Object.values(g.characters || {}).filter((c) => c.originId === originId);
+  const siblings = Object.values(g.characters || {}).filter((c) => (c.hookSet || c.originId) === hookSet);
 
   // Two hooks of different types, preferring ones no same-origin character already has.
   const hookUse = origin.hooks.map((_, i) => siblings.filter((c) => (c.hookKeys || []).includes(i)).length);
@@ -97,6 +103,8 @@ export function buildCharacter(g, { ownerId, originId, career, name, pronouns, s
     citizenship: origin.citizenship,
     ties: origin.ties,
     seed: seed || null,
+    background: label,
+    hookSet,
     writtenStory: written,
     story,
     hookKeys: chosen,

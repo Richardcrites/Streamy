@@ -37,6 +37,11 @@ export const traitsFromText = (text) => Object.keys(TRAITS).filter((k) => TRAITS
 
 // ── Per-origin flavour: where you could be from, and what it was like ────────
 export const ORIGIN_BITS = {
+  drifter: {
+    places: ["a dozen stations nobody remembers the names of", "the back seat of a Freelancer", "a rest stop at Crusader L1", "a hab ring above ArcCorp", "a mining outpost that closed years ago"],
+    details: ["where nobody stays long and nobody asks why", "where home was whatever had air and a door that locked", "where the only constant was the hum of a quantum drive", "where everyone was on their way somewhere else"],
+    hangouts: ["rest stops across Stanton", "GrimHEX", "any bar with a view of the docking ring"],
+  },
   hurston_worker: {
     places: ["the worker blocks under Teasa Spaceport", "a rented bunk in Lorville's Central Business District", "a mining camp on Arial", "a hab stack on the edge of the Lorville gates", "a Hurston refinery town on Magda"],
     details: ["where the air tastes of metal and the shift horn is the only clock that matters", "where the company store sells everything, including the debt to pay for it", "where everyone's wages come in Hurston scrip and leave just as fast", "where Hurston Security patrols are more common than streetlights"],
