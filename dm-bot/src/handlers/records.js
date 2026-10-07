@@ -94,26 +94,62 @@ export async function onScribeMessage(message, g) {
     return;
   }
 
-  if (!aiEnabled()) {
-    // Without AI we can't parse, but nothing is lost: it goes into the field log and journal.
-    const mission = latestMission(g);
-    if (mission) (mission.scribe ??= []).push(text);
-    if (authorChar) store.addJournal(authorChar, { kind: "log", text });
-    store.save();
-    return message.react("📝").catch(() => {});
-  }
+  queueScribe(message, g, { text, author, authorChar });
+}
 
-  await message.channel.sendTyping().catch(() => {});
-  const result = await parseAndApply(g, text, author);
-  if (!result) return message.react("⚠️").catch(() => {});
-  if (!result.lines.length) {
-    return message.react(result.unknown.length ? "❓" : "👍").catch(() => {});
+// Updates typed in a burst ("rj hull shredded" … "landing nyx 2" … "mira took a round") are gathered for a
+// few quiet seconds and read in ONE AI call: fewer calls, and the DM sees the whole moment at once.
+const SCRIBE_QUIET_MS = 5000;
+const scribeBatches = new Map();
+
+function queueScribe(message, g, item) {
+  const batch = scribeBatches.get(message.guildId) || { items: [], timer: null };
+  batch.items.push({ message, ...item });
+  clearTimeout(batch.timer);
+  batch.timer = setTimeout(() => {
+    scribeBatches.delete(message.guildId);
+    flushScribe(g, batch.items).catch((err) => console.error("[scribe]", err));
+  }, SCRIBE_QUIET_MS);
+  scribeBatches.set(message.guildId, batch);
+  message.react("✍️").catch(() => {});
+}
+
+// Without AI (or when it can't answer), nothing is lost: each update goes into the field log and journal.
+function keepAsNotes(g, items) {
+  const mission = latestMission(g);
+  for (const it of items) {
+    if (mission) (mission.scribe ??= []).push(it.text);
+    if (it.authorChar) store.addJournal(it.authorChar, { kind: "log", text: it.text });
   }
-  await message.react("✅").catch(() => {});
+  store.save();
+}
+
+async function flushScribe(g, items) {
+  const last = items.at(-1).message;
+  const done = async (emoji) => {
+    for (const it of items) {
+      it.message.reactions.resolve("✍️")?.users.remove(it.message.client.user.id).catch(() => {});
+      await it.message.react(emoji).catch(() => {});
+    }
+  };
+  if (!aiEnabled()) {
+    keepAsNotes(g, items);
+    return done("📝");
+  }
+  await last.channel.sendTyping().catch(() => {});
+  const text = items.length === 1 ? items[0].text : items.map((it) => `${it.author}: ${it.text}`).join("\n");
+  const author = items.length === 1 ? items[0].author : "the scribe channel (several messages)";
+  const result = await parseAndApply(g, text, author);
+  if (!result) {
+    keepAsNotes(g, items);
+    return done("📝");
+  }
+  if (!result.lines.length) return done(result.unknown.length ? "❓" : "👍");
+  await done("✅");
   const embed = new EmbedBuilder().setColor(COLORS.outcome).setDescription(clip(result.lines.join("\n"), 4000));
   if (result.unknown.length) embed.setFooter({ text: `Couldn't match: ${result.unknown.join(", ")}. Do they have a character?` });
-  await message.reply({ embeds: [embed], allowedMentions: { repliedUser: false } }).catch(() => {});
-  if (result.parsed.summary) voice.sayIfConnected(message.guild, g, result.parsed.summary);
+  await last.reply({ embeds: [embed], allowedMentions: { repliedUser: false } }).catch(() => {});
+  if (result.parsed.summary) voice.sayIfConnected(last.guild, g, result.parsed.summary);
 }
 
 // ── /status ──────────────────────────────────────────────────────────────────

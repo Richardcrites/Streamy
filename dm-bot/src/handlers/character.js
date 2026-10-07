@@ -19,7 +19,7 @@ const step = (title, text) => new EmbedBuilder().setColor(COLORS.dossier).setAut
 
 // ── /character create → origin → career → pronouns → name → story ───────────
 export async function create(interaction, g) {
-  g.drafts[interaction.user.id] = { seed: interaction.options.getString("seed") || null };
+  g.drafts[interaction.user.id] = { seed: interaction.options.getString("seed") || null, at: Date.now() };
   store.save();
   const menu = new StringSelectMenuBuilder()
     .setCustomId("cc:origin")

@@ -18,9 +18,10 @@ if (!process.env.DISCORD_TOKEN) {
   process.exit(1);
 }
 
-store.load();
+const db = store.load();
+store.tidy(db);
 // Tie together existing characters whose surnames match (only ever done once per pair).
-for (const g of Object.values(store.load().guilds)) {
+for (const g of Object.values(db.guilds)) {
   for (const x of [...Object.values(g.npcs || {}), ...Object.values(g.characters || {})]) registerName(g, x.name);
   for (const c of Object.values(g.characters || {})) {
     for (const k of linkKin(g, c)) console.log(`Family tie: ${c.name} & ${k.with} (${k.relation})`);
@@ -177,12 +178,19 @@ async function onInteraction(interaction) {
   }
 }
 
-for (const sig of ["SIGINT", "SIGTERM"]) {
+// Save on every way the bot can stop, including closing the window on Windows (SIGHUP / SIGBREAK).
+for (const sig of ["SIGINT", "SIGTERM", "SIGHUP", "SIGBREAK"]) {
   process.on(sig, () => {
     store.saveNow();
     process.exit(0);
   });
 }
+// One bad promise anywhere (a dropped voice connection, a Discord hiccup) must never take the bot down.
+process.on("unhandledRejection", (err) => console.error("[bot] unhandled error (the bot keeps running):", err?.message ?? err));
+process.on("uncaughtException", (err) => {
+  console.error("[bot] unexpected error (the bot keeps running):", err?.stack ?? err);
+  try { store.saveNow(); } catch { /* keep going */ }
+});
 
 const first = makeClient(true);
 try {

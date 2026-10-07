@@ -257,6 +257,16 @@ export async function onBuildPulled(interaction, g, pulledId) {
 }
 
 export async function onBuildPulledModal(interaction, g, pulledId) {
+  const key = `pulled:${pulledId}`;
+  if (!store.claim(key)) return interaction.reply({ content: "Someone on your crew is already on it. One moment.", flags: ephemeral });
+  try {
+    return await onBuildPulledModalLocked(interaction, g, pulledId);
+  } finally {
+    store.release(key);
+  }
+}
+
+async function onBuildPulledModalLocked(interaction, g, pulledId) {
   const entry = g.pulled?.[pulledId];
   if (!entry || entry.missionId) return interaction.reply({ content: "That contract already has a mission (or expired).", flags: ephemeral });
   const crew = entry.charIds.map((id) => g.characters[id]).filter(Boolean);

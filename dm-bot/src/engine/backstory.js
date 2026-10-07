@@ -42,10 +42,9 @@ function chooser(g, tags) {
 
 const sentences = (text) => (text.match(/[^.!?]+[.!?]+/g) || []).map((s) => s.trim()).filter((s) => s.length > 30);
 
-// How many sentences this story shares word-for-word with other characters' stories.
-function overlap(story, others) {
-  const mine = new Set(story.flatMap(sentences));
-  return others.flatMap((o) => (o.story || []).flatMap(sentences)).filter((s) => mine.has(s)).length;
+// How many sentences this story shares word-for-word with other characters' stories (theirs: a Set).
+function overlap(story, theirs) {
+  return story.flatMap(sentences).filter((s) => theirs.has(s)).length;
 }
 
 // ── The player's written story ───────────────────────────────────────────────
@@ -61,6 +60,7 @@ export const isWrittenStory = (text) => String(text || "").trim().length >= 160 
 export function buildBackstory(g, { name, short, pronouns, originId, origin, written, seedLine, others = [] }) {
   const bits = ORIGIN_BITS[originId] || Object.values(ORIGIN_BITS)[0];
   const fromWords = traitsFromText(written || seedLine || "");
+  const theirs = new Set(others.flatMap((o) => (o.story || []).flatMap(sentences)));
   let best = null;
   for (let attempt = 0; attempt < 6; attempt++) {
     // A composed story gets a coherent core: the themes in the player's idea, topped up to two at random,
@@ -70,7 +70,7 @@ export function buildBackstory(g, { name, short, pronouns, originId, origin, wri
     const story = isWrittenStory(written)
       ? aroundWritten({ choose, bits, name, short, pronouns, written })
       : composed({ choose, bits, name, short, pronouns, origin, seedLine, tags });
-    const score = overlap(story, others);
+    const score = overlap(story, theirs);
     if (!best || score < best.score) best = { story, used, score };
     if (score === 0) break;
   }

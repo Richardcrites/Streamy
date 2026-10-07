@@ -147,6 +147,21 @@ Without an AI key, scribe messages are still saved to the journal and the missio
 - The bot needs the **Connect** and **Speak** permissions in your voice channel. If you invited it before voice existed,
   either re-invite it with those permissions ticked, or give its role Connect and Speak in Server Settings → Roles.
 
+## Running smoothly
+
+- **If the AI keeps failing**, the bot stops asking it for 10 minutes after 3 failures in a row (an hour if the key is
+  rejected) and uses the built-in storyteller straight away, so nobody waits minutes for an empty answer. The bot window
+  says when this happens, and `/dm-help` shows it. Fix the model (see *Picking an AI model*) and it picks up again.
+- **Lighter AI prompts**: each task only sends the lore it needs (scribe notes send none), so calls are cheaper and
+  faster, and smaller models follow the instructions better.
+- **Scribe bursts** are read together: messages typed within 5 seconds of each other become one AI call. ✍️ means
+  "got it", then ✅ (recorded), 👍 (nothing to record), ❓ (unknown name) or 📝 (saved as notes; the AI couldn't read it).
+- **Daily backups** of your data go to `data/backups` (the last 7 days are kept). To restore one, stop the bot and copy
+  it over `data/db.json`.
+- **Faster start**: `start.bat` only reinstalls after an update and only re-registers commands when they change. If
+  commands ever go missing in Discord, run `npm run deploy -- --force`.
+- **Double clicks are safe**: if two people press *Mission complete* (or *Reroll*, *Next job*) at once, it only happens once.
+
 ## Data
 
 Everything is saved in `data/db.json`, separated per Discord server. Back it up to keep your history.

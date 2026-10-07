@@ -27,11 +27,15 @@ if not exist ".env" (
   call :writeenv
 )
 
-echo Checking for updates to the bot's parts...
-call npm install --omit=dev --no-audit --no-fund
-if errorlevel 1 goto failed
+node scripts\needs-install.cjs
+if errorlevel 1 (
+  echo Installing the bot's parts ^(only needed after an update^)...
+  call npm install --omit=dev --no-audit --no-fund
+  if errorlevel 1 goto failed
+  node scripts\needs-install.cjs --done
+)
 
-echo Registering slash commands with Discord...
+echo Checking slash commands...
 call npm run deploy
 if errorlevel 1 goto failed
 

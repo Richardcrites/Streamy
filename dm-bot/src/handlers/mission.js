@@ -245,7 +245,15 @@ export async function onButton(interaction, g, missionId, result) {
   if (!mission || mission.status !== "active") return interaction.reply({ content: "That mission is already over (or was scrapped).", flags: ephemeral });
   const isCrew = mission.characterIds.some((id) => g.characters[id]?.ownerId === interaction.user.id);
   if (!isCrew) return interaction.reply({ content: "Only the crew on this job can report it.", flags: ephemeral });
-  if (result === "scrap" || result === "reroll") return scrapOrReroll(interaction, g, mission, result === "reroll");
+  if (result === "scrap" || result === "reroll") {
+    const key = `mission:${missionId}`;
+    if (!store.claim(key)) return interaction.reply({ content: "Someone on your crew is already on it. One moment.", flags: ephemeral });
+    try {
+      return await scrapOrReroll(interaction, g, mission, result === "reroll");
+    } finally {
+      store.release(key);
+    }
+  }
   await interaction.showModal(
     new ModalBuilder()
       .setCustomId(`msm:${missionId}:${result}`)
@@ -258,6 +266,16 @@ export async function onButton(interaction, g, missionId, result) {
 }
 
 export async function onReport(interaction, g, missionId, result) {
+  const key = `mission:${missionId}`;
+  if (!store.claim(key)) return interaction.reply({ content: "Someone on your crew is already on it. One moment.", flags: ephemeral });
+  try {
+    return await onReportLocked(interaction, g, missionId, result);
+  } finally {
+    store.release(key);
+  }
+}
+
+async function onReportLocked(interaction, g, missionId, result) {
   const mission = g.missions?.[missionId];
   if (!mission || mission.status !== "active") return interaction.reply({ content: "That mission is already over.", flags: ephemeral });
   await interaction.deferUpdate();
@@ -377,6 +395,16 @@ export async function onNextJob(interaction, g, missionId) {
 }
 
 export async function onNextJobModal(interaction, g, missionId) {
+  const key = `next:${missionId}`;
+  if (!store.claim(key)) return interaction.reply({ content: "Someone on your crew is already on it. One moment.", flags: ephemeral });
+  try {
+    return await onNextJobModalLocked(interaction, g, missionId);
+  } finally {
+    store.release(key);
+  }
+}
+
+async function onNextJobModalLocked(interaction, g, missionId) {
   const prev = g.missions?.[missionId];
   if (!prev) return interaction.reply({ content: "I can't find that mission any more. Use `/mission`.", flags: ephemeral });
   const isCrew = prev.characterIds.some((id) => g.characters[id]?.ownerId === interaction.user.id);

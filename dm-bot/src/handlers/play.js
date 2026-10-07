@@ -2,7 +2,7 @@ import { EmbedBuilder, MessageFlags, ModalBuilder, ActionRowBuilder, TextInputBu
 import { CAMPAIGN_GOALS, NEWS, CURRENT_PATCH, CURRENT_YEAR, GAME_RULES } from "../lore/data.js";
 import { buildCampaign, buildChapter, buildFinale, buildCrossover, rollDice } from "../engine/story.js";
 import { pickN } from "../engine/util.js";
-import { narrateChapter, narrateFinale, aiEnabled, aiLabel } from "../ai.js";
+import { narrateChapter, narrateFinale, aiEnabled, aiLabel, aiStatus } from "../ai.js";
 import * as store from "../store.js";
 import { chapterMessage, transmissionEmbed, broadcast, COLORS, clip } from "../comms.js";
 import * as voice from "../voice.js";
@@ -169,6 +169,16 @@ export async function onChoice(interaction, g, campaignId, chapterId, idx) {
 }
 
 export async function onReport(interaction, g, campaignId, chapterId, idx) {
+  const key = `chapter:${chapterId}`;
+  if (!store.claim(key)) return interaction.reply({ content: "Someone on your crew is already on it. One moment.", flags: ephemeral });
+  try {
+    return await onReportLocked(interaction, g, campaignId, chapterId, idx);
+  } finally {
+    store.release(key);
+  }
+}
+
+async function onReportLocked(interaction, g, campaignId, chapterId, idx) {
   const campaign = g.campaigns[campaignId];
   const chapter = campaign?.chapters.find((c) => c.id === chapterId);
   if (!campaign || !chapter || chapter.status !== "active") return interaction.reply({ content: "That chapter is already resolved.", flags: ephemeral });
@@ -423,7 +433,9 @@ export async function help(interaction) {
       "**Link up:** `/story crossover @player` ties two characters' stories together. Orgs share campaigns (`/org`), and `/comms` sends in-character transmissions.\n" +
       "**The world remembers:** finales, rivalries and new orgs go into the world log and show up in `/comms news`.",
     )
-    .setFooter({ text: aiEnabled() ? `Narration: ${aiLabel()} + lore engine` : "Narration: built-in lore engine (add an OpenRouter or Anthropic key for AI-written prose)" });
+    .setFooter({ text: aiStatus() === "on" ? `Narration: ${aiLabel()} + lore engine`
+      : aiStatus() === "paused" ? `Narration: built-in lore engine for now (${aiLabel()} kept failing, so it's paused for a few minutes; check the bot window)`
+      : "Narration: built-in lore engine (add an OpenRouter or Anthropic key for AI-written prose)" });
   return interaction.reply({ embeds: [embed], flags: ephemeral });
 }
 

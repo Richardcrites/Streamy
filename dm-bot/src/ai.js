@@ -37,28 +37,64 @@ function getClient() {
   return client;
 }
 
-// The stable part of every prompt: GM rules + the whole lore codex. It's sent first and marked
-// cacheable, so repeated calls (especially live chat) only pay full price for it occasionally.
-function lore() {
-  if (loreText !== null) return loreText;
+// The stable part of every prompt: GM rules + the lore this task needs. Each task gets only the lore files
+// that matter to it (a scribe note needs none, a mission needs places and live arcs), which keeps prompts
+// short, cheaper on models without caching, and easier for smaller models to follow. Each set is built
+// once, sent first and marked cacheable.
+const LORE_SETS = {
+  all: null,
+  origin: ["01-timeline", "02-factions", "03-locations"],
+  story: ["01-timeline", "02-factions", "03-locations", "04-live-story-arcs", "05-dm-hooks"],
+  mission: ["02-factions", "03-locations", "04-live-story-arcs", "05-dm-hooks", "06-game-as-rp", "07-pyro-places"],
+  epilogue: ["02-factions", "04-live-story-arcs"],
+  none: [],
+};
+const GM_RULES =
+  "You are the Game Master for a Star Citizen roleplay community. The current in-universe year is 2956. " +
+  "You write in-character transmissions, origin stories, missions and scenes that players act out inside the " +
+  "real game. Stay consistent with the canon lore below and with the story so far you are given. Never invent " +
+  "game mechanics, locations or mission types beyond those in the structure you are handed. Keep NPC names and " +
+  "facts from the input exactly as given. Use the pronouns given for each character.";
+const loreCache = new Map();
+
+function lore(set = "all") {
+  if (loreCache.has(set)) return loreCache.get(set);
+  const want = LORE_SETS[set];
   let files = "";
   try {
     files = fs.readdirSync(LORE_DIR)
-      .filter((f) => f.endsWith(".md") && f !== "sources.md")
+      .filter((f) => f.endsWith(".md") && f !== "sources.md" && f !== "README.md")
+      .filter((f) => !want || want.some((w) => f.startsWith(w)))
       .sort()
       .map((f) => `<lore_file name="${f}">\n${fs.readFileSync(path.join(LORE_DIR, f), "utf8")}\n</lore_file>`)
       .join("\n\n");
   } catch {
     // Lore folder missing: the GM still works, just with less canon to draw on.
   }
-  loreText =
-    "You are the Game Master for a Star Citizen roleplay community. The current in-universe year is 2956. " +
-    "You write in-character transmissions, origin stories, missions and scenes that players act out inside the " +
-    "real game. Stay consistent with the canon lore below and with the story so far you are given. Never invent " +
-    "game mechanics, locations or mission types beyond those in the structure you are handed. Keep NPC names and " +
-    "facts from the input exactly as given. Use the pronouns given for each character.\n\n" + files;
-  return loreText;
+  const text = files ? `${GM_RULES}\n\n${files}` : GM_RULES;
+  loreCache.set(set, text);
+  return text;
 }
+export const loreSize = (set) => lore(set).length;
+
+// ── Circuit breaker ──────────────────────────────────────────────────────────
+// When the model keeps failing (empty answers, errors, a bad key), stop asking for a while and use the
+// built-in text straight away, instead of making every player wait minutes for nothing.
+const BREAKER = { failures: 0, pausedUntil: 0, LIMIT: 3, PAUSE_MS: 10 * 60_000 };
+function aiPaused() {
+  return Date.now() < BREAKER.pausedUntil;
+}
+function aiFailed(reason, pauseMs = BREAKER.PAUSE_MS) {
+  BREAKER.failures++;
+  if (BREAKER.failures >= BREAKER.LIMIT || pauseMs > BREAKER.PAUSE_MS) {
+    BREAKER.pausedUntil = Date.now() + pauseMs;
+    BREAKER.failures = 0;
+    console.warn(`[ai] ${reason}. Using the built-in storyteller for the next ${Math.round(pauseMs / 60_000)} minutes, then trying the AI again.`);
+  }
+}
+const aiWorked = () => { BREAKER.failures = 0; };
+export const aiStatus = () => (!aiEnabled() ? "off" : aiPaused() ? "paused" : "on");
+export const resetAiBreaker = () => { BREAKER.failures = 0; BREAKER.pausedUntil = 0; };
 
 // ── Transport ────────────────────────────────────────────────────────────────
 // system: [stableText, variableText]. messages: [{role: "user"|"assistant", content}].
@@ -109,7 +145,7 @@ async function openRouter({ system, messages, schema, maxTokens }) {
         "X-Title": "Star Citizen DM Bot",
       },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(180_000),
+      signal: AbortSignal.timeout(90_000),
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) throw Object.assign(new Error(`OpenRouter ${res.status}: ${json.error?.message ?? res.statusText}`), { status: res.status });
@@ -147,20 +183,28 @@ function logFailure(what, err) {
 }
 
 // Returns parsed JSON matching `schema`, or null if AI is off or the call fails.
-async function generate(task, payload, schema, extraSystem = "", { lenient = false, allowEmpty = [] } = {}) {
-  if (!aiEnabled()) return null;
+async function generate(task, payload, schema, extraSystem = "", { lenient = false, allowEmpty = [], loreSet = "all", maxTokens } = {}) {
+  if (!aiEnabled() || aiPaused()) return null;
   try {
     const text = await complete({
-      system: [lore(), extraSystem],
-      messages: [{ role: "user", content: `${task}\n\n<input>\n${JSON.stringify(payload, null, 2)}\n</input>` }],
+      system: [lore(loreSet), extraSystem],
+      messages: [{ role: "user", content: `${task}\n\n<input>\n${JSON.stringify(payload)}\n</input>` }],
       schema,
+      ...(maxTokens ? { maxTokens } : {}),
     });
     const out = parseJson(text);
-    if (matchesSchema(out, schema, lenient, allowEmpty)) return out;
+    if (matchesSchema(out, schema, lenient, allowEmpty)) {
+      aiWorked();
+      return out;
+    }
     console.warn(`[ai] ${task.slice(0, 40)}… the model's answer was ${text ? "missing fields" : "empty"}; using built-in text. Try a different OPENROUTER_MODEL if this keeps happening.`);
+    aiFailed(`The AI failed ${BREAKER.LIMIT} times in a row`);
     return null;
   } catch (err) {
     logFailure(task.slice(0, 40), err);
+    // A rejected key won't fix itself: pause for an hour. Anything else counts toward the breaker.
+    if (err.status === 401 || err.status === 402) aiFailed(`The AI provider refused the request (${err.status})`, 60 * 60_000);
+    else aiFailed(`The AI failed ${BREAKER.LIMIT} times in a row`);
     return null;
   }
 }
@@ -228,6 +272,8 @@ export async function narrateOrigin(character, otherStories = []) {
       other_characters_on_this_server: otherStories,
     },
     obj({ paragraphs: { type: "array", items: str } }),
+    "",
+    { loreSet: "origin", maxTokens: 4000 },
   );
   return out?.paragraphs?.length ? out.paragraphs : null;
 }
@@ -254,6 +300,8 @@ export async function narrateChapter({ campaign, chapter, characters, worldLog, 
       rp_prompt: str,
       choices: { type: "array", items: obj({ label: str, outcome: str }) },
     }),
+    "",
+    { loreSet: "story" },
   );
 }
 
@@ -267,6 +315,8 @@ export async function narrateFinale({ campaign, finale, characters }) {
       characters: characters.map((c) => ({ name: c.name, pronouns: c.pronouns, origin: c.origin })),
     },
     obj({ finale: str, epilogue: str }),
+    "",
+    { loreSet: "story" },
   );
 }
 
@@ -310,7 +360,7 @@ export async function narrateMission({ mission, characters, worldLog, persona, c
     },
     obj({ title: str, briefing: str, crossing: str, objective_flavour: { type: "array", items: str }, stakes: str, twist: str, stop_reasons: { type: "array", items: str } }),
     "",
-    { allowEmpty: ["stop_reasons"] },
+    { allowEmpty: ["stop_reasons"], loreSet: "mission" },
   );
 }
 
@@ -335,7 +385,7 @@ export async function narrateMissionEnd({ mission, success, notes, characters, p
     },
     obj({ epilogue: str, journal: { type: "array", items: obj({ name: str, entry: str }) } }),
     "",
-    { lenient: true },
+    { lenient: true, loreSet: "epilogue", maxTokens: 3000 },
   );
 }
 
@@ -363,7 +413,7 @@ export async function parseScribe({ text, author, characters, missionTitle }) {
       summary: str,
     }),
     "",
-    { lenient: true },
+    { lenient: true, loreSet: "none", maxTokens: 2000 },
   );
 }
 
@@ -385,10 +435,15 @@ export async function askDM({ question, persona, asker, mission, characters, can
     `CURRENT MISSION: ${mission ? JSON.stringify({ title: mission.title, type: mission.typeLabel, system: mission.system, briefing: mission.briefing, crossings: mission.crossings, stakes: mission.stakes, shared_contract: mission.anchor, pulled_contract: mission.pulled || undefined, optional_extra: mission.addon || undefined, side_job_for_saga: mission.sagaSide?.purpose, meet_at: mission.pulled ? undefined : mission.rendezvous, crew_roles: mission.objectives.map((o) => ({ for: o.characterName, role: o.roleLabel, job: o.text })), stops: mission.stops || [], field_log: mission.scribe || [] }) : "none"}\n` +
     `CREW: ${JSON.stringify(characters.map(charBrief))}\n` +
     `THE SAGA (the server's long story; point players to the next lead's real place and contract when they ask what to do next, never reveal hidden clues, the villain's identity or the big reveal): ${saga ? JSON.stringify(saga) : "none running"}`;
+  if (aiPaused()) return null;
   try {
-    return await complete({ system: [lore(), context], messages: [{ role: "user", content: question }], maxTokens: 800 });
+    const text = await complete({ system: [lore("mission"), context], messages: [{ role: "user", content: question }], maxTokens: 800 });
+    if (text) aiWorked();
+    else aiFailed(`The AI failed ${BREAKER.LIMIT} times in a row`);
+    return text;
   } catch (err) {
     logFailure("question", err);
+    aiFailed(`The AI failed ${BREAKER.LIMIT} times in a row`, err.status === 401 || err.status === 402 ? 60 * 60_000 : undefined);
     return null;
   }
 }

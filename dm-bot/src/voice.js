@@ -48,12 +48,14 @@ export function speakable(text) {
 }
 
 // Split into chunks the TTS services handle comfortably, on paragraph/sentence boundaries.
-export function chunk(text, max = 900) {
+// firstMax: a smaller limit for the very first chunk, so speech starts quickly.
+export function chunk(text, max = 900, firstMax = max) {
   const out = [];
   for (const para of text.split(/\n+/)) {
     let current = "";
     for (const sentence of para.match(/[^.!?]+[.!?]*\s*/g) || [para]) {
-      if ((current + sentence).length > max && current) {
+      const limit = out.length ? max : firstMax;
+      if ((current + sentence).length > limit && current) {
         out.push(current.trim());
         current = "";
       }
@@ -153,11 +155,17 @@ export function say(channel, text, voice) {
       await join(channel);
       clearTimeout(s.idleTimer);
       // Synthesize the next chunk while the current one plays.
-      const parts = chunk(clean);
-      let next = synthesize(parts[0], voice);
+      // The first chunk is short, so the DM starts talking within a second or two.
+      const parts = chunk(clean, 900, 240);
+      const prepare = (i) => {
+        const p = synthesize(parts[i], voice);
+        p.catch(() => {}); // a failure is handled when it's awaited; never an unhandled rejection
+        return p;
+      };
+      let next = prepare(0);
       for (let i = 0; i < parts.length; i++) {
         const audio = await next;
-        if (i + 1 < parts.length) next = synthesize(parts[i + 1], voice);
+        if (i + 1 < parts.length) next = prepare(i + 1);
         await playToEnd(s.player, audio);
       }
     })
