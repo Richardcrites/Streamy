@@ -99,6 +99,12 @@ test("origin AI is told to write something new and shown the other characters' s
   };
   await fresh.narrateOrigin(char, ["RJ Oressian: born on Ruin Station..."]);
   assert.match(input.task, /fresh, original story/);
-  assert.match(input.task, /Do NOT reuse/);
+  assert.match(input.task, /do NOT reuse/);
   assert.deepEqual(input.data.other_characters_on_this_server, ["RJ Oressian: born on Ruin Station..."]);
+
+  // A story the player wrote is canon: the AI must keep every word of it and only add.
+  await fresh.narrateOrigin({ ...char, writtenStory: "Tomothy did five minutes every shift change about the Imperator's hair." }, []);
+  assert.equal(input.data.player_written_story, "Tomothy did five minutes every shift change about the Imperator's hair.");
+  assert.match(input.task, /Keep every fact/);
+  assert.match(input.task, /never replace, contradict or drop/);
 });

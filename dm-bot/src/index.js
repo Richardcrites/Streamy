@@ -124,6 +124,11 @@ async function route(interaction) {
     if (action === "custom") return character.onCustom(interaction, g);
     if (action === "modal") return character.onCustomName(interaction, g);
     if (action === "bs") return character.onBackstory(interaction, g);
+    if (action === "write") return character.onWrite(interaction, g);
+    if (action === "story") return character.onStoryWritten(interaction, g);
+    if (action === "dm") return character.onDmWrites(interaction, g);
+    if (action === "restory") return character.onRestory(interaction, g, value);
+    if (action === "edit") return character.backstory(interaction, g);
   }
   if (kind === "cr") return character.onNewRole(interaction, g);
   if (kind === "ms") return mission.onButton(interaction, g, args[0], args[1]);

@@ -236,7 +236,18 @@ test("characters with the same origin get different lives and different hooks", 
     g.characters[c.id] = c;
     made.push(c);
   }
-  assert.equal(new Set(made.map((c) => c.storyBeats.join("-"))).size, 9, "nine Pyro outlaws, nine different stories");
+  // Nine Pyro outlaws, nine different lives: no family, childhood or turning point is reused, and no two
+  // stories share more than one sentence (names masked, so "RJ grew up…" and "Mira grew up…" count as the same).
+  for (const pool of ["family", "child", "turn"]) {
+    const counts = Object.entries(g.storyUse).filter(([k]) => k.startsWith(`${pool}:`)).map(([, n]) => n);
+    assert.ok(Math.max(...counts) === 1, `${pool} pieces repeat: ${counts}`);
+  }
+  const masked = (c) => new Set(c.story.join(" ").replaceAll(c.name, "X").replaceAll(c.name.split(" ")[0], "X").split(/(?<=[.!?])\s+/).filter((x) => x.length > 30));
+  for (let i = 0; i < made.length; i++) for (let j = i + 1; j < made.length; j++) {
+    const a = masked(made[i]);
+    const shared = [...masked(made[j])].filter((x) => a.has(x));
+    assert.ok(shared.length <= 1, `stories ${i} and ${j} share: ${shared.join(" | ")}`);
+  }
   for (const c of made) assert.notEqual(c.hooks[0].type, c.hooks[1].type);
   const hookUse = {};
   for (const c of made) for (const k of c.hookKeys) hookUse[k] = (hookUse[k] || 0) + 1;
@@ -347,4 +358,18 @@ test("Pyro stops and objectives use real, named places", async () => {
     assert.match(repair.place, /Station|Exchange|Refueling|Supplies|Gaslight|Endgame|Nest|Daughters|Patch City|Orbituary|trading post|Chawla's Beach|Seer's Canyon|Prophet's Peak|Arid Reach|Frigid Knot|Canard View/, `repairs happen where there are services: ${repair.place}`);
   }
   assert.ok(LOCATIONS.Pyro.places.some((p) => p.name.startsWith("Carver's Ridge")));
+});
+
+test("a written story is kept word for word; the DM only adds what fits and what's missing", async () => {
+  const g = store.guild(`written-${Math.random()}`);
+  const text = "Tomothy was the funniest man on the Lorville munitions line. He did five minutes every shift change, mostly about the Imperator's hair, until a manager filmed it and sent it to the wrong people. Now he can't get a booking anywhere in Stanton.";
+  const c = story.buildCharacter(g, { ownerId: "u", originId: "hurston_worker", career: null, name: "Tomothy Fulari", pronouns: "he", seed: text });
+  assert.equal(c.writtenStory, text);
+  assert.ok(c.story.join("\n\n").includes(text), "every word they wrote is there");
+  const extra = c.story.join(" ").replace(text, "");
+  assert.ok(!/crack shot|temper that runs hotter|sold his family out/.test(extra), `additions fit a comedian: ${extra}`);
+  // Only real gaps are filled: they named Lorville, so no second birthplace is invented.
+  assert.ok(!/comes from|was born in/.test(extra));
+  const { coveredTopics } = await import("../src/engine/backstory.js");
+  assert.deepEqual(coveredTopics("My father flew a Cutlass and I want revenge someday").family, true);
 });

@@ -203,18 +203,27 @@ const charBrief = (c) => ({
 
 // ── Narration (one-shot JSON) ────────────────────────────────────────────────
 export async function narrateOrigin(character, otherStories = []) {
+  const written = character.writtenStory || null;
   const out = await generate(
-    "Write this character's origin story as 3–5 short paragraphs. If player_description is set, it is the heart of " +
-      "the character and the most important instruction here: build the whole story around it, make it obvious in the " +
-      "first two paragraphs, and drop anything in the draft that contradicts it (example: \"a failed comedian who made " +
-      "too many UEE jokes\" means we see the act, the jokes and the night it all went wrong). The draft is only a rough " +
-      "sketch of facts: write a fresh, original story, not a polish of it. Invent specific, personal details (a family " +
-      "member, a first ship, a place, a habit, a scar) and a turning point that belongs to this character alone. Weave in both " +
-      "hooks and end with them unresolved; later stories pull on them. Do NOT reuse the plots, events or phrasing of " +
-      "the other characters' stories listed in other_characters_on_this_server. Use the full name once, then the short " +
-      "name or pronouns.",
+    (written
+      ? "The player WROTE this character's story themselves (player_written_story). It is canon and the most important " +
+        "thing here. Keep every fact, name, place, event, joke and detail they wrote, and keep their voice; you may tighten " +
+        "wording and put it in the third person, but never replace, contradict or drop any of it. Then deepen it: add only " +
+        "what it leaves out (where they're from, who raised them, a first ship, a habit, what they want now), and only " +
+        "things that grow out of what they wrote. `draft` shows the gaps the DM already filled; use or improve those additions. " +
+        "Write 3–6 short paragraphs. "
+      : "Write this character's origin story as 3–5 short paragraphs. If player_idea is set, it is the heart of the character: " +
+        "build the whole story around it, make it obvious in the first two paragraphs, and drop anything in the draft that " +
+        "contradicts it (example: \"a failed comedian who made too many UEE jokes\" means we see the act, the jokes and the " +
+        "night it all went wrong). The draft is only a rough sketch: write a fresh, original story, not a polish of it. Invent " +
+        "specific, personal details (a family member, a first ship, a place, a habit, a scar) and a turning point that " +
+        "belongs to this character alone. ") +
+      "Weave in both hooks and leave them unresolved; later stories pull on them. This story must be UNIQUE: do NOT reuse the " +
+      "structure, plot, events, family set-up or phrasing of any story in other_characters_on_this_server. Use the full " +
+      "name once, then the short name or pronouns.",
     {
-      player_description: character.seed || null, name: character.name, pronouns: character.pronouns,
+      ...(written ? { player_written_story: written } : { player_idea: character.seed || null }),
+      name: character.name, pronouns: character.pronouns,
       origin: character.origin, home: character.home, draft: character.story, hooks: character.hooks.map((h) => h.text),
       other_characters_on_this_server: otherStories,
     },

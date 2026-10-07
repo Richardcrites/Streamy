@@ -7,6 +7,7 @@ import { allRoles, roleInfo, findRole, addCustomRole, removeCustomRole } from ".
 import { PermissionFlagsBits } from "discord.js";
 import { PRONOUNS } from "../engine/util.js";
 import { suggestNames, buildCharacter, linkKin, seedParagraph, shortName } from "../engine/story.js";
+import { buildBackstory, isWrittenStory } from "../engine/backstory.js";
 import { narrateOrigin, aiEnabled, aiLabel } from "../ai.js";
 import { activeSaga, ensureTidbits } from "../engine/saga.js";
 import * as store from "../store.js";
@@ -25,7 +26,7 @@ export async function create(interaction, g) {
     .setPlaceholder("Choose your origin")
     .addOptions(Object.entries(ORIGINS).map(([id, o]) => ({ label: o.label, value: id, emoji: o.emoji, description: clip(o.home, 100) })));
   await interaction.reply({
-    embeds: [step("Step 1 of 3: Where are you from?", "Your origin sets your home, your loyalties and the old wounds your stories will pull on.")],
+    embeds: [step("Step 1 of 4: Where are you from?", "Your origin sets your home, your loyalties and the old wounds your stories will pull on.")],
     components: [new ActionRowBuilder().addComponents(menu)],
     flags: ephemeral,
   });
@@ -40,7 +41,7 @@ export async function onOrigin(interaction, g) {
     Object.entries(PRONOUNS).map(([k, p]) => new ButtonBuilder().setCustomId(`cc:pr:${k}`).setLabel(p.label).setStyle(ButtonStyle.Secondary)),
   );
   await interaction.update({
-    embeds: [step("Step 2 of 3: Pronouns", `**${ORIGINS[draft.originId].label}**. How should the story refer to your character?`)],
+    embeds: [step("Step 2 of 4: Pronouns", `**${ORIGINS[draft.originId].label}**. How should the story refer to your character?`)],
     components: [row],
   });
 }
@@ -58,7 +59,7 @@ async function showNames(interaction, draft, g) {
   store.save();
   const nameButtons = draft.names.map((n, i) => new ButtonBuilder().setCustomId(`cc:name:${i}`).setLabel(clip(n, 80)).setStyle(ButtonStyle.Primary));
   await interaction.update({
-    embeds: [step("Step 3 of 3: Choose a name", `Names that fit a **${ORIGINS[draft.originId].label}**. Pick one, roll new ones, or type your own.`)],
+    embeds: [step("Step 3 of 4: Choose a name", `Names that fit a **${ORIGINS[draft.originId].label}**. Pick one, roll new ones, or type your own.`)],
     components: [
       new ActionRowBuilder().addComponents(nameButtons.slice(0, 3)),
       new ActionRowBuilder().addComponents(nameButtons.slice(3, 6)),
@@ -89,16 +90,99 @@ export async function onCustom(interaction, g) {
 export async function onNamePicked(interaction, g, index) {
   const draft = g.drafts[interaction.user.id];
   if (!draft?.names?.[index]) return expired(interaction);
-  await interaction.deferUpdate();
-  await finish(interaction, g, draft, draft.names[index]);
+  draft.name = draft.names[index];
+  store.save();
+  await showStoryStep(interaction, draft, false);
 }
 
 export async function onCustomName(interaction, g) {
   const draft = g.drafts[interaction.user.id];
   if (!draft) return expired(interaction);
   const name = interaction.fields.getTextInputValue("name").trim();
+  draft.name = name;
+  store.save();
   await interaction.deferUpdate();
-  await finish(interaction, g, draft, name);
+  await showStoryStep(interaction, draft, true);
+}
+
+// ── Step 4: the player's own story (kept word for word), or the DM writes one ──
+async function showStoryStep(interaction, draft, deferred) {
+  const msg = {
+    embeds: [step("Step 4 of 4: Your story", `**${draft.name}**. Tell me who they are.\n\n` +
+      "✍️ **Write my story:** as much or as little as you like, a line or a page. The DM keeps every word, and only adds what you left out (where they're from, who raised them, what they want).\n" +
+      "🎲 **DM writes it:** a story from scratch, unlike anyone else's on the server." +
+      (draft.seed ? `\n\nYour idea so far: *${clip(draft.seed, 300)}*` : ""))],
+    components: [new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId("cc:write").setLabel("Write my story").setEmoji("✍️").setStyle(ButtonStyle.Primary),
+      new ButtonBuilder().setCustomId("cc:dm").setLabel(draft.seed ? "DM writes it from my idea" : "DM writes it").setEmoji("🎲").setStyle(ButtonStyle.Secondary),
+    )],
+  };
+  return deferred ? interaction.editReply(msg) : interaction.update(msg);
+}
+
+export async function onWrite(interaction, g) {
+  const draft = g.drafts[interaction.user.id];
+  if (!draft?.name) return expired(interaction);
+  const input = new TextInputBuilder().setCustomId("story").setLabel(clip(`${draft.name}'s story`, 45)).setStyle(TextInputStyle.Paragraph)
+    .setRequired(true).setMinLength(10).setMaxLength(4000)
+    .setPlaceholder("Who are they? Where did they come from? What happened? What do they want? Write it however you like.");
+  if (draft.seed) input.setValue(clip(draft.seed, 4000));
+  await interaction.showModal(new ModalBuilder().setCustomId("cc:story").setTitle("Your story").addComponents(new ActionRowBuilder().addComponents(input)));
+}
+
+export async function onStoryWritten(interaction, g) {
+  const draft = g.drafts[interaction.user.id];
+  if (!draft?.name) return expired(interaction);
+  draft.seed = interaction.fields.getTextInputValue("story").trim();
+  await interaction.deferUpdate();
+  await finish(interaction, g, draft, draft.name);
+}
+
+export async function onDmWrites(interaction, g) {
+  const draft = g.drafts[interaction.user.id];
+  if (!draft?.name) return expired(interaction);
+  await interaction.deferUpdate();
+  await finish(interaction, g, draft, draft.name);
+}
+
+// Other characters' stories (same origin first), so neither the AI nor the engine hands out the same life twice.
+const otherStories = (g, char) => Object.values(g.characters).filter((c) => c.id !== char.id)
+  .sort((x, y) => (y.originId === char.originId) - (x.originId === char.originId))
+  .slice(0, 8)
+  .map((c) => `${c.name}: ${c.story.join(" ").slice(0, 400)}`);
+
+// A brand-new story for an existing character, from their written story or idea. Hooks stay.
+export async function restory(g, char) {
+  const written = isWrittenStory(char.writtenStory || char.seed) ? (char.writtenStory || char.seed) : null;
+  char.writtenStory = written;
+  const short = shortName(char.name);
+  char.story = buildBackstory(g, {
+    name: char.name, short, pronouns: char.pronouns, originId: char.originId, origin: char.origin, written,
+    seedLine: written ? null : seedParagraph(char.seed, { name: char.name, short }, char.pronouns),
+    others: Object.values(g.characters).filter((c) => c.id !== char.id),
+  });
+  const prose = await narrateOrigin(char, otherStories(g, char));
+  if (prose) char.story = prose;
+  char.customStory = false;
+  return Boolean(prose);
+}
+
+const storyButtons = (char) => new ActionRowBuilder().addComponents(
+  new ButtonBuilder().setCustomId(`cc:restory:${char.id}`).setLabel("New story").setEmoji("🎲").setStyle(ButtonStyle.Secondary),
+  new ButtonBuilder().setCustomId("cc:edit").setLabel("Edit my story").setEmoji("✍️").setStyle(ButtonStyle.Secondary),
+);
+
+export async function onRestory(interaction, g, charId) {
+  const char = g.characters[charId];
+  if (!char || char.ownerId !== interaction.user.id) return interaction.reply({ content: "That's not your character.", flags: ephemeral });
+  await interaction.deferReply({ flags: ephemeral });
+  const ai = await restory(g, char);
+  store.addJournal(char, { kind: "origin", text: "Their origin story was retold." });
+  store.save();
+  await interaction.editReply({
+    content: ai ? "A new telling of your story." : `A new telling of your story${char.writtenStory ? ", with everything you wrote kept" : ""}.`,
+    embeds: [dossierEmbed(char, { full: true })], components: [storyButtons(char)],
+  });
 }
 
 async function finish(interaction, g, draft, name) {
@@ -106,12 +190,7 @@ async function finish(interaction, g, draft, name) {
 
   const char = buildCharacter(g, { ownerId: interaction.user.id, originId: draft.originId, career: null, name, pronouns: draft.pronouns, seed: draft.seed });
   char.pronounsLabel = PRONOUNS[char.pronouns].label;
-  // Other characters' stories (same origin first), so the AI doesn't hand out the same life twice.
-  const others = Object.values(g.characters)
-    .sort((x, y) => (y.originId === char.originId) - (x.originId === char.originId))
-    .slice(0, 8)
-    .map((c) => `${c.name}: ${c.story.join(" ").slice(0, 400)}`);
-  const prose = await narrateOrigin(char, others);
+  const prose = await narrateOrigin(char, otherStories(g, char));
   if (prose) char.story = prose;
   const fallback = !prose && aiEnabled();
 
@@ -128,8 +207,10 @@ async function finish(interaction, g, draft, name) {
 
   await interaction.editReply({
     embeds: [step(`${char.name} is ready`, "Your dossier has been posted. Next: `/campaign start` for a full story arc, or `/story crossover` to link up with another player." +
-      (fallback ? `\n\n⚠️ The AI (${aiLabel()}) didn't answer, so this is the built-in story with your description worked in. Once the model is fixed, \`/character retell\` rewrites it.` : ""))],
-    components: [],
+      (char.writtenStory ? "\n\nYour story is kept word for word; the DM only added what you left out." : "") +
+      (fallback ? `\n\n⚠️ The AI (${aiLabel()}) didn't answer, so the built-in storyteller wrote this. Once the model is fixed, 🎲 **New story** or \`/character retell\` rewrites it.` : "") +
+      "\n\nDon't like it? 🎲 **New story** tells it differently, ✍️ **Edit my story** lets you change anything.")],
+    components: [storyButtons(char)],
   });
   await broadcast(interaction, g, {
     content: `🆕 <@${interaction.user.id}> has a new character.`,
@@ -223,40 +304,32 @@ export async function backstory(interaction, g) {
 export async function onBackstory(interaction, g) {
   const char = store.activeCharacter(g, interaction.user.id);
   if (!char) return interaction.reply({ content: "Create a character first: `/character create`.", flags: ephemeral });
-  char.story = interaction.fields.getTextInputValue("story").split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+  const text = interaction.fields.getTextInputValue("story").trim();
+  char.story = text.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+  char.writtenStory = text;
   char.customStory = true;
   store.addJournal(char, { kind: "origin", text: "Rewrote their backstory." });
   store.save();
-  await interaction.reply({ content: "Backstory saved. Your story hooks are unchanged, so the DM will keep pulling on them.", embeds: [dossierEmbed(char, { full: true })], flags: ephemeral });
+  await interaction.reply({ content: "Backstory saved, word for word. Your story hooks are unchanged, so the DM will keep pulling on them. (🎲 **New story** or `/character retell` has the DM expand it, keeping everything you wrote.)", embeds: [dossierEmbed(char, { full: true })], components: [storyButtons(char)], flags: ephemeral });
 }
 
 // ── /character retell: the DM rewrites the origin story ─────────────────────
 export async function retell(interaction, g) {
   const char = store.activeCharacter(g, interaction.user.id);
   if (!char) return interaction.reply({ content: "Create a character first: `/character create`.", flags: ephemeral });
-  const description = interaction.options.getString("description");
+  const description = interaction.options.getString("description")?.trim();
   await interaction.deferReply({ flags: ephemeral });
-  const oldSeed = char.seed;
-  if (description) char.seed = description;
-  const others = Object.values(g.characters).filter((c) => c.id !== char.id).slice(0, 8).map((c) => `${c.name}: ${c.story.join(" ").slice(0, 400)}`);
-  const prose = await narrateOrigin(char, others);
-  if (prose) {
-    char.story = prose;
-  } else {
-    // No AI (or it failed): swap the description paragraph in the built-in story.
-    const vars = { name: char.name, short: shortName(char.name) };
-    const oldPara = oldSeed ? char.story.findIndex((p) => p.includes(oldSeed.trim().replace(/[.!\s]+$/, "").slice(1, 30))) : -1;
-    const para = seedParagraph(char.seed, vars, char.pronouns);
-    if (para && oldPara >= 0) char.story[oldPara] = para;
-    else if (para && !char.story.includes(para)) char.story.splice(1, 0, para);
+  if (description) {
+    if (isWrittenStory(description)) char.writtenStory = description;
+    else char.seed = description;
   }
-  char.customStory = false;
+  const ai = await restory(g, char);
   store.addJournal(char, { kind: "origin", text: "Their origin story was retold." });
   store.save();
-  const note = prose ? "The DM rewrote your story." : aiEnabled()
-    ? `⚠️ The AI (${aiLabel()}) didn't answer, so your description was worked into the built-in story. Try a different \`OPENROUTER_MODEL\` (see the README).`
-    : "No AI key is set, so your description was worked into the built-in story.";
-  await interaction.editReply({ content: note, embeds: [dossierEmbed(char, { full: true })] });
+  const note = ai ? "The DM rewrote your story." : aiEnabled()
+    ? `⚠️ The AI (${aiLabel()}) didn't answer, so the built-in storyteller told it${char.writtenStory ? ", keeping everything you wrote" : ""}. Try a different \`OPENROUTER_MODEL\` (see the README).`
+    : `A new telling of your story${char.writtenStory ? ", keeping everything you wrote" : ""}.`;
+  await interaction.editReply({ content: note, embeds: [dossierEmbed(char, { full: true })], components: [storyButtons(char)] });
 }
 
 export async function remove(interaction, g) {

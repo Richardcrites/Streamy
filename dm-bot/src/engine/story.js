@@ -4,6 +4,7 @@
 // stay grounded in content that actually exists in the game.
 
 import { classifyContract, systemOf, pulledAnchor, pickAddon } from "./contract.js";
+import { buildBackstory, isWrittenStory } from "./backstory.js";
 import {
   ORIGINS, NAME_POOLS, NPC_POOL, RELICS, LOCATIONS, CARGO, ORES, EVIDENCE,
   OBJECTIVES, ACTIVITY_TAGS, CAMPAIGN_GOALS, THREADS, CAREERS, MISSION_TYPES, MISSION_TWISTS,
@@ -56,19 +57,8 @@ export function buildCharacter(g, { ownerId, originId, career, name, pronouns, s
   const relic = pick(RELICS);
   const vars = { name, short: shortName(name), surname, home: origin.home, relic };
 
-  // Other characters on this server with the same origin: avoid giving them the same life.
+  // Other characters on this server with the same origin: avoid giving them the same hooks.
   const siblings = Object.values(g.characters || {}).filter((c) => c.originId === originId);
-  const usedBeats = new Set(siblings.map((c) => (c.storyBeats || []).join("-")));
-  const beatsUsed = (part, i) => siblings.filter((c) => c.storyBeats?.[part] === i).length;
-  const leastUsed = (list, part) => {
-    const counts = list.map((_, i) => beatsUsed(part, i));
-    const min = Math.min(...counts);
-    return pick(list.map((_, i) => i).filter((i) => counts[i] === min));
-  };
-  let beats = [leastUsed(origin.openings, 0), leastUsed(origin.turns, 1), leastUsed(origin.nows, 2)];
-  for (let tries = 0; usedBeats.has(beats.join("-")) && tries < 20; tries++) {
-    beats = [randInt(0, origin.openings.length - 1), randInt(0, origin.turns.length - 1), randInt(0, origin.nows.length - 1)];
-  }
 
   // Two hooks of different types, preferring ones no same-origin character already has.
   const hookUse = origin.hooks.map((_, i) => siblings.filter((c) => (c.hookKeys || []).includes(i)).length);
@@ -84,11 +74,14 @@ export function buildCharacter(g, { ownerId, originId, career, name, pronouns, s
     return { id: newId(), type: h.type, text: fill(h.text, { ...vars, npc: npc.name }, pronouns), thread: h.thread, npcId: npc.id, status: "open" };
   });
 
-  // The player's description is the heart of the character: the AI builds the story around it, and
-  // the built-in text gives it its own paragraph right after the opening.
-  const story = [origin.openings[beats[0]], origin.turns[beats[1]], origin.nows[beats[2]]].map((p) => fill(p, vars, pronouns));
-  const seedPara = seedParagraph(seed, vars, pronouns);
-  if (seedPara) story.splice(1, 0, seedPara);
+  // The player's written story is canon and kept as written; the DM only fills the gaps. A one-line idea
+  // becomes a paragraph inside a story assembled from pieces nobody else on the server has.
+  const written = isWrittenStory(seed) ? seed : null;
+  const story = buildBackstory(g, {
+    name, short: vars.short, pronouns, originId, origin: origin.label, written,
+    seedLine: written ? null : seedParagraph(seed, vars, pronouns),
+    others: Object.values(g.characters || {}),
+  });
 
   return {
     id: newId(),
@@ -104,8 +97,8 @@ export function buildCharacter(g, { ownerId, originId, career, name, pronouns, s
     citizenship: origin.citizenship,
     ties: origin.ties,
     seed: seed || null,
+    writtenStory: written,
     story,
-    storyBeats: beats,
     hookKeys: chosen,
     hooks,
     renown: {},
