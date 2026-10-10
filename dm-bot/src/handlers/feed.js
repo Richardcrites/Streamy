@@ -8,7 +8,8 @@ import { addCondition, activeConditions, clearCondition } from "../engine/record
 import { activeSaga, noteContract, threatBar } from "../engine/saga.js";
 import { COLORS, clip } from "../comms.js";
 import * as voice from "../voice.js";
-import { createMission } from "./mission.js";
+import { createMission, jumpEmbed } from "./mission.js";
+import { rollJump, eventSpoken, JUMP_COOLDOWN_MS } from "../engine/journey.js";
 
 const ephemeral = MessageFlags.Ephemeral;
 const PREFIX = "DMLINK:";
@@ -103,7 +104,8 @@ function trackPulled(g, char, title, accepted) {
 
 // sagaNotes (optional array): filled with what each contract means for the saga, for the bot to post.
 // offers (optional array): contracts accepted by someone with no active mission, to offer as the next mission.
-export function applyFeedEvents(g, char, events, sagaNotes = [], offers = []) {
+// jumps (optional array): quantum jumps rolled for the crew's mission route, for the bot to post.
+export function applyFeedEvents(g, char, events, sagaNotes = [], offers = [], jumps = []) {
   const mission = missionFor(g, char);
   const logs = [];
   const saga = activeSaga(g);
@@ -125,6 +127,16 @@ export function applyFeedEvents(g, char, events, sagaNotes = [], offers = []) {
         char.location = e.place;
         if (e.type === "quantum") logs.push(`travel → ${e.place}`);
         break;
+      case "quantum_spool": {
+        // Spooling a jump while on a mission: roll what happens on it (once, however many crew log it).
+        const route = mission?.route;
+        if (route && route.next < route.legs.length && Date.now() - (route.lastAt || 0) > JUMP_COOLDOWN_MS) {
+          const crew = mission.characterIds.map((id) => g.characters[id]).filter(Boolean);
+          const rolled = rollJump(mission, { crew });
+          if (rolled) jumps.push({ mission, event: rolled });
+        }
+        break;
+      }
       case "ship":
         char.ship = e.ship;
         break;
@@ -197,8 +209,13 @@ export async function onFeedMessage(message, g) {
   if (!char) return message.react("❓").catch(() => {});
   const sagaNotes = [];
   const offers = [];
-  applyFeedEvents(g, char, data.events, sagaNotes, offers);
+  const jumps = [];
+  applyFeedEvents(g, char, data.events, sagaNotes, offers, jumps);
   await message.react("✅").catch(() => {});
+  for (const { mission, event } of jumps) {
+    await message.reply({ embeds: [jumpEmbed(g, mission, event)], allowedMentions: { parse: [] } }).catch(() => {});
+    voice.sayIfConnected(message.guild, g, eventSpoken(event));
+  }
   // "We pulled a contract": offer to build the mission around it. Whoever it's shared with joins the crew.
   for (const offer of offers.slice(0, 2)) {
     await message.reply({

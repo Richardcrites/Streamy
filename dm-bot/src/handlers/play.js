@@ -426,7 +426,7 @@ export async function help(interaction) {
       "**4. Keep going:** `/story next` for the next act. `/log` to record what you did. `/character location` when you travel.\n" +
       "**Crew roles:** on every mission each person gets a different role (Pilot, Engineer, XO, Gunner, Medic, Loadmaster, Scout, Boarding Lead, Salvage, Quartermaster) that fits their story. Pick a favourite, or invent your own, with `/character role`.\n" +
       "**Ask the DM:** `/ask what contract do we take for this?`, or start a message with `?` in the scribe channel.\n" +
-      "**Dice:** `/roll` (default d20, or `2d6+1`). Missions roll a d20 for the road, which decides your forced stops.\n" +
+      "**Dice:** `/roll` (default d20, or `2d6+1`). On missions, press 🚀 **Jump** each time you spool: the DM rolls a d20 for that jump (a clean run, a distress call, a forced stop, an ambush) and tells you what to do in game.\n" +
       "**Connect your game:** `/link` + `link.bat` sends contracts, injuries, CrimeStat, locations and ships from your Game.log straight to your character.\n" +
       "**Keeping track:** `/status` shows injuries, ship damage and warrants (they carry into stories). `/lore` is your server's canon, `/archive` holds finished stories, and an admin can set a **scribe channel** where one person types quick updates during play.\n" +
       "**Voice:** join a voice channel and the DM reads briefings, twists and finales aloud. `/voice join`, `/voice test`, `/voice leave`.\n" +

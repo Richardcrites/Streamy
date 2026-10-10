@@ -1,6 +1,7 @@
 // Persistent consequences and history: character conditions (injuries, ship damage, warrants…),
 // server canon (lore the players created), and the story archive. Pure functions, no Discord.
 
+import { eventLine } from "./journey.js";
 import { newId } from "../store.js";
 import { similar, firstName, lastName } from "./names.js";
 import { shortName } from "./story.js";
@@ -105,6 +106,7 @@ export function archiveMission(g, mission, crew) {
     "## Objectives",
     ...mission.objectives.map((o) => `- **${o.characterName}:** ${o.text}`),
     ...(mission.stops?.length ? ["", `## Stops on the way (rolled ${mission.roadRoll} on a d20)`, ...mission.stops.map((st, i) => `${i + 1}. **${st.place}**: ${st.reason}. ${st.action}`)] : []),
+    ...(mission.route?.events?.length ? ["", "## The road there", ...mission.route.events.map((e) => `- ${eventLine(e)}`)] : []),
     ...(mission.notes ? ["", "## What the crew reported", mission.notes] : []),
     ...(mission.scribe?.length ? ["", "## Field log", ...mission.scribe.map((s) => `- ${s}`)] : []),
     "",

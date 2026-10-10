@@ -78,8 +78,11 @@ export function createParser() {
       return ev("location", { place: prettyPlace(m[2]), code: m[2] });
     }
     if ((m = line.match(/selected point (\S+) as their destination/))) {
+      // Setting a quantum destination is the moment the crew spools: the DM rolls that jump.
+      const repeat = state.quantumTarget === m[1];
       state.quantumTarget = m[1];
-      return null;
+      const to = prettyTarget(m[1]);
+      return to && !repeat ? ev("quantum_spool", { place: to }) : null;
     }
     if (line.includes("<Quantum Drive Arrived - Arrived at Final Destination>")) {
       const to = prettyTarget(state.quantumTarget);
@@ -125,6 +128,7 @@ export function createParser() {
 export function describe(e) {
   switch (e.type) {
     case "location": return `📍 At ${e.place}`;
+    case "quantum_spool": return `🌀 Spooling for ${e.place}`;
     case "quantum": return `🌀 Quantum jump to ${e.place}`;
     case "ship": return `🚀 Boarded: ${e.ship}`;
     case "medbed": return `🩺 Med bed surgery${e.parts.length ? ` (${e.parts.join(", ")})` : ""}`;

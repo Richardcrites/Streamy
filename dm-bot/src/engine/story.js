@@ -5,6 +5,7 @@
 
 import { classifyContract, systemOf, pulledAnchor, pickAddon } from "./contract.js";
 import { buildBackstory, isWrittenStory, backgroundLabel } from "./backstory.js";
+import { buildRoute } from "./journey.js";
 import {
   ORIGINS, NAME_POOLS, NPC_POOL, RELICS, LOCATIONS, CARGO, ORES, EVIDENCE,
   OBJECTIVES, ACTIVITY_TAGS, CAMPAIGN_GOALS, THREADS, CAREERS, MISSION_TYPES, MISSION_TWISTS,
@@ -550,12 +551,13 @@ export function buildMission(g, characters, typeId, { play = null, sagaTitle = n
 
   const lead = characters[0];
   const threadSystems = THREADS[enemyFirst[0]?.hook.thread]?.systems?.filter((s) => PLAYABLE_SYSTEMS.includes(s)) || [];
-  const located = PLAYABLE_SYSTEMS.find((s) => lead.location?.includes(s));
+  const located = PLAYABLE_SYSTEMS.find((s) => lead.location?.includes(s)) || systemOf(lead.location);
   const pulledSystem = pulled && (systemOf(pulled.location) || systemOf(pulled.title));
   const system = pulledSystem || (play && PLAYABLE_SYSTEMS.includes(play.system) ? play.system : null)
     || located || pick(threadSystems) || (PLAYABLE_SYSTEMS.includes(lead.system) ? lead.system : pick(PLAYABLE_SYSTEMS));
 
   const vars = { patron: target.name, target: target.name, antagonist: antagonist.name, system };
+  const rendezvous = pick(RENDEZVOUS[system] || ["the nearest station"]);
   // One real contract, shared with the party, anchors the job: its destination stands in for the story's place.
   // A saga lead brings its own: the real place and activity where the clue is.
   const anchorTpl = pick(ANCHORS[typeKey]);
@@ -602,8 +604,16 @@ export function buildMission(g, characters, typeId, { play = null, sagaTitle = n
     crossings: crossings.map((c) => c.text),
     anchor,
     ...(pulled ? { pulled: { title: pulled.title, location: pulled.location || null, kind: kind.key }, addon: pickAddon(kind, vars) } : {}),
-    rendezvous: pick(RENDEZVOUS[system] || ["the nearest station"]),
-    ...rollStops(characters, system),
+    rendezvous,
+    // The road to the job: real quantum jumps, each rolled live when the crew spools (engine/journey.js).
+    route: buildRoute({
+      system,
+      startSystem: located || system,
+      start: located && located !== system ? lead.location : rendezvous,
+      destination: pulled?.location || play?.where || `the job site in ${system}`,
+      crew: characters,
+    }),
+    stops: [],
     objectives,
     briefing: pulled
       ? `Spacers. You pulled ${kind.label}: "${pulled.title}"${pulled.location ? ` at ${pulled.location}` : ""}. Fine. Here's what it really is. ${anchor.standIn} Do the job the contract asks. The story's in how you do it.`

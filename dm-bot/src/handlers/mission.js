@@ -7,7 +7,8 @@ import {
   ModalBuilder, TextInputBuilder, TextInputStyle,
 } from "discord.js";
 import { DEFAULT_PERSONA, CREW_ROLES } from "../lore/data.js";
-import { buildMission, missionEpilogue, snapshot, createdSince, rollbackMission, roadRollLabel, shortName } from "../engine/story.js";
+import { buildMission, missionEpilogue, snapshot, createdSince, rollbackMission, shortName } from "../engine/story.js";
+import { rollJump, eventSpoken, KIND_LABEL, eventLine } from "../engine/journey.js";
 import { narrateMission, narrateMissionEnd } from "../ai.js";
 import * as store from "../store.js";
 import { broadcast, COLORS, clip } from "../comms.js";
@@ -50,7 +51,7 @@ export async function start(interaction, g) {
   const { mission, message } = await createMission(g, crew, interaction.options.getString("type"), interaction.user.id, pulled);
   await interaction.editReply(message);
   voice.narrate(interaction, g, `${mission.title}. ${mission.briefing} ${mission.crossings.join(" ")} ${mission.stakes}` +
-    (mission.stops?.length ? ` And you won't make it in one go. ${mission.stops.map((st, i) => `Stop ${i + 1}: ${st.place}, because ${st.reason}.`).join(" ")}` : ""));
+    (mission.route ? ` It's ${mission.route.legs.length} jumps from ${mission.route.legs[0].from}. Hit Jump when you spool, and we'll see what the lanes have for you.` : ""));
 }
 
 export async function createMission(g, crew, type, ownerId, pulled = null) {
@@ -136,11 +137,14 @@ function missionMessage(g, mission, crew) {
       ...splitField(`🎭 Crew roles (${mission.objectives.length})`, mission.objectives.map((o) => o.roleLabel
         ? `${o.roleEmoji || CREW_ROLES[o.role]?.emoji || "⭐"} **${o.characterName}: ${o.roleLabel}** (${o.why}). ${o.flavour || o.text}`
         : `**${o.characterName}:** ${o.text}`), mission.objectives.length > 4 ? 300 : 1024),
-      ...(mission.stops ? [{
-        name: `🛑 Stops on the way · 🎲 d20 rolled ${mission.roadRoll}: ${roadRollLabel(mission.roadRoll)}`,
-        value: clip(mission.stops.length
-          ? mission.stops.map((st, i) => `**${i + 1}. ${st.place}**${st.forced ? " *(you can't skip this one)*" : ""}\n**Why:** ${st.reason}\n**What:** ${st.action} ${st.need}`).join("\n\n")
-          : "No stops. Fly straight there, and enjoy it while it lasts.", 1024),
+      ...(mission.route ? [{
+        name: `🚀 The route: ${mission.route.legs.length} jumps`,
+        value: clip([
+          ...mission.route.legs.map((l, i) => `${i + 1}. ${l.from} → **${l.to}**${l.tunnel ? " 🌀 *jump point*" : ""}`),
+          ...mission.route.forced.map((x) => `🩹 ${x.who} is ${x.kind === "ship" ? "flying a damaged ship" : "hurt"}: the first jump ends at a ${x.kind === "ship" ? "repair" : "safe"} stop.`),
+          "",
+          "Press **🚀 Jump** each time you spool (DM Link does it for you if it's running). The DM rolls a d20 for every jump: a clean run, a distress call, a tail, a forced stop, or worse. Whatever happens, he'll tell you what to do in game.",
+        ].join("\n"), 1024),
       }] : []),
       ...(carrying.length ? [{ name: "🩹 Carrying into this job", value: clip(carrying.join("\n"), 1024) }] : []),
       { name: "⚖️ Stakes", value: clip(mission.stakes, 1024) },
@@ -148,6 +152,7 @@ function missionMessage(g, mission, crew) {
     )
     .setFooter({ text: "No script. Play it in game and in voice, let it happen, then report how it went. Don't like it? Reroll or scrap it." });
   const row = new ActionRowBuilder().addComponents(
+    ...(mission.route ? [new ButtonBuilder().setCustomId(`ms:${mission.id}:jump`).setLabel("Jump").setEmoji("🚀").setStyle(ButtonStyle.Primary)] : []),
     new ButtonBuilder().setCustomId(`ms:${mission.id}:win`).setLabel("Mission complete").setEmoji("✅").setStyle(ButtonStyle.Success),
     new ButtonBuilder().setCustomId(`ms:${mission.id}:fail`).setLabel("Mission failed").setEmoji("💀").setStyle(ButtonStyle.Danger),
     new ButtonBuilder().setCustomId(`ms:${mission.id}:reroll`).setLabel("Reroll").setEmoji("🎲").setStyle(ButtonStyle.Secondary),
@@ -214,6 +219,41 @@ function sagaField(g, beat) {
   return [why, ...leadLines(beat.play), `☠️ ${saga.shadow}'s threat: ${threatBar(saga.threat)}`].join("\n");
 }
 
+// ── 🚀 Jump: roll what happens on the next quantum jump ─────────────────────
+export function jumpEmbed(g, mission, e) {
+  const color = { clean: COLORS.dossier, lucky: COLORS.outcome, complication: COLORS.transmission, stop: COLORS.chapter, ambush: COLORS.finale }[e.kind];
+  const embed = new EmbedBuilder()
+    .setColor(color)
+    .setAuthor({ name: `🚀 ${mission.title.toUpperCase()} · JUMP ${e.leg} OF ${e.of}${e.tunnel ? " · JUMP POINT" : ""}` })
+    .setTitle(clip(`${e.from} → ${e.to}`, 250))
+    .setDescription(clip(`🎲 **d20: ${e.d20}** · ${KIND_LABEL[e.kind]}${e.forced ? ` (${e.forced}'s condition)` : ""}\n\n${e.text}`, 4000))
+    .addFields({ name: "🎮 In game", value: clip(e.todo, 1024) });
+  if (e.place) embed.addFields({ name: `📍 Put down at ${clip(e.place, 200)}`, value: clip([e.action, e.need].filter(Boolean).join(" "), 1024) || "Land and regroup." });
+  if (e.talk) embed.addFields({ name: "🗣️ While you wait", value: clip(e.talk, 1024) });
+  if (e.arrived) embed.addFields({ name: "🏁 Arrival", value: ["stop", "ambush"].includes(e.kind) ? `Once you're back in the air, it's one more push to **${e.to}**. Then the job is yours.` : `You're at **${e.to}**. The job is yours.` });
+  else embed.setFooter({ text: "Press 🚀 Jump again when you spool the next one." });
+  return embed;
+}
+
+async function onJump(interaction, g, mission) {
+  const route = mission.route;
+  if (!route) return interaction.reply({ content: "This mission has no route.", flags: ephemeral });
+  if (route.next >= route.legs.length) return interaction.reply({ content: "You've already arrived. The job's in front of you.", flags: ephemeral });
+  // Two crew members pressing at once (or DM Link a second ago) roll only one jump.
+  if (Date.now() - (route.lastAt || 0) < 15_000 || !store.claim(`jump:${mission.id}`)) {
+    return interaction.reply({ content: "That jump was just rolled. Check the post above.", flags: ephemeral });
+  }
+  try {
+    const crew = mission.characterIds.map((id) => g.characters[id]).filter(Boolean);
+    const e = rollJump(mission, { crew });
+    store.save();
+    await interaction.reply({ embeds: [jumpEmbed(g, mission, e)] });
+    voice.narrate(interaction, g, eventSpoken(e));
+  } finally {
+    store.release(`jump:${mission.id}`);
+  }
+}
+
 // ── Scrap / reroll: undo the mission as if it never happened ──────────────────
 async function scrapOrReroll(interaction, g, mission, reroll) {
   await interaction.deferUpdate();
@@ -245,6 +285,7 @@ export async function onButton(interaction, g, missionId, result) {
   if (!mission || mission.status !== "active") return interaction.reply({ content: "That mission is already over (or was scrapped).", flags: ephemeral });
   const isCrew = mission.characterIds.some((id) => g.characters[id]?.ownerId === interaction.user.id);
   if (!isCrew) return interaction.reply({ content: "Only the crew on this job can report it.", flags: ephemeral });
+  if (result === "jump") return onJump(interaction, g, mission);
   if (result === "scrap" || result === "reroll") {
     const key = `mission:${missionId}`;
     if (!store.claim(key)) return interaction.reply({ content: "Someone on your crew is already on it. One moment.", flags: ephemeral });

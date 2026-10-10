@@ -341,7 +341,8 @@ export async function narrateMission({ mission, characters, worldLog, persona, c
       "'stop_reasons' has exactly one entry per stop in stops_on_the_way, in order: a vivid, specific reason the crew " +
       "MUST stop there, tied to the story, the crossing or a character's condition (2 sentences max). Don't change the " +
       "place or the action; a stop forced by a crew condition must keep that condition as its reason. Make at least " +
-      "one stop carry action or danger when it fits. If `saga` is set, this job is a chapter of the server's long story: " +
+      "one stop carry action or danger when it fits. The route_jumps are rolled live by the DM, one jump at a time, when the crew spools: " +
+      "you may mention the route, but never say what happens on it.  If `saga` is set, this job is a chapter of the server's long story: " +
       "give it that purpose. The briefing should make clear why this place and this contract matter to the saga, tie it to " +
       "what the characters have already learned about themselves, and foreshadow (never reveal) the clue. For a finale, " +
       "the twist IS saga.this_mission.the_big_reveal, told so it lands on every character. Everything must be doable in the real game. " +
@@ -352,7 +353,7 @@ export async function narrateMission({ mission, characters, worldLog, persona, c
       "is the only thing you may add on top. If mission.side_job_for_saga is set, say briefly why this job matters to the saga.",
     {
       persona,
-      mission: { type: mission.typeLabel, system: mission.system, antagonist: mission.antagonist, person_at_the_centre: mission.target, draft_briefing: mission.briefing, draft_stakes: mission.stakes, shared_contract: mission.anchor, pulled_contract: mission.pulled || undefined, optional_extra: mission.addon || undefined, side_job_for_saga: mission.sagaSide?.purpose, meet_at: mission.pulled ? undefined : mission.rendezvous, crew_roles: mission.objectives.map((o) => ({ for: o.characterName, role: o.roleLabel || o.activity, job: o.text, chosen_because: o.why })), stops_on_the_way: (mission.stops || []).map((st) => ({ place: st.place, draft_reason: st.reason, action: st.action, forced_by_crew_condition: st.forced })) },
+      mission: { type: mission.typeLabel, system: mission.system, antagonist: mission.antagonist, person_at_the_centre: mission.target, draft_briefing: mission.briefing, draft_stakes: mission.stakes, shared_contract: mission.anchor, pulled_contract: mission.pulled || undefined, optional_extra: mission.addon || undefined, side_job_for_saga: mission.sagaSide?.purpose, meet_at: mission.pulled ? undefined : mission.rendezvous, crew_roles: mission.objectives.map((o) => ({ for: o.characterName, role: o.roleLabel || o.activity, job: o.text, chosen_because: o.why })), stops_on_the_way: (mission.stops || []).map((st) => ({ place: st.place, draft_reason: st.reason, action: st.action, forced_by_crew_condition: st.forced })), route_jumps: mission.route?.legs.map((l) => `${l.from} → ${l.to}${l.tunnel ? " (jump point)" : ""}`) },
       crossing_facts: mission.crossings,
       allowed_names: [...mission.names, ...(mission.sagaNames || [])],
       saga,
@@ -434,7 +435,7 @@ export async function askDM({ question, persona, asker, mission, characters, can
     `GAME-AS-RP RULES: ${JSON.stringify(rules)}\n` +
     `SERVER CANON: ${JSON.stringify(canon)}\n` +
     `ASKED BY: ${asker || "a player"}\n` +
-    `CURRENT MISSION: ${mission ? JSON.stringify({ title: mission.title, type: mission.typeLabel, system: mission.system, briefing: mission.briefing, crossings: mission.crossings, stakes: mission.stakes, shared_contract: mission.anchor, pulled_contract: mission.pulled || undefined, optional_extra: mission.addon || undefined, side_job_for_saga: mission.sagaSide?.purpose, meet_at: mission.pulled ? undefined : mission.rendezvous, crew_roles: mission.objectives.map((o) => ({ for: o.characterName, role: o.roleLabel, job: o.text })), stops: mission.stops || [], field_log: mission.scribe || [] }) : "none"}\n` +
+    `CURRENT MISSION: ${mission ? JSON.stringify({ title: mission.title, type: mission.typeLabel, system: mission.system, briefing: mission.briefing, crossings: mission.crossings, stakes: mission.stakes, shared_contract: mission.anchor, pulled_contract: mission.pulled || undefined, optional_extra: mission.addon || undefined, side_job_for_saga: mission.sagaSide?.purpose, meet_at: mission.pulled ? undefined : mission.rendezvous, crew_roles: mission.objectives.map((o) => ({ for: o.characterName, role: o.roleLabel, job: o.text })), route_so_far: (mission.route?.events || []).map((e) => `${e.from} → ${e.to}: ${e.text} ${e.todo}`), jumps_left: mission.route ? mission.route.legs.length - mission.route.next : 0, field_log: mission.scribe || [] }) : "none"}\n` +
     `CREW: ${JSON.stringify(characters.map(charBrief))}\n` +
     `THE SAGA (the server's long story; point players to the next lead's real place and contract when they ask what to do next, never reveal hidden clues, the villain's identity or the big reveal): ${saga ? JSON.stringify(saga) : "none running"}`;
   if (aiPaused()) return null;

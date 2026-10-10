@@ -23,7 +23,7 @@ const parseAll = () => {
 test("parser reads 4.10 Game.log lines into story events", () => {
   const events = parseAll();
   const t = events.map((e) => e.type);
-  assert.deepEqual(t, ["jurisdiction", "location", "ship", "quantum", "crimestat", "crimestat", "contract_accepted", "injury", "injury", "downed", "objective", "earned", "earned", "contract_complete", "medbed", "fined", "contract_shared"]);
+  assert.deepEqual(t, ["jurisdiction", "location", "ship", "quantum_spool", "quantum", "crimestat", "crimestat", "contract_accepted", "injury", "injury", "downed", "objective", "earned", "earned", "contract_complete", "medbed", "fined", "contract_shared"]);
   const by = (type) => events.find((e) => e.type === type);
   assert.equal(by("contract_accepted").title, "Verified Bounty: Test Target at QV Breaker Station");
   assert.equal(by("contract_shared").title, "Defend a location from Outlaws");
