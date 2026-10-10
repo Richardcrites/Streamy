@@ -26,7 +26,8 @@ export function dossierEmbed(char, { full = false } = {}) {
       { name: "Last known location", value: `${char.location || "Unknown"}${char.ship ? `\nShip: ${char.ship}` : ""}`, inline: true },
       { name: "Status", value: { citizen: "UEE citizen", civilian: "UEE civilian (no vote)", none: "Outside UEE law" }[char.citizenship] || char.citizenship, inline: true },
     );
-  if (char.seed) e.addFields({ name: "Concept", value: clip(char.seed, 1024) });
+  // Their idea, when it isn't already the story shown above.
+  if (char.seed && !char.writtenStory) e.addFields({ name: "Concept", value: clip(char.seed, 1024) });
   const hooks = char.hooks.map((h) => `${h.status === "open" ? "◻️" : "✅"} ${h.text}`).join("\n");
   if (hooks) e.addFields({ name: "Story hooks", value: clip(hooks, 1024) });
   const conds = (char.conditions || []).filter((c) => c.status === "active");
@@ -35,6 +36,20 @@ export function dossierEmbed(char, { full = false } = {}) {
   if (renown) e.addFields({ name: "Renown", value: renown, inline: true });
   if (char.titles?.length) e.addFields({ name: "Titles", value: char.titles.join(", "), inline: true });
   if (char.relationships?.length) e.addFields({ name: "Connections", value: clip(char.relationships.map((r) => `• ${r.name}: ${r.note}`).join("\n"), 1024) });
+  return fitEmbed(e);
+}
+
+// Discord rejects an embed over 6000 characters in total. Trim the description (the story) to fit,
+// so a long written story can never make a post fail.
+export function embedSize(e) {
+  const d = e.toJSON ? e.toJSON() : e;
+  return (d.title || "").length + (d.description || "").length + (d.author?.name || "").length + (d.footer?.text || "").length
+    + (d.fields || []).reduce((n, f) => n + f.name.length + f.value.length, 0);
+}
+export function fitEmbed(e, budget = 5900) {
+  const over = embedSize(e) - budget;
+  const desc = e.data.description || "";
+  if (over > 0 && desc) e.setDescription(clip(desc, Math.max(200, desc.length - over - 1)));
   return e;
 }
 

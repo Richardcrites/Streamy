@@ -171,8 +171,11 @@ async function onInteraction(interaction) {
   try {
     await route(interaction);
   } catch (err) {
-    console.error(err);
-    const msg = { content: "⚠️ Something went wrong on the DM's side. Try again.", flags: MessageFlags.Ephemeral };
+    // Say which command or button failed, so the error in this window can be matched to what someone clicked.
+    const what = interaction.commandName ? `/${interaction.commandName} ${interaction.options?.getSubcommand?.(false) || ""}`.trim() : interaction.customId;
+    console.error(`[bot] ${what} failed:`, err);
+    const reason = String(err?.rawError?.message || err?.message || err).split("\n")[0].slice(0, 180);
+    const msg = { content: `⚠️ Something went wrong on the DM's side (${what}): ${reason}. Try again, and if it keeps happening, send this message to whoever runs the bot.`, flags: MessageFlags.Ephemeral };
     if (interaction.isRepliable()) {
       if (interaction.deferred || interaction.replied) await interaction.followUp(msg).catch(() => {});
       else await interaction.reply(msg).catch(() => {});

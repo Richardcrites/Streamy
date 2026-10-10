@@ -164,7 +164,7 @@ export async function onWrite(interaction, g) {
   const draft = g.drafts[interaction.user.id];
   if (!draft?.name) return expired(interaction);
   const input = new TextInputBuilder().setCustomId("story").setLabel(clip(`${draft.name}'s story`, 45)).setStyle(TextInputStyle.Paragraph)
-    .setRequired(true).setMinLength(10).setMaxLength(4000)
+    .setRequired(true).setMinLength(1).setMaxLength(4000)
     .setPlaceholder("Who are they? Where did they come from? What happened? What do they want? Write it however you like.");
   if (draft.seed) input.setValue(clip(draft.seed, 4000));
   await interaction.showModal(new ModalBuilder().setCustomId("cc:story").setTitle("Your story").addComponents(new ActionRowBuilder().addComponents(input)));

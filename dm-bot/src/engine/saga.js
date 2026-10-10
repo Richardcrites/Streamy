@@ -75,8 +75,10 @@ export function createSaga(g, characters, templateId = null) {
 // ── Personal tidbits ─────────────────────────────────────────────────────────
 // Every character gets two secrets from the saga's list (the least-used ones) and the bond hint last.
 export function ensureTidbits(g, saga, char) {
+  saga.tidbits ??= {};
   if (saga.tidbits[char.id]) return saga.tidbits[char.id];
   const t = sagaTemplate(saga);
+  if (!t?.tidbits) return [];
   const counts = t.tidbits.map((_, i) => Object.values(saga.tidbits).filter((list) => list.some((x) => x.key === i)).length);
   const order = t.tidbits.map((_, i) => i).sort((a, b) => counts[a] - counts[b] || Math.random() - 0.5).slice(0, 2);
   const hookNpc = (char.hooks || []).map((h) => g.npcs?.[h.npcId]).find(Boolean);

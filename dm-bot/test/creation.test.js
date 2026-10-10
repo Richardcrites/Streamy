@@ -59,3 +59,11 @@ test("a background with no recognisable place falls back to the neutral spacer b
   assert.equal(inferOrigin("just someone with a ship and a bad attitude"), "drifter");
   assert.equal(inferOrigin("ex-Navy medic who deserted"), "navy_veteran");
 });
+
+test("a dossier never goes over Discord's 6000-character embed limit", async () => {
+  const { dossierEmbed, embedSize } = await import("../src/comms.js");
+  const long = "word ".repeat(1000);
+  const char = { name: "Long Story", origin: "x", pronouns: "he", home: "y", citizenship: "none", story: [long, long], seed: long, writtenStory: null,
+    hooks: Array.from({ length: 4 }, () => ({ status: "open", text: "h".repeat(250) })), conditions: [], renown: {}, titles: [], relationships: [] };
+  assert.ok(embedSize(dossierEmbed(char, { full: true })) <= 6000);
+});
