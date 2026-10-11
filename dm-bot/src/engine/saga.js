@@ -74,6 +74,55 @@ export function createSaga(g, characters, templateId = null) {
 
 // ── Personal tidbits ─────────────────────────────────────────────────────────
 // Every character gets two secrets from the saga's list (the least-used ones) and the bond hint last.
+function tidbitVars(g, saga, char) {
+  const hookNpc = (char.hooks || []).map((h) => g.npcs?.[h.npcId]).find(Boolean);
+  return {
+    name: char.name, short: shortName(char.name), home: char.home || "home", origin: char.origin,
+    npc: hookNpc?.name || "an old friend", shadow: saga.shadow, lieutenant: saga.lieutenant.name,
+  };
+}
+
+// Bring a running saga up to date with the saga file, so a lead whose content left the game (like the
+// Frontier Fighter hunts) points somewhere playable. Only what hasn't happened yet changes: found clues
+// and revealed secrets are history. Returns how many things changed.
+export function refreshSaga(g, saga) {
+  const t = sagaTemplate(saga);
+  if (!t) return 0;
+  const vars = { shadow: saga.shadow, truename: saga.truename, lieutenant: saga.lieutenant.name };
+  let changed = 0;
+  saga.leads.forEach((l, i) => {
+    if (l.found || !t.leads[i]) return;
+    const fresh = fillLead(t.leads[i], vars);
+    if (["where", "contract", "find", "text", "system", "activity"].some((k) => l[k] !== fresh[k])) {
+      Object.assign(l, fresh);
+      changed++;
+    }
+  });
+  if (t.finalePlay) {
+    const fp = { system: t.finalePlay.system, where: fill(t.finalePlay.where, vars), contract: fill(t.finalePlay.contract, vars), activity: t.finalePlay.activity };
+    if (JSON.stringify(fp) !== JSON.stringify(saga.finalePlay)) {
+      saga.finalePlay = fp;
+      changed++;
+    }
+  }
+  for (const [charId, list] of Object.entries(saga.tidbits || {})) {
+    const char = g.characters?.[charId];
+    if (!char) continue;
+    const cv = tidbitVars(g, saga, char);
+    for (const tb of list) {
+      const src = tb.key === "bond" ? t.bondHint : t.tidbits[tb.key];
+      if (tb.revealed || !src) continue;
+      const text = fill(src.text, cv, char.pronouns);
+      const find = fill(src.find, cv, char.pronouns);
+      if (text !== tb.text || find !== tb.find) {
+        Object.assign(tb, { text, find });
+        changed++;
+      }
+    }
+  }
+  return changed;
+}
+
 export function ensureTidbits(g, saga, char) {
   saga.tidbits ??= {};
   if (saga.tidbits[char.id]) return saga.tidbits[char.id];
@@ -81,11 +130,7 @@ export function ensureTidbits(g, saga, char) {
   if (!t?.tidbits) return [];
   const counts = t.tidbits.map((_, i) => Object.values(saga.tidbits).filter((list) => list.some((x) => x.key === i)).length);
   const order = t.tidbits.map((_, i) => i).sort((a, b) => counts[a] - counts[b] || Math.random() - 0.5).slice(0, 2);
-  const hookNpc = (char.hooks || []).map((h) => g.npcs?.[h.npcId]).find(Boolean);
-  const vars = {
-    name: char.name, short: shortName(char.name), home: char.home || "home", origin: char.origin,
-    npc: hookNpc?.name || "an old friend", shadow: saga.shadow, lieutenant: saga.lieutenant.name,
-  };
+  const vars = tidbitVars(g, saga, char);
   const make = (tb, key) => ({ key, text: fill(tb.text, vars, char.pronouns), find: fill(tb.find, vars, char.pronouns), revealed: null });
   saga.tidbits[char.id] = [...order.map((i) => make(t.tidbits[i], i)), make(t.bondHint, "bond")];
   return saga.tidbits[char.id];

@@ -194,7 +194,7 @@ export const commands = [
     .addSubcommand((s) => s.setName("recap").setDescription("'Previously on…': the DM recaps the saga (read aloud if he's in voice)"))
     .addSubcommand((s) => s.setName("secrets").setDescription("What your character has learned about themselves, and where to look for more"))
     .addSubcommand((s) => s.setName("job").setDescription("Tell the DM about a contract you took in game, and he'll tie it into the story")
-      .addStringOption((o) => o.setName("contract").setDescription("The contract's name, e.g. 'Hunt Frontier Fighters' or 'Mercenary: Defend Occupants'").setRequired(true).setMaxLength(150))
+      .addStringOption((o) => o.setName("contract").setDescription("The contract's name, e.g. 'Defend Occupants' or 'Verified Bounty: Medium Risk Target'").setRequired(true).setMaxLength(150))
       .addStringOption((o) => o.setName("stage").setDescription("Did you just take it, or is it done?").setRequired(true).addChoices(
         { name: "Took it", value: "accepted" }, { name: "Completed it", value: "complete" }, { name: "Failed it", value: "failed" }))
       .addUserOption((o) => o.setName("player").setDescription("Who took it (default: you)")))

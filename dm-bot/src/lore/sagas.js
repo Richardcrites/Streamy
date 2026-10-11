@@ -1,7 +1,7 @@
 // Sagas: long, server-wide story arcs that every mission moves forward. Built on canon threads
 // (lore/04-live-story-arcs.md, lore/05-dm-hooks.md) and on missions that really exist in the game
 // (Alpha 4.x): the Onyx Facilities' Jorrit Dossier, Storm Breaker's Farro data centres and Lazarus labs,
-// InterSec's Vanduul-Tech Smugglers and Tactical Strike, QV Breaker Stations, Hunt Frontier Fighters,
+// InterSec's Vanduul-Tech Smugglers and Tactical Strike, QV Breaker Stations, the derelict outposts,
 // Siege of Orison, Hathor's Align & Mine, Alliance Aid, Wikelo's Emporium and the Pyro contested zones.
 //
 // Each saga has a public premise, a villain known only by an alias, five acts and ten LEADS (two per act).
@@ -90,10 +90,10 @@ export const SAGAS = [
       { name: "The Handler", goal: "Unmask {shadow} before the war starts." },
     ],
     leads: [
-      { system: "Pyro", where: "a Frontier Fighter hideout in Pyro", activity: "bounty", contract: "**Hunt Frontier Fighters** contracts from the Citizens for Prosperity or the Headhunters", find: "the weapons on the bodies", match: /frontier|hunt|fighter/i,
-        text: "The weapons used in the latest attack carry Navy serial numbers that were officially destroyed." },
-      { system: "Pyro", where: "a Citizens for Prosperity site in Pyro", activity: "fps", contract: "The **Mercenary** contract **Clear Citizens for Prosperity Servers**, or a CFP defend contract", find: "the CFP server data", match: /servers|citizens for prosperity|cfp|defend/i,
-        text: "The CFP's own servers hold a list of Frontier Fighter sympathisers. Someone has been deleting names from it, using a UEE login." },
+      { system: "Pyro", where: "the Derelict Outpost on Pyro IV", activity: "fps", contract: "No contract needed: land and search it on foot. Nobody home in game? Take a **Mercenary** contract to clear a site in Pyro: that's this place", find: "the weapons cached in the outpost", match: /derelict|pyro iv|mercenary|clear/i,
+        text: "The weapons cached at the outpost carry Navy serial numbers that were officially destroyed. Somebody is rearming what's left of Boyd's cells." },
+      { system: "Pyro", where: "Orbituary's contested zone (orbiting Bloom)", activity: "fps", contract: "No contract needed: the contested zone. The data broker's room is behind a **Blue Security Keycard** door", find: "the broker's datapad behind a Blue Security Keycard door", match: /orbituary|contested|keycard/i,
+        text: "A data broker at Orbituary sells lists of Frontier Fighter sympathisers. Someone has been deleting names from them, using a UEE login." },
       { system: "Stanton", where: "the Stanton–Pyro jump (a hauling run through it)", activity: "haul", contract: "A **Hauling** contract between Stanton and Pyro (Red Wind Linehaul or Covalex)", find: "the cargo manifest", match: /haul|cargo|freight|supply|red wind|covalex/i,
         text: "Frontier Fighter caches are being restocked by a hauler with Stanton clearance codes. The codes were issued to {lieutenant}." },
       { system: "Pyro", where: "the Derelict Outpost on Fuego (an old Headhunter stash point)", activity: "investigate", contract: "No contract needed: go and search it", find: "a stash datapad", match: /fuego|derelict|stash/i,
@@ -112,9 +112,9 @@ export const SAGAS = [
         text: "{shadow}'s next move is a staged massacre at Ruin Station, timed for when the UEE is watching." },
     ],
     tidbits: [
-      { text: "{short}'s ship transponder was cloned. It pinged at a Slicer attack site on a day {they} were nowhere near it.", find: "a Frontier Fighter cache datapad (Pyro)" },
+      { text: "{short}'s ship transponder was cloned. It pinged at a Slicer attack site on a day {they} were nowhere near it.", find: "the Derelict Outpost on Pyro IV" },
       { text: "{npc} once took money from a man in a Navy jacket to point out 'useful people'. {short} was on the list.", find: "the Derelict Outpost on Fuego" },
-      { text: "A CFP file on {short} calls {them} 'sympathetic, deployable'. Nobody asked {short}.", find: "the CFP servers (Clear Citizens for Prosperity Servers)" },
+      { text: "A broker's list at Orbituary calls {short} 'sympathetic, deployable'. Nobody asked {short}.", find: "the broker's room in Orbituary's contested zone" },
       { text: "Someone from {home} is listed as a Frontier Fighter martyr. {short} went to their funeral, and they weren't in the box.", find: "the Ghost Arena at Ruin Station" },
       { text: "{short}'s face is in a Navy liaison's photo album, labelled 'fall guy, candidate'.", find: "the Executive Hangar registry (PYAM-EXHANG-0-1)" },
       { text: "The first big job {short} ever took was arranged by {shadow}. The pay came from UEE scrip.", find: "a hauling manifest between Stanton and Pyro" },

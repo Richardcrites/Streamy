@@ -12,6 +12,7 @@ import * as feed from "./handlers/feed.js";
 import { aiLabel } from "./ai.js";
 import { linkKin } from "./engine/story.js";
 import { registerName } from "./engine/names.js";
+import { activeSaga, refreshSaga } from "./engine/saga.js";
 
 if (!process.env.DISCORD_TOKEN) {
   console.error("Missing DISCORD_TOKEN in .env (see README).");
@@ -22,6 +23,11 @@ const db = store.load();
 store.tidy(db);
 // Tie together existing characters whose surnames match (only ever done once per pair).
 for (const g of Object.values(db.guilds)) {
+  // A running saga picks up fixes to its leads (e.g. content that left the game).
+  if (activeSaga(g)) {
+    const n = refreshSaga(g, g.saga);
+    if (n) console.log(`Updated ${n} upcoming lead(s) and secret(s) in the saga "${g.saga.title}".`);
+  }
   for (const x of [...Object.values(g.npcs || {}), ...Object.values(g.characters || {})]) registerName(g, x.name);
   for (const c of Object.values(g.characters || {})) {
     for (const k of linkKin(g, c)) console.log(`Family tie: ${c.name} & ${k.with} (${k.relation})`);

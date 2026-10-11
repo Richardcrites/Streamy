@@ -55,7 +55,7 @@ lead is something a crew can go and do. Real chains they use:
 | **Tactical Strike Group** | Nyx | InterSec: a 7+ ship op against a Shattered Blade QV Extraction station to rescue People's Alliance pilot **Gabe Windell**. |
 | **Operation Breaker Stations** | Keeger Belt, Nyx | Restore a QV Breaker station, fire the laser (12 Sadaryx for 3 lenses), go into the asteroid. |
 | **Alliance Aid** | Nyx, Stanton | Molina Mold at Levski (faulty Gyson filters): transport, collection, and defence against the Moraine gang. Then the Levski Municipal Works. |
-| **Hunt Frontier Fighters** / **Clear Citizens for Prosperity Servers** | Pyro | CFP or Headhunter contracts; the Mercenary job against the CFP's servers. |
+| ~~Hunt Frontier Fighters / Clear Citizens for Prosperity Servers~~ | Pyro | **Ended** with the Frontier Fighters Finale (4.3.2). Don't send players there: use the **derelict outposts** (Pyro I, Pyro IV, Fairo, Fuego), **Mercenary** contracts or the contested zones instead. |
 | **Siege of Orison** | Stanton | Instanced: take the platforms, disable the IFF inverters, kill Mendo Ren. |
 | **Align & Mine** | Daymar, Aberdeen | Hathor's planetary alignment facilities (PAFs) and orbital laser platforms (Attritus, Lamina, Ruptura, Vivere). |
 | **Contested zones** / **Executive Hangar** | Pyro | Checkmate, Orbituary and Ruin Station (Ghost Arena); seven compboards open PYAM-EXHANG-0-1. |

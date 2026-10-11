@@ -201,3 +201,31 @@ test("after a mission the DM says what's next: the next lead, loose threads and 
   assert.ok(withSaga.lines.some((l) => l.includes(s.leads[1].where)), "points at the next lead's real place");
   assert.ok(withSaga.teaser && withSaga.spoken);
 });
+
+test("no lead, secret or finale sends players to content that left the game", () => {
+  const gone = /hunt frontier fighters|frontier fighter (hideout|cache)|citizens for prosperity servers/i;
+  for (const t of SAGAS) {
+    for (const x of [...t.leads.flatMap((l) => [l.where, l.contract, l.find]), ...t.tidbits.map((tb) => tb.find), t.bondHint.find, t.finalePlay.contract, t.finalePlay.where]) {
+      assert.ok(!gone.test(x), `${t.id}: ${x}`);
+    }
+  }
+});
+
+test("a running saga picks up fixed leads, but found clues and revealed secrets stay as they were", () => {
+  const g = store.guild(`refresh-${Math.random()}`);
+  const cs = crew(g, 2);
+  const s = (g.saga = saga.createSaga(g, cs, "embers"));
+  // Pretend this saga was saved by an older version: lead 0 found, lead 1 pointing at old content.
+  s.leads[0].found = { at: "t", by: "x", mission: "m" };
+  s.leads[0].where = "a Frontier Fighter hideout in Pyro";
+  s.leads[1].where = "a Citizens for Prosperity site in Pyro";
+  s.leads[1].contract = "The **Mercenary** contract **Clear Citizens for Prosperity Servers**";
+  const tb = s.tidbits[cs[0].id][0];
+  tb.find = "a Frontier Fighter cache datapad (Pyro)";
+  const n = saga.refreshSaga(g, s);
+  assert.ok(n >= 2);
+  assert.equal(s.leads[0].where, "a Frontier Fighter hideout in Pyro", "a found clue is history");
+  assert.match(s.leads[1].where, /Orbituary/);
+  assert.ok(!/Frontier Fighter cache/.test(tb.find));
+  assert.equal(saga.refreshSaga(g, s), 0, "nothing left to change");
+});
