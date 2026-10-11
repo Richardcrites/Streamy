@@ -8,6 +8,8 @@ import { PermissionFlagsBits } from "discord.js";
 import { PRONOUNS } from "../engine/util.js";
 import { suggestNames, buildCharacter, linkKin, seedParagraph, shortName } from "../engine/story.js";
 import { buildBackstory, isWrittenStory, inferOrigin, backgroundLabel } from "../engine/backstory.js";
+import { composeHook, allHookTexts } from "../engine/hooks.js";
+import { traitsFromText } from "../lore/backstory.js";
 import { narrateOrigin, aiEnabled, aiLabel } from "../ai.js";
 import { activeSaga, ensureTidbits } from "../engine/saga.js";
 import * as store from "../store.js";
@@ -185,11 +187,31 @@ export async function onDmWrites(interaction, g) {
   await finish(interaction, g, draft, draft.name);
 }
 
+// New wording for a character's hooks that fits their story, keeping the same people and kinds of hook
+// (so missions and crossings that already use them carry on). Family ties are left alone.
+function rehook(g, char) {
+  const tags = traitsFromText(`${char.background || ""} ${char.writtenStory || char.seed || ""}`);
+  const taken = allHookTexts(g);
+  const avoid = new Set();
+  for (const h of char.hooks) {
+    const npc = g.npcs[h.npcId];
+    if (!npc || h.type === "kin" || !h.type || h.status !== "open") continue;
+    taken.delete(h.text);
+    const made = composeHook(g, { type: h.type, short: shortName(char.name), pronouns: char.pronouns, tags, npcName: npc.name, taken, avoid });
+    if (!made) continue;
+    h.text = made.text;
+    h.thread = made.thread;
+    taken.add(made.text);
+  }
+}
+
+const hookNpcNames = (g, char) => Object.fromEntries(char.hooks.filter((h) => h.npcId && g.npcs[h.npcId]).map((h) => [h.npcId, g.npcs[h.npcId].name]));
+
 // Other characters' stories (same origin first), so neither the AI nor the engine hands out the same life twice.
 const otherStories = (g, char) => Object.values(g.characters).filter((c) => c.id !== char.id)
   .sort((x, y) => (y.originId === char.originId) - (x.originId === char.originId))
   .slice(0, 8)
-  .map((c) => `${c.name}: ${c.story.join(" ").slice(0, 400)}`);
+  .map((c) => `${c.name}: ${c.story.join(" ").slice(0, 400)} Hooks: ${(c.hooks || []).map((h) => h.text).join(" / ").slice(0, 300)}`);
 
 // A brand-new story for an existing character, from their written story or idea. Hooks stay.
 export async function restory(g, char) {
@@ -201,7 +223,8 @@ export async function restory(g, char) {
     seedLine: written ? null : seedParagraph(char.seed, { name: char.name, short }, char.pronouns),
     others: Object.values(g.characters).filter((c) => c.id !== char.id),
   });
-  const prose = await narrateOrigin(char, otherStories(g, char));
+  rehook(g, char);
+  const prose = await narrateOrigin(char, otherStories(g, char), hookNpcNames(g, char));
   if (prose) char.story = prose;
   char.customStory = false;
   return Boolean(prose);
@@ -230,7 +253,7 @@ async function finish(interaction, g, draft, name) {
 
   const char = buildCharacter(g, { ownerId: interaction.user.id, originId: draft.originId, career: null, name, pronouns: draft.pronouns, seed: draft.seed, background: draft.background });
   char.pronounsLabel = PRONOUNS[char.pronouns].label;
-  const prose = await narrateOrigin(char, otherStories(g, char));
+  const prose = await narrateOrigin(char, otherStories(g, char), hookNpcNames(g, char));
   if (prose) char.story = prose;
   const fallback = !prose && aiEnabled();
 

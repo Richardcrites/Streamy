@@ -145,7 +145,9 @@ test("similar surnames become family, with an NPC or another player", () => {
   do rj = story.buildCharacter(g, { ownerId: "a", originId: "pyro_outlaw", career: "smuggler", name: "RJ Oressian", pronouns: "he" });
   while (!rj.hooks.some((h) => h.type === "enemy"));
   g.characters[rj.id] = rj;
-  const enemy = g.npcs[rj.hooks.find((h) => h.type === "enemy").npcId];
+  const enemyHook = rj.hooks.find((h) => h.type === "enemy");
+  enemyHook.thread = "headhunters"; // composed hooks pick their thread from where the NPC is
+  const enemy = g.npcs[enemyHook.npcId];
   enemy.name = "Ysolde Pike";
   const yp = story.buildCharacter(g, { ownerId: "b", originId: "navy_veteran", career: "pilot", name: "Ysloda Pyke", pronouns: "she" });
   g.characters[yp.id] = yp;

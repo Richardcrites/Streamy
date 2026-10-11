@@ -216,6 +216,8 @@ function matchesSchema(value, schema, lenient = false, allowEmpty = []) {
     const type = schema.properties[key]?.type;
     const v = value[key];
     const empty = lenient || allowEmpty.includes(key);
+    // An optional field (allowEmpty) may also be left out entirely.
+    if (allowEmpty.includes(key) && v === undefined) return true;
     if (type === "string") return typeof v === "string" && (empty || v.trim().length > 0);
     if (type === "array") return Array.isArray(v) && (empty || v.length > 0);
     return v !== undefined;
@@ -246,7 +248,9 @@ const charBrief = (c) => ({
 });
 
 // ── Narration (one-shot JSON) ────────────────────────────────────────────────
-export async function narrateOrigin(character, otherStories = []) {
+// npcNames: { npcId: name } for the character's hooks, so rewritten hooks keep the same people.
+// Returns the story paragraphs, and updates character.hooks' text in place when the AI rewrote them well.
+export async function narrateOrigin(character, otherStories = [], npcNames = {}) {
   const written = character.writtenStory || null;
   const out = await generate(
     (written
@@ -263,21 +267,30 @@ export async function narrateOrigin(character, otherStories = []) {
         "specific, personal details (a family member, a first ship, a place, a habit, a scar) and a turning point that " +
         "belongs to this character alone. ") +
       "If background_in_their_own_words is set, that is who they are: the story must fit it exactly. " +
-      "Weave in both hooks and leave them unresolved; later stories pull on them. This story must be UNIQUE: do NOT reuse the " +
+      "Also rewrite each hook (in `hooks`, same order) so it grows out of THIS character's story: keep the same named " +
+      "person and the same kind of hook (enemy, debt, lost, secret, oath), one or two sentences each, nothing like any other " +
+      "character's hooks. Weave both hooks into the story and leave them unresolved; later stories pull on them. This story must be UNIQUE: do NOT reuse the " +
       "structure, plot, events, family set-up or phrasing of any story in other_characters_on_this_server. Use the full " +
       "name once, then the short name or pronouns.",
     {
       ...(written ? { player_written_story: written } : { player_idea: character.seed || null }),
       ...(character.background ? { background_in_their_own_words: character.background } : {}),
       name: character.name, pronouns: character.pronouns,
-      origin: character.origin, home: character.home, draft: character.story, hooks: character.hooks.map((h) => h.text),
+      origin: character.origin, home: character.home, draft: character.story, hooks: character.hooks.map((h) => ({ kind: h.type, person: npcNames[h.npcId] || null, draft: h.text })),
       other_characters_on_this_server: otherStories,
     },
-    obj({ paragraphs: { type: "array", items: str } }),
+    obj({ paragraphs: { type: "array", items: str }, hooks: { type: "array", items: str } }),
     "",
-    { loreSet: "origin", maxTokens: 4000 },
+    { loreSet: "origin", maxTokens: 4000, allowEmpty: ["hooks"] },
   );
-  return out?.paragraphs?.length ? out.paragraphs : null;
+  if (!out?.paragraphs?.length) return null;
+  // Rewritten hooks replace the drafts only if they keep the same person, so missions still find them.
+  (out.hooks || []).forEach((text, i) => {
+    const h = character.hooks[i];
+    const who = npcNames[h?.npcId];
+    if (h && typeof text === "string" && text.trim() && (!who || text.includes(who.split(/\s+/)[0]))) h.text = text.trim();
+  });
+  return out.paragraphs;
 }
 
 export async function narrateChapter({ campaign, chapter, characters, worldLog, canon = [] }) {

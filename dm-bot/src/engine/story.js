@@ -6,6 +6,8 @@
 import { classifyContract, systemOf, pulledAnchor, pickAddon } from "./contract.js";
 import { buildBackstory, isWrittenStory, backgroundLabel } from "./backstory.js";
 import { buildRoute } from "./journey.js";
+import { composeHook, pickHookTypes, allHookTexts } from "./hooks.js";
+import { traitsFromText } from "../lore/backstory.js";
 import {
   ORIGINS, NAME_POOLS, NPC_POOL, RELICS, LOCATIONS, CARGO, ORES, EVIDENCE,
   OBJECTIVES, ACTIVITY_TAGS, CAMPAIGN_GOALS, THREADS, CAREERS, MISSION_TYPES, MISSION_TWISTS,
@@ -67,18 +69,33 @@ export function buildCharacter(g, { ownerId, originId, career, name, pronouns, s
   // Other characters on this server with the same origin: avoid giving them the same hooks.
   const siblings = Object.values(g.characters || {}).filter((c) => (c.hookSet || c.originId) === hookSet);
 
-  // Two hooks of different types, preferring ones no same-origin character already has.
-  const hookUse = origin.hooks.map((_, i) => siblings.filter((c) => (c.hookKeys || []).includes(i)).length);
-  const order = origin.hooks.map((_, i) => i).sort((a, b) => hookUse[a] - hookUse[b] || Math.random() - 0.5);
+  // Two hooks of different kinds. A preset origin contributes one of its own hooks only while nobody on the
+  // server has it yet; every other hook is composed from parts that fit the player's words and haven't
+  // been used here before (engine/hooks.js), so no two characters share a hook.
+  const tags = traitsFromText(`${background || ""} ${seed || ""}`);
+  const taken = allHookTexts(g);
+  const avoid = new Set();
   const chosen = [];
-  for (const i of order) {
-    if (chosen.length < 2 && !chosen.some((j) => origin.hooks[j].type === origin.hooks[i].type)) chosen.push(i);
+  const plans = [];
+  if (!label) {
+    const hookUse = origin.hooks.map((_, i) => siblings.filter((c) => (c.hookKeys || []).includes(i)).length);
+    const fresh = origin.hooks.map((_, i) => i).filter((i) => hookUse[i] === 0);
+    if (fresh.length) {
+      const i = pick(fresh);
+      chosen.push(i);
+      plans.push({ preset: origin.hooks[i] });
+    }
   }
+  for (const type of pickHookTypes(tags, 2 - plans.length, plans.map((p) => p.preset.type))) plans.push({ type });
 
-  const hooks = chosen.map((i) => {
-    const h = origin.hooks[i];
-    const npc = createNpc(g, roleForHook(h.type));
-    return { id: newId(), type: h.type, text: fill(h.text, { ...vars, npc: npc.name }, pronouns), thread: h.thread, npcId: npc.id, status: "open" };
+  const hooks = plans.map((plan) => {
+    const type = plan.preset?.type || plan.type;
+    const npc = createNpc(g, roleForHook(type));
+    const made = plan.preset
+      ? { type, text: fill(plan.preset.text, { ...vars, npc: npc.name }, pronouns), thread: plan.preset.thread }
+      : composeHook(g, { type, short: vars.short, pronouns, tags, npcName: npc.name, taken, avoid });
+    taken.add(made.text);
+    return { id: newId(), type, text: made.text, thread: made.thread, npcId: npc.id, status: "open" };
   });
 
   // The player's written story is canon and kept as written; the DM only fills the gaps. A one-line idea
