@@ -6,10 +6,7 @@ import {
 } from "discord.js";
 import * as store from "../store.js";
 import { COLORS, clip } from "../comms.js";
-import {
-  CONDITION_KINDS, addCondition, activeConditions, clearCondition, conditionLine, findCharacter,
-  addCanon, archiveExport,
-} from "../engine/records.js";
+import { CONDITION_KINDS, addCondition, activeConditions, clearCondition, conditionLine, findCharacter, addCanon, archiveExport, activeLockouts, lockoutLine } from "../engine/records.js";
 import { parseScribe, aiEnabled } from "../ai.js";
 import * as voice from "../voice.js";
 import { answer, answerEmbed } from "./ask.js";
@@ -166,6 +163,8 @@ export async function status(interaction, g, sub) {
       .setTitle(`${char.name}: status`)
       .setDescription(active.length ? active.map(conditionLine).join("\n") : "Fit to fly. No active conditions.");
     if (recent.length) embed.addFields({ name: "Recently recovered", value: recent.map((c) => `✅ ${c.text}`).join("\n") });
+    const locks = activeLockouts(char);
+    if (locks.length) embed.addFields({ name: "Lockouts", value: clip(locks.map(lockoutLine).join("\n"), 1024) });
     return interaction.reply({ embeds: [embed] });
   }
 

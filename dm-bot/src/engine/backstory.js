@@ -68,8 +68,8 @@ export function buildBackstory(g, { name, short, pronouns, originId, origin, wri
     const tags = written ? fromWords : [...fromWords, ...pickN(Object.keys(TRAITS).filter((t) => !fromWords.includes(t)), Math.max(0, 2 - fromWords.length))];
     const { choose, used } = chooser(g, tags);
     const story = isWrittenStory(written)
-      ? aroundWritten({ choose, bits, name, short, pronouns, written })
-      : composed({ choose, bits, name, short, pronouns, origin, seedLine, tags });
+      ? aroundWritten({ choose, bits, bk: originId, name, short, pronouns, written })
+      : composed({ choose, bits, bk: originId, name, short, pronouns, origin, seedLine, tags });
     const score = overlap(story, theirs);
     if (!best || score < best.score) best = { story, used, score };
     if (score === 0) break;
@@ -79,7 +79,7 @@ export function buildBackstory(g, { name, short, pronouns, originId, origin, wri
 }
 
 // Their story, kept as written, with only the missing pieces added around it.
-function aroundWritten({ choose, bits, name, short, pronouns, written }) {
+function aroundWritten({ choose, bits, bk, name, short, pronouns, written }) {
   const has = coveredTopics(written);
   const paras = writtenParagraphs(written);
   const length = written.length;
@@ -90,7 +90,7 @@ function aroundWritten({ choose, bits, name, short, pronouns, written }) {
 
   const out = [];
   // Where they're from, if they didn't say; and the full name once, if their text never uses it.
-  if (!has.place) out.push(f(`${firstPerson || !namesThem ? "{name}" : "{short}"} comes from ${pick(bits.places)}, ${pick(bits.details)}.`));
+  if (!has.place) out.push(f(`${firstPerson || !namesThem ? "{name}" : "{short}"} comes from ${choose(bits.places, `place:${bk}`)}, ${choose(bits.details, `detail:${bk}`)}.`));
   else if (!namesThem || firstPerson) out.push(f("This is {name}'s story."));
   out.push(...(firstPerson ? [`In ${short}'s own words: "${paras[0]}"`, ...paras.slice(1).map((p) => `"${p}"`)] : paras));
 
@@ -110,7 +110,7 @@ function aroundWritten({ choose, bits, name, short, pronouns, written }) {
   if (memento && adds.length < room) adds.push(f(`${short} still carries ${memento}.`));
   if (adds.length) out.push(adds.join(" "));
   const want = !has.want && choose(WANTS, "want", fit);
-  if (want) out.push(f(pick(NOW_LINES), { want: f(want) }));
+  if (want) out.push(f(choose(NOW_LINES, "now"), { want: f(want) }));
   return out;
 }
 
@@ -118,11 +118,11 @@ function aroundWritten({ choose, bits, name, short, pronouns, written }) {
 const at = (place) => (/^(the hold|the cargo decks)/i.test(place) ? "in" : /(station|yacht|freighter|ship|souli)\b/i.test(place) ? "on" : "in");
 
 // No written story: assemble one from pieces, told through one of five frames.
-function composed({ choose, bits, name, short, pronouns, origin, seedLine, tags }) {
+function composed({ choose, bits, bk, name, short, pronouns, origin, seedLine, tags }) {
   const vars = { name, short };
   const f = (t, extra = {}) => fill(fill(t, { ...vars, ...extra }, pronouns), vars, pronouns);
-  const place = pick(bits.places);
-  const detail = pick(bits.details);
+  const place = choose(bits.places, `place:${bk}`);
+  const detail = choose(bits.details, `detail:${bk}`);
   const family = f(choose(FAMILY, "family"));
   const childhood = f(choose(CHILDHOOD, "child"));
   const turn = f(choose(TURNS, "turn"));
@@ -132,7 +132,7 @@ function composed({ choose, bits, name, short, pronouns, origin, seedLine, tags 
   const memento = f(choose(MEMENTOS, "memento", { fitOnly: true }) || "a scrap of hull plating with a name scratched into it");
   const want = f(choose(WANTS, "want"));
   const secret = f(choose(SECRETS, "secret", { fitOnly: true }) || SECRETS[0].text);
-  const now = f(pick(NOW_LINES), { want });
+  const now = f(choose(NOW_LINES, "now"), { want });
   const seed = seedLine || null;
   const frames = [
     // Chronological.
@@ -140,13 +140,14 @@ function composed({ choose, bits, name, short, pronouns, origin, seedLine, tags 
     // In the middle of things, then back to the start.
     () => [f(`Right now {name} wants ${want}.`) + f(" It didn't start that way."), f(`It started ${at(place)} ${place}, ${detail}.`) + ` ${family} ${childhood}`, ...(seed ? [seed] : []), turn, `${traits} ${f("What {short} won't say out loud:")} ${secret}.`],
     // What people say.
-    () => [f(pick(RUMOUR_INTROS), { hangout: pick(bits.hangouts) }), f(`{name} grew up ${at(place)} ${place}. `) + family, ...(seed ? [seed] : []), turn, f(`What everyone agrees on: ${short} is ${choose(SKILLS, "skill")}, and carries ${memento}.`), now],
+    () => [f(choose(RUMOUR_INTROS, "rumour"), { hangout: choose(bits.hangouts, `hang:${bk}`) }), f(`{name} grew up ${at(place)} ${place}. `) + family, ...(seed ? [seed] : []), turn, f(`What everyone agrees on: ${short} is ${choose(SKILLS, "skill")}, and carries ${memento}.`), now],
     // Three objects.
-    () => [f(pick(OBJECT_INTROS)), f(`The first is ${memento}. It goes back to ${place}, and to {name}'s family: `) + family, ...(seed ? [seed] : []), f("The second is the ship. ") + ship + " " + turn, f(`The third is a promise ${short} made to {themselves}: ${want}.`).replace("{themselves}", "no one in particular") + ` ${traits}`],
+    () => [f(choose(OBJECT_INTROS, "objects")), f(`The first is ${memento}. It goes back to ${place}, and to {name}'s family: `) + family, ...(seed ? [seed] : []), f("The second is the ship. ") + ship + " " + turn, f(`The third is a promise ${short} made to {themselves}: ${want}.`).replace("{themselves}", "no one in particular") + ` ${traits}`],
     // An official record, and what it leaves out.
-    () => [f(`CITIZEN RECORD (excerpt). Name: {name}. Origin: ${origin}. Place of birth: ${place}. Notes: ${pick(RECORD_NOTES)}.`), f("The record leaves out everything that matters. ") + `${family} ${childhood}`, ...(seed ? [seed] : []), turn, `${traits} ${now}`],
+    () => [f(`CITIZEN RECORD (excerpt). Name: {name}. Origin: ${origin}. Place of birth: ${place}. Notes: ${choose(RECORD_NOTES, "record")}.`), f("The record leaves out everything that matters. ") + `${family} ${childhood}`, ...(seed ? [seed] : []), turn, `${traits} ${now}`],
   ];
-  return pick(frames)().map((p) => p.trim()).filter(Boolean);
+  // The way the story is told is least-used too, so two characters rarely share a frame.
+  return frames[Number(choose(frames.map((_, i) => String(i)), "frame"))]().map((p) => p.trim()).filter(Boolean);
 }
 
 // ── Typed backgrounds ────────────────────────────────────────────────────────

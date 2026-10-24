@@ -13,7 +13,7 @@ import { narrateMission, narrateMissionEnd } from "../ai.js";
 import * as store from "../store.js";
 import { broadcast, COLORS, clip } from "../comms.js";
 import * as voice from "../voice.js";
-import { activeConditions, conditionLine, canonText, archiveMission, archiveSaga } from "../engine/records.js";
+import { activeConditions, conditionLine, canonText, archiveMission, archiveSaga, liftOn, activeLockouts, lockoutLine } from "../engine/records.js";
 import { parseAndApply } from "./records.js";
 import { activeSaga, sagaBeat, sagaForAI, resolveSagaBeat, ensureTidbits, threatBar, leadLines, leadMatches, noteContract, contractTab, sagaTemplate } from "../engine/saga.js";
 import { fill } from "../engine/util.js";
@@ -117,6 +117,7 @@ export async function createMission(g, crew, type, ownerId, pulled = null) {
 
 function missionMessage(g, mission, crew) {
   const carrying = crew.flatMap((c) => activeConditions(c).map((x) => `**${c.name}:** ${conditionLine(x)}`));
+  const lockouts = crew.flatMap((c) => activeLockouts(c).map((l) => `**${c.name}:** ${lockoutLine(l)}`));
   const embed = new EmbedBuilder()
     .setColor(COLORS.transmission)
     .setAuthor({ name: `📡 ${personaName(g).toUpperCase()} · ${mission.emoji} ${mission.typeLabel.toUpperCase()} · ${mission.system}` })
@@ -146,7 +147,9 @@ function missionMessage(g, mission, crew) {
           "Press **🚀 Jump** each time you spool (DM Link does it for you if it's running). The DM rolls a d20 for every jump: a clean run, a distress call, a tail, a forced stop, or worse. Whatever happens, he'll tell you what to do in game.",
         ].join("\n"), 1024),
       }] : []),
+      { name: "🛡️ Armor", value: armorFor(mission) },
       ...(carrying.length ? [{ name: "🩹 Carrying into this job", value: clip(carrying.join("\n"), 1024) }] : []),
+      ...(lockouts.length ? [{ name: "🚫 Off limits", value: clip(lockouts.join("\n"), 1024) }] : []),
       { name: "⚖️ Stakes", value: clip(mission.stakes, 1024) },
       { name: "🎲 If the game fights back", value: clip(mission.rules.map((r) => `• ${r}`).join("\n"), 1024) },
     )
@@ -192,6 +195,18 @@ export function fitEmbeds(embed) {
   }
   out.push(new EmbedBuilder().setColor(data.color ?? null).addFields(cur).setFooter(data.footer));
   return out.slice(0, 10);
+}
+
+// What to wear, from the kind of job and where it is (the DM's rule: name the armor class, or say regular
+// clothes are fine where the air is breathable).
+export function armorFor(mission) {
+  const where = `${mission.route?.legs.at(-1)?.to || ""} ${mission.saga?.beat?.play?.where || ""}`;
+  if (/pyro i\b|storm|lazarus/i.test(where)) return "**Heavy armor** and radiation protection: the storms on Pyro I will cook you otherwise.";
+  const kind = mission.pulled?.kind || mission.saga?.beat?.play?.activity || mission.type;
+  if (["clear", "fps", "recover", "heist", "investigate", "defend", "defense"].includes(kind)) return "**Medium armor**. Whoever goes through the door first: **heavy**.";
+  if (["bounty", "combat"].includes(kind)) return "A flight suit or **light armor**: this one's fought from the cockpit. Pack medium armor in case it goes to ground.";
+  if (["rescue", "search"].includes(kind)) return "**Light armor**, and a medical pen for whoever you find.";
+  return "Regular clothes are fine where the air is breathable; **light armor** if you're leaving the ship somewhere it isn't.";
 }
 
 // Lines spread over as many fields as they need (Discord caps a field at 1024 characters).
@@ -351,6 +366,8 @@ async function onReportLocked(interaction, g, missionId, result) {
     const line = ai?.journal.find((j) => j.name === c.name)?.entry;
     store.addJournal(c, { kind: "mission", text: line || `${success ? "Completed" : "Failed"} "${mission.title}".${notes ? ` ${notes}` : ""}` });
     if (success) c.renown["Jobs done"] = (c.renown["Jobs done"] || 0) + 1;
+    // Finishing a job ends the buffs and debuffs that last "until the next job".
+    if (success) for (const x of liftOn(c, "job")) store.addJournal(c, { kind: "condition", text: `${x.text} wore off.` });
   }
   store.logWorld(g, `${crew.map((c) => c.name).join(", ")} ${success ? "pulled off" : "failed"} "${mission.title}".`);
   archiveMission(g, mission, crew);

@@ -54,7 +54,12 @@ const GM_RULES =
   "You write in-character transmissions, origin stories, missions and scenes that players act out inside the " +
   "real game. Stay consistent with the canon lore below and with the story so far you are given. Never invent " +
   "game mechanics, locations or mission types beyond those in the structure you are handed. Keep NPC names and " +
-  "facts from the input exactly as given. Use the pronouns given for each character.";
+  "facts from the input exactly as given. Use the pronouns given for each character. Table rules, always: only things " +
+  "that exist in the game appear (no invented ships, people or physical objects; invented documents, news, intel and " +
+  "messages are fine); only missions produce physical items; name mission TYPES only (bounty, salvage, cargo hauling, " +
+  "delivery, mercenary, investigation, search and rescue, mining, escort/defence), never mission names and never aUEC " +
+  "amounts; never send players to 'search the area' unless it's a real place they can fly to with something they can " +
+  "obtain in game; any effect on a player (buff, debuff, limit) must be something they can act out in game.";
 const loreCache = new Map();
 
 function lore(set = "all") {
@@ -462,4 +467,42 @@ export async function askDM({ question, persona, asker, mission, characters, can
     aiFailed(`The AI failed ${BREAKER.LIMIT} times in a row`, err.status === 401 || err.status === 402 ? 60 * 60_000 : undefined);
     return null;
   }
+}
+
+// ── The DM channel: the player reports what happened in game, the DM narrates what follows ──
+export async function dmTurn({ report, persona, character, context }) {
+  const { DM_RULES, MISSION_TYPES, ARMOR } = await import("./lore/dmrules.js");
+  const e = (arr) => ({ type: "string", enum: [...arr, ""] });
+  const out = await generate(
+    "The player just reported this from the game (player_report). Narrate what happens next, following every rule. " +
+      "Use the character's backstory, open threads, active conditions, lockouts and the recent turns for continuity. " +
+      "Fill the optional fields only when they genuinely happen this turn (most turns: no buff/debuff, no faction change, " +
+      "no flashback). If you suggest a mission, give its TYPE, a real place to fly to, why it matters, the armor class " +
+      "it needs, and optionally one item to buy first.",
+    { persona, player_report: report, ...context, character },
+    obj({
+      narration: str,
+      next_prompt: str,
+      random_event: str,
+      intel: str,
+      flashback: str,
+      mission_type: e(MISSION_TYPES),
+      mission_where: str,
+      mission_why: str,
+      armor: e(ARMOR),
+      item_to_buy: str,
+      buffs_debuffs: { type: "array", items: obj({ kind: { type: "string", enum: ["buff", "debuff"] }, text: str, effect: str, lifts: { type: "string", enum: ["rest", "repair", "medical", "job", "time"] } }) },
+      lifted: { type: "array", items: str },
+      faction_changes: { type: "array", items: obj({ name: str, change: { type: "string", enum: ["locked", "unlocked"] }, reason: str }) },
+      place_changes: { type: "array", items: obj({ place: str, change: { type: "string", enum: ["off_limits", "open"] }, reason: str }) },
+      new_threads: { type: "array", items: str },
+      resolved_threads: { type: "array", items: str },
+    }),
+    DM_RULES,
+    {
+      loreSet: "mission", maxTokens: 3000,
+      allowEmpty: ["random_event", "intel", "flashback", "mission_type", "mission_where", "mission_why", "armor", "item_to_buy", "buffs_debuffs", "lifted", "faction_changes", "place_changes", "new_threads", "resolved_threads"],
+    },
+  );
+  return out;
 }

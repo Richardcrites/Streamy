@@ -7,6 +7,7 @@ import * as mission from "./handlers/mission.js";
 import * as voice from "./voice.js";
 import * as records from "./handlers/records.js";
 import * as saga from "./handlers/saga.js";
+import * as dm from "./handlers/dm.js";
 import * as ask from "./handlers/ask.js";
 import * as feed from "./handlers/feed.js";
 import { aiLabel } from "./ai.js";
@@ -105,11 +106,13 @@ async function route(interaction) {
       case "dm-admin":
         if (sub === "persona") return mission.editPersona(interaction, g);
         if (sub === "scribe-channel") return records.setScribeChannel(interaction, g);
+        if (sub === "dm-channel") return dm.setDmChannel(interaction, g);
         if (sub === "game-feed") return feed.setFeedChannel(interaction, g);
         return play.admin(interaction, g, sub);
       case "dm-help": return play.help(interaction);
       case "rp-rules": return play.rpRules(interaction);
       case "ask": return ask.ask(interaction, g);
+      case "dm": return sub === "threads" ? dm.threads(interaction, g) : dm.report(interaction, g);
       case "saga": return saga.command(interaction, g, sub);
       case "link": return feed.linkCode(interaction, g);
       case "status": return records.status(interaction, g, sub);
@@ -160,6 +163,12 @@ async function onMessage(message) {
     return feed.onFeedMessage(message, g).catch((err) => console.error("[feed]", err));
   }
   if (message.author.bot) return;
+  if (message.channelId === g.settings.dmChannelId) {
+    return dm.onDmMessage(message, g).catch((err) => {
+      console.error("[dm]", err);
+      message.react("⚠️").catch(() => {});
+    });
+  }
   if (message.channelId !== g.settings.scribeChannelId) return;
   try {
     await records.onScribeMessage(message, g);

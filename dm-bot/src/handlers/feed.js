@@ -4,7 +4,7 @@
 
 import { MessageFlags, PermissionFlagsBits, ChannelType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } from "discord.js";
 import * as store from "../store.js";
-import { addCondition, activeConditions, clearCondition } from "../engine/records.js";
+import { addCondition, activeConditions, clearCondition, liftOn } from "../engine/records.js";
 import { activeSaga, noteContract, threatBar } from "../engine/saga.js";
 import { COLORS, clip } from "../comms.js";
 import * as voice from "../voice.js";
@@ -189,6 +189,7 @@ export function applyFeedEvents(g, char, events, sagaNotes = [], offers = [], ju
         const healed = activeConditions(char).filter((c) => c.kind === "injury" && (c.part ? e.parts.includes(c.part) : PART_WORDS.some((p) => e.parts.includes(p) && c.text.toLowerCase().includes(p))));
         for (const c of healed) clearCondition(char, c.id, "med bed surgery");
         if (healed.length) note(`Patched up in a med bed (${healed.map((c) => c.part || c.text).join(", ")}).`);
+        for (const c of liftOn(char, "medical")) note(`${c.text} wore off after treatment.`);
         break;
       }
       case "downed":

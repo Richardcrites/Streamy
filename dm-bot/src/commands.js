@@ -134,6 +134,8 @@ export const commands = [
     .addSubcommand((s) => s.setName("persona").setDescription("Change the DM's name and personality"))
     .addSubcommand((s) => s.setName("game-feed").setDescription("Channel where players' DM Link apps post game events")
       .addChannelOption((o) => o.setName("channel").setDescription("Channel").setRequired(true).addChannelTypes(ChannelType.GuildText)))
+    .addSubcommand((s) => s.setName("dm-channel").setDescription("Channel where players tell the DM what happened in game, and he narrates what follows")
+      .addChannelOption((o) => o.setName("channel").setDescription("Text channel").setRequired(true).addChannelTypes(ChannelType.GuildText)))
     .addSubcommand((s) => s.setName("scribe-channel").setDescription("Channel where a scribe types quick updates during play")
       .addChannelOption((o) => o.setName("channel").setDescription("Channel").setRequired(true).addChannelTypes(ChannelType.GuildText)))
     .addSubcommand((s) => s.setName("voice").setDescription("Turn the DM's spoken voice on or off")
@@ -199,6 +201,14 @@ export const commands = [
         { name: "Took it", value: "accepted" }, { name: "Completed it", value: "complete" }, { name: "Failed it", value: "failed" }))
       .addUserOption((o) => o.setName("player").setDescription("Who took it (default: you)")))
     .addSubcommand((s) => s.setName("end").setDescription("Admin: abandon the current saga")),
+
+  new SlashCommandBuilder()
+    .setName("dm")
+    .setDescription("Talk to your DM")
+    .addSubcommand((s) => s.setName("report").setDescription("Tell the DM what happened in game; he narrates what follows")
+      .addStringOption((o) => o.setName("what").setDescription("What happened, e.g. 'finished the bounty, took a hit to the leg, landed at Ruin'").setRequired(true).setMaxLength(1500)))
+    .addSubcommand((s) => s.setName("threads").setDescription("Your open mysteries, memories revealed, lockouts and the DM's last job offer")
+      .addUserOption((o) => o.setName("player").setDescription("Whose (default: yours)"))),
 
   new SlashCommandBuilder().setName("dm-help").setDescription("How to use the Star Citizen DM"),
 ].map((c) => c.toJSON());

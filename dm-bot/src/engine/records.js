@@ -11,7 +11,13 @@ export const CONDITION_KINDS = {
   ship: { label: "Ship", emoji: "🚀" },
   legal: { label: "Legal", emoji: "⚖️" },
   other: { label: "Other", emoji: "📌" },
+  buff: { label: "Buff", emoji: "✨" },
+  debuff: { label: "Debuff", emoji: "🔻" },
 };
+
+// What lifts a buff or debuff. The bot lifts it itself when that happens (a job reported done, a med bed or
+// repair seen by DM Link, or the DM saying the crew rested).
+export const LIFTS = ["rest", "repair", "job", "medical", "time"];
 export const SEVERITY = { minor: "minor", major: "major", critical: "critical" };
 
 const DEFAULT_CLEARS = {
@@ -19,10 +25,14 @@ const DEFAULT_CLEARS = {
   ship: "Repairs at a station or landing zone.",
   legal: "Pay the fine, clear the CrimeStat, or lie low until it blows over.",
   other: "Deal with it in play.",
+  buff: "Wears off after the next job.",
+  debuff: "Rest, repair or finish a job.",
 };
 
 // ── Conditions ───────────────────────────────────────────────────────────────
-export function addCondition(char, { kind = "other", text, severity = "minor", clears = "" }) {
+// effect: for buffs and debuffs, what the player acts out in game ("half throttle even when the HUD says full").
+// lifts: which of LIFTS ends it.
+export function addCondition(char, { kind = "other", text, severity = "minor", clears = "", effect = null, lifts = null }) {
   char.conditions ??= [];
   const k = CONDITION_KINDS[kind] ? kind : "other";
   const c = {
@@ -33,10 +43,42 @@ export function addCondition(char, { kind = "other", text, severity = "minor", c
     clears: clears?.trim() || DEFAULT_CLEARS[k],
     since: new Date().toISOString(),
     status: "active",
+    ...(effect ? { effect: effect.trim() } : {}),
+    ...(lifts && LIFTS.includes(lifts) ? { lifts } : {}),
   };
   char.conditions.push(c);
   return c;
 }
+
+// Lift every buff/debuff (and anything else marked with `lifts`) that this event ends. Returns what was lifted.
+export function liftOn(char, event) {
+  const lifted = [];
+  for (const c of activeConditions(char)) {
+    const ends = c.lifts === event || (event === "job" && c.kind === "buff" && !c.lifts);
+    if (ends) lifted.push(clearCondition(char, c.id, event));
+  }
+  return lifted.filter(Boolean);
+}
+
+// ── Lockouts: factions that won't work with you, places you can't show your face ──
+export function addLockout(char, { kind, name, reason }) {
+  char.lockouts ??= [];
+  const n = String(name || "").trim();
+  if (!n || char.lockouts.some((l) => l.status === "active" && l.name.toLowerCase() === n.toLowerCase())) return null;
+  const l = { id: newId(), kind: kind === "place" ? "place" : "faction", name: n, reason: String(reason || "").trim(), since: new Date().toISOString(), status: "active" };
+  char.lockouts.push(l);
+  return l;
+}
+export const activeLockouts = (char) => (char.lockouts || []).filter((l) => l.status === "active");
+export function liftLockout(char, name) {
+  const l = activeLockouts(char).find((x) => x.name.toLowerCase() === String(name).trim().toLowerCase());
+  if (l) {
+    l.status = "lifted";
+    l.liftedAt = new Date().toISOString();
+  }
+  return l || null;
+}
+export const lockoutLine = (l) => l.kind === "place" ? `🚫 **${l.name}** is off limits${l.reason ? `: ${l.reason}` : ""}.` : `🚫 **${l.name}** won't offer you work${l.reason ? `: ${l.reason}` : ""}.`;
 
 export const activeConditions = (char) => (char.conditions || []).filter((c) => c.status === "active");
 
@@ -51,7 +93,7 @@ export function clearCondition(char, id, how = "") {
 
 export function conditionLine(c) {
   const k = CONDITION_KINDS[c.kind] || CONDITION_KINDS.other;
-  return `${k.emoji} **${c.text}**${c.severity !== "minor" ? ` (${c.severity})` : ""}. *Clears: ${c.clears}*`;
+  return `${k.emoji} **${c.text}**${c.severity !== "minor" ? ` (${c.severity})` : ""}.${c.effect ? ` 🎮 ${c.effect}` : ""} *Clears: ${c.clears}*`;
 }
 
 // ── Finding characters by whatever the scribe typed ("RJ", "rj", "Oressian", "Ysloda") ──

@@ -13,7 +13,7 @@ const { chunk } = await import("../src/voice.js");
 
 test("each AI task gets only the lore it needs; the scribe parser gets none", async () => {
   const ai = await import("../src/ai.js");
-  assert.ok(ai.loreSize("none") < 1000, "scribe parsing sends just the GM rules");
+  assert.ok(ai.loreSize("none") < 2000, "scribe parsing sends just the GM rules");
   assert.ok(ai.loreSize("origin") < ai.loreSize("mission"));
   assert.ok(ai.loreSize("mission") < ai.loreSize("all"));
   assert.ok(ai.loreSize("all") > 20000, "the full codex is still there for open questions");
