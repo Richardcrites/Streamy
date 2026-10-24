@@ -473,7 +473,13 @@ function hookNpcs(g, char) {
 function npcLink(g, x, y) {
   g.npcLinks ??= {};
   const key = [x.id, y.id].sort().join("|");
-  g.npcLinks[key] ??= fill(pick(NPC_LINKS), { x: x.name, y: y.name });
+  if (!g.npcLinks[key]) {
+    // The least-used line on this server, so ties don't read the same.
+    g.linkUse ??= {};
+    const order = NPC_LINKS.map((_, i) => i).sort((a, b) => (g.linkUse[a] || 0) - (g.linkUse[b] || 0) || Math.random() - 0.5);
+    g.linkUse[order[0]] = (g.linkUse[order[0]] || 0) + 1;
+    g.npcLinks[key] = fill(NPC_LINKS[order[0]], { x: x.name, y: y.name });
+  }
   return g.npcLinks[key];
 }
 
@@ -491,7 +497,7 @@ export function findCrossings(g, crew) {
   for (const p of pools.flat()) {
     const prev = seen.get(p.npc.id);
     if (prev && prev.char.id !== p.char.id && !focus) {
-      crossings.push({ kind: "shared", text: `${p.npc.name} is in both your stories. For ${prev.char.name}: ${prev.hook.text} For ${p.char.name}: ${p.hook.text}` });
+      crossings.push({ kind: "shared", text: `${p.npc.name} is in both your stories: ${prev.char.name}'s and ${p.char.name}'s.` });
       focus = prev.hook.type === "enemy" ? prev : p;
       foil = pick(pools.flat().filter((q) => q.npc.id !== p.npc.id)) || null;
     }
@@ -502,7 +508,7 @@ export function findCrossings(g, crew) {
     const x = pa && pick(pa);
     const y = pb && pick(pb.filter((q) => q.npc.id !== x.npc.id));
     if (x && y) {
-      crossings.push({ kind: "npc", text: `${npcLink(g, x.npc, y.npc)} ${x.npc.name} is tied to ${x.char.name}'s past; ${y.npc.name} to ${y.char.name}'s.` });
+      crossings.push({ kind: "npc", text: `${npcLink(g, x.npc, y.npc)} (${x.npc.name}: ${x.char.name}'s past. ${y.npc.name}: ${y.char.name}'s.)` });
       [focus, foil] = Math.random() < 0.5 ? [x, y] : [y, x];
     }
   }
@@ -511,7 +517,7 @@ export function findCrossings(g, crew) {
     const kinNpc = all.find((p) => p.hook.type === "kin");
     focus = kinNpc || pick(all) || null;
     foil = pick(all.filter((p) => p.npc.id !== focus?.npc.id)) || null;
-    if (focus && foil) crossings.push({ kind: "npc", text: `${npcLink(g, focus.npc, foil.npc)} Both of them are part of ${focus.char.name}'s story.` });
+    if (focus && foil) crossings.push({ kind: "npc", text: `${npcLink(g, focus.npc, foil.npc)} (Both from ${focus.char.name}'s past.)` });
   }
   // Big crews: everyone gets tied in. Anyone not in a crossing yet is linked to another crew member
   // through the people in their pasts, so nobody is just along for the ride.
@@ -523,7 +529,7 @@ export function findCrossings(g, crew) {
     const partner = pick(others.filter((o) => !inCrossing(o))) || pick(others);
     const x = pick(mine);
     const y = partner && pick(pools[crew.indexOf(partner)].filter((q) => q.npc.id !== x?.npc.id));
-    if (x && y) crossings.push({ kind: "pair", text: `${npcLink(g, x.npc, y.npc)} ${x.npc.name} is from ${c.name}'s past; ${y.npc.name} from ${partner.name}'s.` });
+    if (x && y) crossings.push({ kind: "pair", text: `${npcLink(g, x.npc, y.npc)} (${x.npc.name}: ${c.name}'s past. ${y.npc.name}: ${partner.name}'s.)` });
   }
   return { crossings, focus, foil };
 }
@@ -587,8 +593,9 @@ export function buildMission(g, characters, typeId, { play = null, sagaTitle = n
     }
     : play
     ? {
-      contract: `${play.contract}, at ${play.where}`,
-      standIn: `This job is part of ${sagaTitle || "the long story"}.${play.find ? ` The clue is ${play.find}: get it, and the story moves.` : ""} ${fill(anchorTpl.standIn, vars)}`,
+      contract: play.contract,
+      where: play.where,
+      standIn: fill(anchorTpl.standIn, vars),
       share: SHARE_HOW,
       saga: true,
     }

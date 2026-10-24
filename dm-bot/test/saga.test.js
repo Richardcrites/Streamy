@@ -66,7 +66,8 @@ test("missions carry the next lead: its system and contract become the mission's
   const m = story.buildMission(g, cs, null, { play: beat.play, sagaTitle: s.title });
   assert.equal(m.system, beat.play.system);
   assert.ok(m.anchor.contract.includes(beat.play.contract));
-  assert.ok(m.anchor.standIn.includes(s.title));
+  assert.ok(m.anchor.saga, "the post shows the saga line separately");
+  assert.equal(m.anchor.where, beat.play.where);
   assert.equal(m.type, "heist", "an investigation lead becomes a heist-style job");
 });
 

@@ -607,14 +607,31 @@ export const GAME_RULES = [
 ];
 
 // How two NPCs from different players' stories turn out to be connected.
+// How two people from the crew's pasts are tied together. Short, specific, and only Star Citizen places and
+// factions. The least-used line is picked each time, so ties on a server rarely read the same.
 export const NPC_LINKS = [
   "{x} and {y} used to fly together, until one of them sold the other out.",
   "{x} owes {y} a debt that can't be paid in credits.",
   "{x} has been quietly paying {y} to keep a secret.",
   "{x} and {y} are working together, and neither of you knew.",
   "{y} is the only person {x} has ever been afraid of.",
-  "{x} and {y} were lovers once. It ended badly enough that people still talk about it.",
-  "{y} saved {x}'s life years ago, and {x} hasn't forgiven them for it.",
+  "{x} and {y} were lovers once. Half of GrimHEX still talks about how it ended.",
+  "{y} saved {x}'s life once, and {x} has never forgiven them for it.",
+  "{x} and {y} shared a cell at Klescher. Only one of them got out early.",
+  "{x} testified against {y} to an Advocacy agent. {y} has a copy of the transcript.",
+  "{x} and {y} split the take from a job at Ruin Station. {x} took the bigger half.",
+  "{y} taught {x} to fly. {x} taught {y} to lie.",
+  "{x} sold {y} out to the Headhunters, and {y} found out last week.",
+  "{x} and {y} grew up three hab blocks apart in Lorville and haven't spoken since.",
+  "{y} holds the title to the ship {x} flies.",
+  "{x} and {y} worked the same Onyx Facility before it shut down. They tell different stories about why.",
+  "{x} has been sending {y} anonymous messages for a year. {y} thinks they're from someone else.",
+  "{x} and {y} answer to the same handler, and the handler likes it that way.",
+  "{x} owes {y} a ship. {y} owes {x} a name.",
+  "{x} and {y} answered the same distress call near Levski. Only one came back with the cargo.",
+  "{x} once put a bounty on {y}. {y} collected it, on someone else.",
+  "{x} and {y} drink at the same bar on Checkmate and pretend not to know each other.",
+  "{y} pulled {x} out of a wreck in the Yela belt and kept what was in the hold.",
 ];
 
 export const KIN_RELATIONS = ["older sibling", "younger sibling", "twin", "half-sibling", "cousin", "estranged sibling"];

@@ -13,7 +13,7 @@ import { narrateMission, narrateMissionEnd } from "../ai.js";
 import * as store from "../store.js";
 import { broadcast, COLORS, clip } from "../comms.js";
 import * as voice from "../voice.js";
-import { activeConditions, conditionLine, canonText, archiveMission, archiveSaga, liftOn, activeLockouts, lockoutLine } from "../engine/records.js";
+import { activeConditions, conditionLine, canonText, archiveMission, archiveSaga, liftOn, activeLockouts, lockoutLine, CONDITION_KINDS } from "../engine/records.js";
 import { parseAndApply } from "./records.js";
 import { activeSaga, sagaBeat, sagaForAI, resolveSagaBeat, ensureTidbits, threatBar, leadLines, leadMatches, noteContract, contractTab, sagaTemplate } from "../engine/saga.js";
 import { fill } from "../engine/util.js";
@@ -101,7 +101,7 @@ export async function createMission(g, crew, type, ownerId, pulled = null) {
     mission.briefing += b.kind === "finale"
       ? ` This is it. ${b.text}`
       : b.kind === "counterstrike" ? ` ${b.text}`
-      : ` And this one matters: it's how you find the next piece of what ${saga.shadow} is hiding. Get to ${b.play.where} and look for ${b.play.find || "anything that doesn't belong"}.`;
+      : ` And this one matters: it's how you find the next piece of what ${saga.shadow} is hiding.`;
   }
   mission.created = createdSince(g, snap);
   for (const o of mission.objectives) {
@@ -115,45 +115,57 @@ export async function createMission(g, crew, type, ownerId, pulled = null) {
   return { mission, message: missionMessage(g, mission, crew) };
 }
 
+// The mission post: what you need at the table, nothing more. Long role descriptions live in
+// /crew-roles list, the "when the game fights back" rules in /rp-rules.
+const placeName = (p) => String(p || "").replace(/\s*\([^)]*\)/g, "").replace(/, (orbiting|Monox|Bloom|Terminus) .*$/, "").trim();
 function missionMessage(g, mission, crew) {
-  const carrying = crew.flatMap((c) => activeConditions(c).map((x) => `**${c.name}:** ${conditionLine(x)}`));
-  const lockouts = crew.flatMap((c) => activeLockouts(c).map((l) => `**${c.name}:** ${lockoutLine(l)}`));
+  const shorten = (text) => crew.reduce((t, c) => t.replaceAll(c.name, shortName(c.name)), String(text || ""));
+  const watch = [
+    ...crew.flatMap((c) => activeConditions(c).map((x) => `${CONDITION_KINDS[x.kind]?.emoji || "📌"} **${shortName(c.name)}:** ${x.text}${x.effect ? ` (${x.effect})` : ""}`)),
+    ...crew.flatMap((c) => activeLockouts(c).map((l) => `🚫 **${shortName(c.name)}:** ${l.kind === "place" ? `stay away from ${l.name}` : `${l.name} won't work with you`}`)),
+  ];
+
+  // 🎯 The job: what to take, where, and what it is in the story.
+  const a = mission.anchor;
+  const job = a ? [
+    a.pulled || a.saga ? `${a.contract}${a.where ? ` · 📍 **${a.where}**` : ""}` : `Take ${a.contract}.`,
+    `*${clip(shorten(a.standIn), 260)}*`,
+    ...(mission.saga ? [`🧭 **${mission.saga.title}**: ${mission.saga.beat.kind === "finale" ? "the finale" : mission.saga.beat.kind === "counterstrike" ? "counterstrike" : `the clue is ${mission.saga.beat.play.find}`} · ☠️ ${g.saga?.threat ?? "?"}/10`] : []),
+    ...(mission.sagaSide ? [`🧭 Side job for **${mission.sagaSide.title}**: ${clip(mission.sagaSide.purpose, 140)}`] : []),
+    ...(mission.addon ? [`➕ ${clip(mission.addon.replace(/^➕\s*/, ""), 200)}`] : []),
+    "Share it: mobiGlas → Contracts → Accepted → **Share**.",
+  ] : [];
+
+  const ties = mission.crossings.slice(0, 3).map((x) => `• ${clip(shorten(x), 200)}`);
+  if (mission.crossings.length > 3) ties.push(`*…and ${mission.crossings.length - 3} more. \`/ask how are we connected?\`*`);
+
+  const crewLines = mission.objectives.map((o) => {
+    const emoji = o.roleEmoji || CREW_ROLES[o.role]?.emoji || "⭐";
+    return `${emoji} **${shortName(o.characterName)}**: ${o.roleLabel || o.activity}${o.flavour ? `. ${clip(o.flavour, 90)}` : ""}`;
+  });
+
+  const route = mission.route ? [
+    [mission.route.legs[0].from, ...mission.route.legs.map((l) => (l.tunnel ? `🌀 ${placeName(l.to)}` : placeName(l.to)))]
+      .map((p, i, all) => (i === all.length - 1 ? `**${p}**` : p)).join(" → "),
+    ...mission.route.forced.map((x) => `🩹 ${shortName(x.who)}'s ${x.kind === "ship" ? "ship needs repairs" : "injury needs care"}: the first jump ends at a stop.`),
+    "Hit **🚀 Jump** as you spool each jump.",
+  ] : [];
+
   const embed = new EmbedBuilder()
     .setColor(COLORS.transmission)
     .setAuthor({ name: `📡 ${personaName(g).toUpperCase()} · ${mission.emoji} ${mission.typeLabel.toUpperCase()} · ${mission.system}` })
     .setTitle(clip(mission.title, 250))
-    .setDescription(clip(mission.briefing, 3000))
+    .setDescription(clip(shorten(mission.briefing), 1200))
     .addFields(
-      ...(mission.saga ? [{ name: `🧭 ${mission.saga.title}: ${{ lead: "a lead", counterstrike: "counterstrike", finale: "THE FINALE" }[mission.saga.beat.kind]}`, value: clip(sagaField(g, mission.saga.beat), 1024) }] : []),
-      ...splitField("🧬 How your stories cross", mission.crossings),
-      ...(mission.anchor ? [{
-        name: mission.anchor.pulled ? "📄 Your contract (this is the job)" : "🤝 The shared contract",
-        value: clip(mission.anchor.pulled
-          ? `${mission.anchor.contract}${mission.anchor.where ? `\n📍 **${mission.anchor.where}**` : ""}\n**In the story:** ${mission.anchor.standIn}\nNot shared yet? ${mission.anchor.share}`
-          : `Take ${mission.anchor.contract}.\n**In the story:** ${mission.anchor.standIn}\n${mission.anchor.share}`, 1024),
-      }] : []),
-      ...(mission.sagaSide ? [{ name: `🧭 ${mission.sagaSide.title}: a side job`, value: clip(`${mission.sagaSide.purpose}\nFinish it and it counts toward digging up your secrets (\`/saga secrets\`).`, 1024) }] : []),
-      ...(mission.addon ? [{ name: "➕ Optional extra", value: clip(mission.addon, 1024) }] : []),
-      ...(mission.rendezvous && !mission.pulled ? [{ name: "📍 Meet at", value: `${mission.rendezvous}. Party up there before anyone takes the contract.` }] : []),
-      ...splitField(`🎭 Crew roles (${mission.objectives.length})`, mission.objectives.map((o) => o.roleLabel
-        ? `${o.roleEmoji || CREW_ROLES[o.role]?.emoji || "⭐"} **${o.characterName}: ${o.roleLabel}** (${o.why}). ${o.flavour || o.text}`
-        : `**${o.characterName}:** ${o.text}`), mission.objectives.length > 4 ? 300 : 1024),
-      ...(mission.route ? [{
-        name: `🚀 The route: ${mission.route.legs.length} jumps`,
-        value: clip([
-          ...mission.route.legs.map((l, i) => `${i + 1}. ${l.from} → **${l.to}**${l.tunnel ? " 🌀 *jump point*" : ""}`),
-          ...mission.route.forced.map((x) => `🩹 ${x.who} is ${x.kind === "ship" ? "flying a damaged ship" : "hurt"}: the first jump ends at a ${x.kind === "ship" ? "repair" : "safe"} stop.`),
-          "",
-          "Press **🚀 Jump** each time you spool (DM Link does it for you if it's running). The DM rolls a d20 for every jump: a clean run, a distress call, a tail, a forced stop, or worse. Whatever happens, he'll tell you what to do in game.",
-        ].join("\n"), 1024),
-      }] : []),
-      { name: "🛡️ Armor", value: armorFor(mission) },
-      ...(carrying.length ? [{ name: "🩹 Carrying into this job", value: clip(carrying.join("\n"), 1024) }] : []),
-      ...(lockouts.length ? [{ name: "🚫 Off limits", value: clip(lockouts.join("\n"), 1024) }] : []),
-      { name: "⚖️ Stakes", value: clip(mission.stakes, 1024) },
-      { name: "🎲 If the game fights back", value: clip(mission.rules.map((r) => `• ${r}`).join("\n"), 1024) },
+      ...(job.length ? [{ name: mission.anchor?.pulled ? "🎯 Your job" : "🎯 The job", value: clip(job.join("\n"), 1024) }] : []),
+      ...(ties.length ? [{ name: "🧬 Ties", value: clip(ties.join("\n"), 1024) }] : []),
+      ...splitField("🎭 Crew", crewLines),
+      ...(route.length ? [{ name: `🚀 Route · ${mission.route.legs.length} jumps`, value: clip(route.join("\n"), 1024) }] : []),
+      { name: "🛡️ Armor", value: clip(armorFor(mission), 1024), inline: true },
+      { name: "⚖️ Stakes", value: clip(shorten(mission.stakes), 300), inline: true },
+      ...(watch.length ? [{ name: "⚠️ Watch out", value: clip(watch.join("\n"), 1024) }] : []),
     )
-    .setFooter({ text: "No script. Play it in game and in voice, let it happen, then report how it went. Don't like it? Reroll or scrap it." });
+    .setFooter({ text: "No script: play it, then report how it went. Not feeling it? Reroll or Scrap. /rp-rules when the game fights back." });
   const row = new ActionRowBuilder().addComponents(
     ...(mission.route ? [new ButtonBuilder().setCustomId(`ms:${mission.id}:jump`).setLabel("Jump").setEmoji("🚀").setStyle(ButtonStyle.Primary)] : []),
     new ButtonBuilder().setCustomId(`ms:${mission.id}:win`).setLabel("Mission complete").setEmoji("✅").setStyle(ButtonStyle.Success),
@@ -425,11 +437,10 @@ export function whatsNext(g, mission, crew, success, sagaOut) {
     spoken = "";
   }
   // Conditions carried out of the job: fix them first, or they force a stop next time.
-  const carrying = crew.flatMap((c) => activeConditions(c).map((x) => `**${c.name}:** ${conditionLine(x)}`));
+  const carrying = crew.flatMap((c) => activeConditions(c).map((x) => `${CONDITION_KINDS[x.kind]?.emoji || "📌"} ${shortName(c.name)}: ${x.text}`));
   if (carrying.length) {
-    lines.push(`🩹 **Before the next job** (or it'll force a stop on the way):`, ...carrying.slice(0, 6), ...(carrying.length > 6 ? [`…and ${carrying.length - 6} more (\`/status view\`).`] : []));
+    lines.push(`🩹 **Fix first** (or it forces a stop): ${carrying.slice(0, 4).join(" · ")}${carrying.length > 4 ? ` · +${carrying.length - 4} more (\`/status view\`)` : ""}`);
   }
-  lines.push("▶️ Press **Next job** when you're ready, or `/mission` for a different crew.");
   return { lines, spoken, teaser, forAI: lines.filter((l) => !l.startsWith("▶️")).join("\n") };
 }
 

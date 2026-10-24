@@ -349,11 +349,11 @@ export async function narrateMission({ mission, characters, worldLog, persona, c
       "people you may mention are the crew and the names in `allowed_names`. Never invent other named characters. " +
       "The crew plays it through ONE real shared contract (shared_contract), whose destination stands in for the story's " +
       "location. Keep it exactly; never invent other contracts or mission names. Each crew member has a different crew " +
-      "role (crew_roles); 'objective_flavour' is one short line per crew member, in order, saying what their role means " +
+      "role (crew_roles); 'objective_flavour' is one short line per crew member (12 words at most), in order, saying what their role means " +
       "on THIS job, tied to their story. 'briefing' is " +
-      "2 short paragraphs spoken by the persona. 'crossing' explains how the crew's stories connect: 2–4 sentences for a small crew; " +
-      "for a big crew, one short sentence per crew member, so EVERY person has a personal stake and a tie to someone else on the crew. " +
-      "'stakes' is 1–2 sentences. 'twist' is a secret revealed only at the end; make it land on the crossing. " +
+      "2 short paragraphs spoken by the persona, 90 words at most in total: punchy, no lists. 'crossing' says how the crew's stories connect: 1–2 short sentences (under 40 words) for a small crew; " +
+      "for a big crew, one short clause per person (under 15 words each), so EVERY person has a stake and a tie to someone else on the crew. " +
+      "'stakes' is one sentence (25 words at most). 'twist' is one or two sentences. 'twist' is a secret revealed only at the end; make it land on the crossing. " +
       "If a character carries an active condition (injury, ship damage, warrant), let it matter: mention it in the briefing or stakes. " +
       "Respect server_canon: it is what has already happened on this server. " +
       "'stop_reasons' has exactly one entry per stop in stops_on_the_way, in order: a vivid, specific reason the crew " +
@@ -388,7 +388,7 @@ export async function narrateMission({ mission, characters, worldLog, persona, c
 export async function narrateMissionEnd({ mission, success, notes, characters, persona, sagaResult = null, nextUp = null }) {
   return generate(
     "The crew has finished this mission. Only mention the crew and the allowed names. In the persona's voice, reveal the twist (if it hasn't come out already) " +
-      "and write a short epilogue (one or two paragraphs) on what it means for them. Base it on the outcome and on " +
+      "and write a short epilogue (one paragraph, 90 words at most, punchy) on what it means for them. Base it on the outcome and on " +
       "the players' notes about what they actually did. Don't contradict the notes. If saga_result is set, the job moved " +
       "the server's long story: work what was revealed (the clue, a character's personal secret, or for a finale the big " +
       "reveal that ties the crew together) into the epilogue. End the epilogue with one or two sentences in the persona's " +

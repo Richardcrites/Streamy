@@ -71,9 +71,10 @@ test("a pulled contract that matches the saga's lead carries the lead; anything 
   assert.ok(side.mission.sagaSide?.purpose);
   assert.equal(side.mission.system, "Stanton");
   const fields = side.message.embeds.flatMap((e) => e.toJSON().fields).map((f) => f.name);
-  assert.ok(fields.some((n) => /Your contract/.test(n)));
-  assert.ok(fields.some((n) => /side job/.test(n)));
-  assert.ok(fields.some((n) => /Optional extra/.test(n)));
+  assert.ok(fields.some((n) => /Your job/.test(n)));
+  const job = side.message.embeds.flatMap((e) => e.toJSON().fields).find((f) => /Your job/.test(f.name)).value;
+  assert.match(job, /Side job for/);
+  assert.match(job, /➕/, "the optional extra is one line in the job");
   assert.ok(!fields.some((n) => /Meet at/.test(n)), "the contract's place replaces the generic meet-up");
 });
 
