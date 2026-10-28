@@ -68,11 +68,16 @@ def flush():
 
 window = 512
 pos = 0
+carry = np.zeros(0, dtype=np.float32)
 for block in sf.blocks(wav_path, blocksize=SR * 30, dtype="float32"):
-    # Skip feeding the recognizer for audio already transcribed, but keep VAD timing intact.
-    for i in range(0, len(block) - window + 1, window):
+    # Feed the VAD whole 512-sample windows and carry any remainder into the next block:
+    # dropping it would shift every later timestamp earlier (16 ms per 30 s block).
+    block = np.concatenate([carry, block])
+    usable = len(block) - len(block) % window
+    for i in range(0, usable, window):
         vad.accept_waveform(block[i : i + window])
-    pos += len(block)
+    carry = block[usable:]
+    pos += usable
     flush()
     if (pos // (SR * 30)) % 20 == 0:
         el = time.time() - t0

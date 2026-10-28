@@ -90,7 +90,7 @@ def build_segment(seg, src, out_path, frames):
             last = f"x{i}"
         parts.append(f"[{last}]{vf_tail}[v]")
         # Short edge fades even on hard cuts, so a cut over game noise lands softly instead of clicking.
-        ai, ao = max(fi, 0.06), max(fo, 0.15)
+        ai, ao = max(fi, 0.05), max(fo, 0.10)
         afade = f"afade=t=in:d={ai},afade=t=out:st={dur - ao:.3f}:d={ao}"
         parts.append(
             f"[{n}:a]aresample={SR},pan=stereo|c0=c0|c1=c1,volume={gain},"
@@ -118,6 +118,18 @@ def build_captions(seg, t0, words, fixes, only_after):
         if not text:  # a fix can drop a misheard word entirely
             continue
         out.append({"w": text, "s": round(t0 + w["s"] - a0, 3), "e": round(t0 + min(w["e"], a1) - a0, 3)})
+    if "caption" in seg:
+        # Hand-written caption text: keep the transcript's word timing when the word count
+        # matches, otherwise spread the words evenly over the spoken part of the clip.
+        text = seg["caption"].split()
+        if len(text) == len(out):
+            out = [dict(w, w=t) for w, t in zip(out, text)]
+        else:
+            s = out[0]["s"] if out else t0 + 0.1
+            e = (out[-1]["e"] if out else t0 + a1 - a0 - 0.3)
+            e = max(e, t0 + a1 - a0 - 0.35)
+            step = (e - s) / max(len(text), 1)
+            out = [{"w": t, "s": round(s + i * step, 3), "e": round(s + (i + 1) * step, 3)} for i, t in enumerate(text)]
     return out
 
 
