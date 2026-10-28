@@ -17,7 +17,7 @@
    "act": "title",
    "card": "title",
    "music": "ambient",
-   "label": "RJRELOAD PRESENTS \u00b7 EPISODE 2",
+   "label": "RJRELOAD PRESENTS · SAGA I",
    "heading": "BAD COMPANY",
    "sub": "Tonight we tell a story",
    "v": [
@@ -46,7 +46,7 @@
     744.9
    ],
    "fade_in": 0.4,
-   "loc": "LEVSKI \u00b7 DELAMAR"
+   "loc": "LEVSKI · DELAMAR"
   },
   {
    "id": "partner",
@@ -460,7 +460,7 @@
     2710.2
    ],
    "music": "ambient",
-   "loc": "ABANDONED STATION \u00b7 NYX"
+   "loc": "ABANDONED STATION · NYX"
   },
   {
    "id": "good-shooting",
@@ -1092,13 +1092,13 @@
    "AUEC": "aUEC",
    "not.": "on.",
    "intersect": "Intersec",
-   "main": "main\u2014",
+   "main": "main—",
    "to": "",
    "held": "Held",
    "Line.": "Line."
   },
   "fix_only_after": {
-   "main\u2014": [
+   "main—": [
     "the"
    ],
    "": [
