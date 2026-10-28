@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="assets/vendor/gsap.min.js"></script>
+    <style>
+      :root {
+        --ground: #0b1220;
+        --ink: #e8f1ff;
+        --accent: #38bdf8;
+        --muted: #7a8ba8;
+        --font-display: "DejaVu Sans", sans-serif;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--ground);
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        font-family: var(--font-display);
+        color: var(--ink);
+      }
+      .layer {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 32px;
+      }
+      #title {
+        font-size: 160px;
+        font-weight: 700;
+        letter-spacing: -0.04em;
+      }
+      #bar {
+        width: 640px;
+        height: 8px;
+        background: var(--accent);
+        transform-origin: left center;
+      }
+      #subtitle {
+        font-size: 44px;
+        color: var(--muted);
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+        width: 1100px;
+        padding: 24px 40px;
+        border-left: 6px solid var(--accent);
+        background: #121c30;
+        font-size: 52px;
+      }
+      .row .price {
+        color: var(--accent);
+        font-variant-numeric: tabular-nums;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="8"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div id="intro" class="layer clip" data-hold data-start="0" data-duration="4" data-track-index="0">
+        <h1 id="title">STREAMY</h1>
+        <div id="bar"></div>
+        <p id="subtitle">Star Citizen market feed</p>
+      </div>
+      <div id="ticker" class="layer clip" data-start="4" data-duration="4" data-track-index="1">
+        <div class="row"><span>Laranite</span><span class="price">31.2 aUEC</span></div>
+        <div class="row"><span>Agricium</span><span class="price">27.5 aUEC</span></div>
+        <div class="row"><span>Titanium</span><span class="price">8.9 aUEC</span></div>
+      </div>
+    </div>
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      tl.fromTo("#title", { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" }, 0.2);
+      tl.fromTo("#bar", { scaleX: 0 }, { scaleX: 1, duration: 0.7, ease: "power2.inOut" }, 0.7);
+      tl.fromTo("#subtitle", { opacity: 0 }, { opacity: 1, duration: 0.6 }, 1.2);
+      tl.to("#intro", { opacity: 0, duration: 0.4 }, 3.6);
+      tl.fromTo(
+        "#ticker .row",
+        { opacity: 0, x: -80 },
+        { opacity: 1, x: 0, duration: 0.5, stagger: 0.2, ease: "power2.out" },
+        4.2,
+      );
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>
