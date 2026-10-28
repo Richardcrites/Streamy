@@ -29,7 +29,7 @@
         text-align: center; font-weight: 700; font-size: 46px; letter-spacing: -0.01em;
         line-height: 1; white-space: nowrap;
       }
-      .line .w { display: inline-block; color: var(--muted); }
+      .line .w { display: inline-block; margin: 0 0.07em; color: var(--muted); }
       .line.tx { font-family: var(--font-display); font-weight: 600; font-size: 50px; letter-spacing: 0.04em; text-transform: uppercase; }
       .line.tx .w { color: rgba(79, 209, 197, 0.4); }
 
@@ -93,7 +93,7 @@
           words.forEach((w, i) => {
             const t = parseFloat(w.dataset.t);
             const lit = line.classList.contains("tx") ? "#4fd1c5" : "#ffb547";
-            tl.fromTo(w, { color: getComputedStyle(w).color, scale: 1 }, { color: lit, scale: 1.08, duration: 0.08, ease: "power1.out" }, Math.max(s, t));
+            tl.fromTo(w, { color: getComputedStyle(w).color, scale: 1 }, { color: lit, scale: 1.04, duration: 0.08, ease: "power1.out" }, Math.max(s, t));
             const next = i + 1 < words.length ? parseFloat(words[i + 1].dataset.t) : t + 0.35;
             tl.to(w, { color: "#f2f5f7", scale: 1, duration: 0.12 }, Math.max(s, Math.min(next, end - 0.15)));
           });
