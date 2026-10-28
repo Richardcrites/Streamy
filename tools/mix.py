@@ -15,6 +15,9 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
+MIN_SECTION = 20.0  # seconds; shorter cues are folded in so the score doesn't lurch between moods
+
+
 def music_sections(timeline):
     sections, mode = [], "ambient"
     for seg in timeline["segments"]:
@@ -24,7 +27,18 @@ def music_sections(timeline):
             sections[-1]["dur"] += dur
         else:
             sections.append({"mode": mode, "dur": dur})
-    return sections
+    merged = []
+    for sec in sections:
+        if merged and (sec["dur"] < MIN_SECTION or merged[-1]["dur"] < MIN_SECTION):
+            # Keep the mood of whichever part is longer.
+            if sec["dur"] > merged[-1]["dur"]:
+                merged[-1]["mode"] = sec["mode"]
+            merged[-1]["dur"] += sec["dur"]
+        elif merged and merged[-1]["mode"] == sec["mode"]:
+            merged[-1]["dur"] += sec["dur"]
+        else:
+            merged.append(dict(sec))
+    return merged
 
 
 def main():
@@ -41,11 +55,13 @@ def main():
         subprocess.run([sys.executable, "-I", os.path.join(HERE, "score.py"), spec, music], check=True)
 
     graph = (
-        # Dialogue: gentle high-pass, level out speakers, then split: one copy feeds the ducker.
-        "[0:a]highpass=f=80,dynaudnorm=f=200:g=11:p=0.9:m=8,volume=1.0,asplit=2[dlg][key];"
-        # Music: sits ~10 dB under dialogue while anyone talks, rising to ~6 dB under between lines.
+        # Dialogue: gentle high-pass, level out speakers over a ~10 s window (fast leveling pumps the
+        # game noise between lines), then split: one copy feeds the ducker.
+        "[0:a]highpass=f=80,dynaudnorm=f=500:g=21:p=0.9:m=6,volume=1.0,asplit=2[dlg][key];"
+        # Music: sits under dialogue while anyone talks; slow attack/release so quick exchanges don't
+        # make it pump.
         "[1:a]aresample=48000,volume=0.8[mus];"
-        "[mus][key]sidechaincompress=threshold=0.05:ratio=4:attack=60:release=650:makeup=1[ducked];"
+        "[mus][key]sidechaincompress=threshold=0.06:ratio=3:attack=150:release=1500:makeup=1[ducked];"
         "[dlg][ducked]amix=inputs=2:duration=first:normalize=0,"
         "loudnorm=I=-14:TP=-1.0:LRA=11:linear=false,aresample=48000[out]"
     )
