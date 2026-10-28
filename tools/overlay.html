@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="assets/vendor/gsap.min.js"></script>
+    <style>
+      @font-face { font-family: "Rajdhani"; font-weight: 600; src: url("assets/fonts/rajdhani-latin-600-normal.woff2") format("woff2"); }
+      @font-face { font-family: "Rajdhani"; font-weight: 700; src: url("assets/fonts/rajdhani-latin-700-normal.woff2") format("woff2"); }
+      :root {
+        --ink: #f2f5f7;
+        --muted: rgba(242, 245, 247, 0.42);
+        --amber: #ffb547;
+        --teal: #4fd1c5;
+        --red: #ff5a4e;
+        --font-display: "Rajdhani", sans-serif;
+        --font-text: "Inter", sans-serif;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #000; }
+      #root { position: relative; width: 100%; height: 100%; color: var(--ink); font-family: var(--font-text); }
+      #base { position: absolute; inset: 0; width: 1920px; height: 1080px; object-fit: cover; z-index: 0; }
+      .ev { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+
+      /* Captions live in the bottom letterbox bar (y 942-1080), clear of the game HUD. */
+      .cap { z-index: 5; }
+      .line {
+        position: absolute; left: 0; right: 0; top: 976px;
+        text-align: center; font-weight: 700; font-size: 46px; letter-spacing: -0.01em;
+        line-height: 1; white-space: nowrap;
+      }
+      .line .w { display: inline-block; color: var(--muted); }
+      .line.tx { font-family: var(--font-display); font-weight: 600; font-size: 50px; letter-spacing: 0.04em; text-transform: uppercase; }
+      .line.tx .w { color: rgba(79, 209, 197, 0.4); }
+
+      /* Act cards: full black frames. */
+      .act { z-index: 6; background: #000; display: flex; align-items: center; justify-content: center; }
+      .act-inner { text-align: center; }
+      .act-label { font-family: var(--font-display); font-weight: 600; font-size: 34px; letter-spacing: 0.6em; color: var(--amber); padding-left: 0.6em; }
+      .act-rule { width: 520px; height: 3px; margin: 26px auto; background: linear-gradient(90deg, transparent, var(--amber), transparent); }
+      .act-heading { white-space: nowrap; font-family: var(--font-display); font-weight: 700; font-size: 120px; letter-spacing: 0.12em; padding-left: 0.12em; }
+
+      .title { z-index: 6; display: flex; align-items: center; justify-content: center; }
+      .title-inner { position: relative; text-align: center; padding: 60px 160px; }
+      .title-inner::before { content: ""; position: absolute; inset: -80px -120px; z-index: -1; background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.62) 0%, rgba(0, 0, 0, 0.35) 45%, rgba(0, 0, 0, 0) 72%); }
+      .presents { font-family: var(--font-display); font-weight: 600; font-size: 30px; letter-spacing: 0.7em; padding-left: 0.7em; color: var(--muted); }
+      .title-main { white-space: nowrap; font-family: var(--font-display); font-weight: 700; font-size: 180px; letter-spacing: 0.16em; padding-left: 0.16em; margin: 18px 0 8px; text-shadow: 0 8px 60px rgba(0, 0, 0, 0.55); }
+      .title-sub { font-family: var(--font-text); font-style: italic; font-size: 40px; color: var(--amber); }
+
+      .end { z-index: 6; background: #000; display: flex; align-items: center; justify-content: center; }
+      .end-inner { text-align: center; }
+      .end-heading { font-family: var(--font-display); font-weight: 700; font-size: 110px; letter-spacing: 0.18em; padding-left: 0.18em; }
+      .end-sub { margin-top: 18px; font-size: 36px; color: var(--amber); font-style: italic; min-height: 1em; }
+      .end-credit { margin-top: 70px; font-family: var(--font-display); font-weight: 600; font-size: 30px; letter-spacing: 0.3em; color: var(--muted); }
+
+      /* Location and transmission tags sit in the top letterbox bar (y 0-138). */
+      .loc-inner, .tx-inner {
+        position: absolute; left: 72px; top: 50px;
+        font-family: var(--font-display); font-weight: 600; font-size: 36px; letter-spacing: 0.3em;
+        display: flex; align-items: center; gap: 22px;
+      }
+      .loc-mark { width: 12px; height: 38px; background: var(--amber); }
+      .tx-inner { color: var(--teal); left: auto; right: 72px; }
+      .tx-dot { width: 16px; height: 16px; border-radius: 50%; background: var(--red); box-shadow: 0 0 18px var(--red); }
+
+      .beat { z-index: 4; display: flex; align-items: center; justify-content: center; }
+      .beat-inner { font-family: var(--font-display); font-weight: 700; font-size: 72px; letter-spacing: 0.14em; padding-left: 0.14em; text-shadow: 0 4px 40px #000; }
+
+      .lower { z-index: 4; }
+      .lower-inner { position: absolute; left: 96px; top: 742px; padding: 14px 30px 16px 26px; border-left: 6px solid var(--amber); background: linear-gradient(90deg, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0)); }
+      .lower-kicker { font-family: var(--font-display); font-weight: 600; font-size: 26px; letter-spacing: 0.35em; color: var(--amber); }
+      .lower-name { font-family: var(--font-display); font-weight: 700; font-size: 64px; letter-spacing: 0.08em; line-height: 1.05; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="__DURATION__" data-width="1920" data-height="1080">
+      <video id="base" class="clip" src="assets/base.mp4" muted playsinline data-start="0" data-duration="__DURATION__" data-media-start="__MEDIA_START__" data-track-index="0"></video>
+      <!--EVENTS-->
+    </div>
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      const at = (el) => parseFloat(el.dataset.start);
+      const len = (el) => parseFloat(el.dataset.duration);
+
+      document.querySelectorAll(".ev").forEach((el) => {
+        const s = at(el), d = len(el), end = s + d;
+        const q = (sel) => el.querySelectorAll(sel);
+
+        if (el.classList.contains("cap")) {
+          const line = q(".line")[0];
+          tl.fromTo(line, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.14, ease: "power2.out" }, s);
+          const words = [...q(".w")];
+          words.forEach((w, i) => {
+            const t = parseFloat(w.dataset.t);
+            const lit = line.classList.contains("tx") ? "#4fd1c5" : "#ffb547";
+            tl.fromTo(w, { color: getComputedStyle(w).color, scale: 1 }, { color: lit, scale: 1.08, duration: 0.08, ease: "power1.out" }, Math.max(s, t));
+            const next = i + 1 < words.length ? parseFloat(words[i + 1].dataset.t) : t + 0.35;
+            tl.to(w, { color: "#f2f5f7", scale: 1, duration: 0.12 }, Math.max(s, Math.min(next, end - 0.15)));
+          });
+          tl.to(line, { opacity: 0, duration: 0.1 }, Math.max(s, end - 0.1));
+        } else if (el.classList.contains("act")) {
+          tl.fromTo(q(".act-label"), { opacity: 0, scale: 1.25 }, { opacity: 1, scale: 1, duration: 0.9, ease: "power3.out" }, s + 0.15);
+          tl.fromTo(q(".act-rule"), { scaleX: 0 }, { scaleX: 1, duration: 0.8, ease: "power2.inOut" }, s + 0.3);
+          tl.fromTo(q(".act-heading"), { opacity: 0, y: 30, filter: "blur(10px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.8, ease: "power3.out" }, s + 0.45);
+          tl.to(q(".act-inner"), { opacity: 0, duration: 0.4 }, end - 0.45);
+        } else if (el.classList.contains("title")) {
+          tl.fromTo(q(".presents"), { opacity: 0 }, { opacity: 1, duration: 0.8 }, s + 0.4);
+          tl.fromTo(q(".title-main"), { opacity: 0, scale: 1.18, filter: "blur(14px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: 2.2, ease: "power3.out" }, s + 1.0);
+          tl.fromTo(q(".title-sub"), { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.9, ease: "power2.out" }, s + 2.8);
+          tl.to(q(".title-inner"), { opacity: 0, duration: 0.6 }, end - 0.9);
+        } else if (el.classList.contains("end")) {
+          tl.fromTo(q(".end-heading"), { opacity: 0, scale: 1.2 }, { opacity: 1, scale: 1, duration: 1.8, ease: "power3.out" }, s + 0.3);
+          tl.fromTo(q(".end-sub"), { opacity: 0 }, { opacity: 1, duration: 0.8 }, s + 1.6);
+          tl.fromTo(q(".end-credit"), { opacity: 0 }, { opacity: 1, duration: 0.8 }, s + 2.4);
+          tl.to(q(".end-inner"), { opacity: 0, duration: 0.8 }, end - 1.0);
+        } else if (el.classList.contains("loc")) {
+          tl.fromTo(q(".loc-mark"), { scaleY: 0 }, { scaleY: 1, duration: 0.3, ease: "power2.out" }, s);
+          tl.fromTo(q(".loc-inner"), { opacity: 0, x: -24 }, { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" }, s + 0.1);
+          tl.to(q(".loc-inner"), { opacity: 0, duration: 0.4 }, end - 0.45);
+        } else if (el.classList.contains("transmission")) {
+          tl.fromTo(q(".tx-inner"), { opacity: 0 }, { opacity: 1, duration: 0.3 }, s);
+          for (let t = s + 0.6; t < end - 0.6; t += 1.2) {
+            tl.to(q(".tx-dot"), { opacity: 0.15, duration: 0.3, yoyo: true, repeat: 1 }, t);
+          }
+          tl.to(q(".tx-inner"), { opacity: 0, duration: 0.3 }, end - 0.35);
+        } else if (el.classList.contains("beat")) {
+          tl.fromTo(q(".beat-inner"), { opacity: 0, scale: 1.12 }, { opacity: 1, scale: 1, duration: 1.2, ease: "power3.out" }, s);
+          tl.to(q(".beat-inner"), { opacity: 0, duration: 0.5 }, end - 0.55);
+        } else if (el.classList.contains("lower")) {
+          tl.fromTo(q(".lower-inner"), { opacity: 0, x: -40 }, { opacity: 1, x: 0, duration: 0.45, ease: "power3.out" }, s);
+          tl.fromTo(q(".lower-name"), { opacity: 0 }, { opacity: 1, duration: 0.4 }, s + 0.15);
+          tl.to(q(".lower-inner"), { opacity: 0, x: -20, duration: 0.35 }, end - 0.4);
+        }
+      });
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

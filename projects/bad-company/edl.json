@@ -1,0 +1,1121 @@
+{
+ "title": "Bad Company",
+ "source": "Night two of 'Tonight we tell a story' (twitch.tv/rjreload VOD 2879078599)",
+ "segments": [
+  {
+   "id": "cold-open",
+   "act": "cold",
+   "a": [
+    2930.3,
+    2946.0
+   ],
+   "fade_out": 0.4,
+   "music": "action"
+  },
+  {
+   "id": "title",
+   "act": "title",
+   "card": "title",
+   "music": "ambient",
+   "label": "RJRELOAD PRESENTS \u00b7 EPISODE 2",
+   "heading": "BAD COMPANY",
+   "sub": "Tonight we tell a story",
+   "v": [
+    [
+     4215,
+     4223.5
+    ]
+   ],
+   "gain": 0,
+   "fade_in": 0.6,
+   "fade_out": 0.6
+  },
+  {
+   "id": "act1-card",
+   "act": "act1",
+   "card": "act",
+   "label": "ACT I",
+   "heading": "A DRINK AT LEVSKI",
+   "dur": 3.2
+  },
+  {
+   "id": "talkative",
+   "act": "act1",
+   "a": [
+    736.3,
+    744.9
+   ],
+   "fade_in": 0.4,
+   "loc": "LEVSKI \u00b7 DELAMAR"
+  },
+  {
+   "id": "partner",
+   "act": "act1",
+   "a": [
+    1023.3,
+    1024.1
+   ]
+  },
+  {
+   "id": "what-mission",
+   "act": "act1",
+   "a": [
+    1028.9,
+    1030.2
+   ]
+  },
+  {
+   "id": "told-to-meet",
+   "act": "act1",
+   "a": [
+    1033.6,
+    1034.8
+   ]
+  },
+  {
+   "id": "bearheads",
+   "act": "act1",
+   "a": [
+    1037.5,
+    1038.5
+   ]
+  },
+  {
+   "id": "racist",
+   "act": "act1",
+   "a": [
+    1042.6,
+    1045.9
+   ],
+   "v": [
+    [
+     1086.5,
+     1089.8
+    ]
+   ]
+  },
+  {
+   "id": "say-sorry",
+   "act": "act1",
+   "a": [
+    1090.0,
+    1093.7
+   ]
+  },
+  {
+   "id": "more-feeling",
+   "act": "act1",
+   "a": [
+    1097.4,
+    1107.0
+   ]
+  },
+  {
+   "id": "im-sorry",
+   "act": "act1",
+   "a": [
+    1108.9,
+    1110.0
+   ]
+  },
+  {
+   "id": "buzz",
+   "act": "act1",
+   "a": [
+    1181.1,
+    1185.0
+   ],
+   "music": "tension"
+  },
+  {
+   "id": "fixer-1",
+   "act": "act1",
+   "a": [
+    1186.4,
+    1192.0
+   ],
+   "v": [
+    [
+     915,
+     920.6
+    ]
+   ],
+   "gain": 1.15,
+   "tag": "transmission"
+  },
+  {
+   "id": "fixer-2",
+   "act": "act1",
+   "a": [
+    1198.2,
+    1202.9
+   ],
+   "v": [
+    [
+     722,
+     726.7
+    ]
+   ],
+   "gain": 1.15,
+   "tag": "transmission"
+  },
+  {
+   "id": "fixer-3",
+   "act": "act1",
+   "a": [
+    1215.9,
+    1234.5
+   ],
+   "v": [
+    [
+     935,
+     944
+    ],
+    [
+     950,
+     959.6
+    ]
+   ],
+   "gain": 1.15,
+   "tag": "transmission"
+  },
+  {
+   "id": "fixer-4",
+   "act": "act1",
+   "a": [
+    1280.2,
+    1297.6
+   ],
+   "v": [
+    [
+     1083,
+     1091
+    ],
+    [
+     960,
+     969.4
+    ]
+   ],
+   "gain": 1.15,
+   "tag": "transmission"
+  },
+  {
+   "id": "got-a-job",
+   "act": "act1",
+   "a": [
+    1304.4,
+    1305.4
+   ],
+   "fade_out": 0.4
+  },
+  {
+   "id": "act2-card",
+   "act": "act2",
+   "card": "act",
+   "label": "ACT II",
+   "heading": "STRANGE BEDFELLOWS",
+   "dur": 3.2,
+   "music": "ambient"
+  },
+  {
+   "id": "tiger-claws",
+   "act": "act2",
+   "a": [
+    1337.9,
+    1339.2
+   ],
+   "fade_in": 0.3
+  },
+  {
+   "id": "salamander-1",
+   "act": "act2",
+   "a": [
+    1341.4,
+    1343.9
+   ]
+  },
+  {
+   "id": "salamander-2",
+   "act": "act2",
+   "a": [
+    1345.2,
+    1348.3
+   ]
+  },
+  {
+   "id": "salamander-3",
+   "act": "act2",
+   "a": [
+    1351.1,
+    1355.0
+   ]
+  },
+  {
+   "id": "working-together",
+   "act": "act2",
+   "a": [
+    1385.1,
+    1395.3
+   ]
+  },
+  {
+   "id": "no-gas",
+   "act": "act2",
+   "a": [
+    1417.6,
+    1421.9
+   ]
+  },
+  {
+   "id": "no-quantum",
+   "act": "act2",
+   "a": [
+    1451.4,
+    1454.2
+   ]
+  },
+  {
+   "id": "jobs",
+   "act": "act2",
+   "a": [
+    1464.1,
+    1466.9
+   ]
+  },
+  {
+   "id": "hangar-5",
+   "act": "act2",
+   "a": [
+    1472.9,
+    1475.1
+   ]
+  },
+  {
+   "id": "knock-out",
+   "act": "act2",
+   "a": [
+    1482.7,
+    1493.9
+   ]
+  },
+  {
+   "id": "stims",
+   "act": "act2",
+   "a": [
+    1576.9,
+    1589.1
+   ]
+  },
+  {
+   "id": "lost-my-ship",
+   "act": "act2",
+   "a": [
+    1816.4,
+    1821.7
+   ]
+  },
+  {
+   "id": "keep-her-clean",
+   "act": "act2",
+   "a": [
+    1937.1,
+    1939.2
+   ]
+  },
+  {
+   "id": "plotting",
+   "act": "act2",
+   "a": [
+    2037.9,
+    2045.6
+   ],
+   "music": "tension",
+   "v": [
+    [
+     2052,
+     2059.7
+    ]
+   ]
+  },
+  {
+   "id": "comms",
+   "act": "act2",
+   "a": [
+    2063.3,
+    2076.4
+   ]
+  },
+  {
+   "id": "betray",
+   "act": "act2",
+   "a": [
+    2120.4,
+    2131.1
+   ]
+  },
+  {
+   "id": "worded-wrong",
+   "act": "act2",
+   "a": [
+    2132.6,
+    2134.1
+   ]
+  },
+  {
+   "id": "scary",
+   "act": "act2",
+   "a": [
+    2136.2,
+    2138.0
+   ],
+   "fade_out": 0.4
+  },
+  {
+   "id": "act3-card",
+   "act": "act3",
+   "card": "act",
+   "label": "ACT III",
+   "heading": "THE STATION",
+   "dur": 3.2,
+   "music": "ambient"
+  },
+  {
+   "id": "flight",
+   "act": "act3",
+   "v": [
+    [
+     2475,
+     2483
+    ]
+   ],
+   "gain": 0.45,
+   "fade_in": 0.4
+  },
+  {
+   "id": "approaching",
+   "act": "act3",
+   "a": [
+    2248.2,
+    2251.5
+   ],
+   "music": "tension"
+  },
+  {
+   "id": "turret",
+   "act": "act3",
+   "a": [
+    2255.9,
+    2258.0
+   ]
+  },
+  {
+   "id": "polaris",
+   "act": "act3",
+   "a": [
+    2291.0,
+    2292.1
+   ]
+  },
+  {
+   "id": "abandoned",
+   "act": "act3",
+   "a": [
+    2300.8,
+    2301.9
+   ]
+  },
+  {
+   "id": "how-many",
+   "act": "act3",
+   "a": [
+    2405.5,
+    2407.5
+   ],
+   "music": "action"
+  },
+  {
+   "id": "hits",
+   "act": "act3",
+   "a": [
+    2469.7,
+    2471.4
+   ]
+  },
+  {
+   "id": "dogfight",
+   "act": "act3",
+   "v": [
+    [
+     2625,
+     2633
+    ]
+   ],
+   "gain": 0.6
+  },
+  {
+   "id": "touchdown",
+   "act": "act3",
+   "a": [
+    2709.0,
+    2710.2
+   ],
+   "music": "ambient",
+   "loc": "ABANDONED STATION \u00b7 NYX"
+  },
+  {
+   "id": "good-shooting",
+   "act": "act3",
+   "a": [
+    2726.1,
+    2728.8
+   ]
+  },
+  {
+   "id": "thanks",
+   "act": "act3",
+   "a": [
+    2732.6,
+    2733.3
+   ]
+  },
+  {
+   "id": "first-nice",
+   "act": "act3",
+   "a": [
+    2736.3,
+    2739.3
+   ]
+  },
+  {
+   "id": "engineer",
+   "act": "act3",
+   "a": [
+    2753.0,
+    2758.6
+   ]
+  },
+  {
+   "id": "scavenger",
+   "act": "act3",
+   "a": [
+    2763.8,
+    2768.0
+   ]
+  },
+  {
+   "id": "mines",
+   "act": "act3",
+   "a": [
+    2912.8,
+    2914.6
+   ],
+   "music": "tension"
+  },
+  {
+   "id": "not-alone",
+   "act": "act3",
+   "a": [
+    2925.1,
+    2926.6
+   ]
+  },
+  {
+   "id": "covering-fire",
+   "act": "act3",
+   "a": [
+    2954.2,
+    2955.5
+   ],
+   "music": "action"
+  },
+  {
+   "id": "keep-stims",
+   "act": "act3",
+   "a": [
+    2971.7,
+    2973.6
+   ]
+  },
+  {
+   "id": "transfer-codes",
+   "act": "act3",
+   "a": [
+    3235.5,
+    3238.1
+   ],
+   "music": "tension",
+   "v": [
+    [
+     3258.5,
+     3261.1
+    ]
+   ]
+  },
+  {
+   "id": "lethal-force",
+   "act": "act3",
+   "a": [
+    3261.6,
+    3266.6
+   ]
+  },
+  {
+   "id": "too-smoothly",
+   "act": "act3",
+   "a": [
+    3638.0,
+    3644.4
+   ]
+  },
+  {
+   "id": "raptors",
+   "act": "act3",
+   "a": [
+    3663.0,
+    3664.5
+   ],
+   "music": "action"
+  },
+  {
+   "id": "aliens",
+   "act": "act3",
+   "a": [
+    3693.5,
+    3697.6
+   ]
+  },
+  {
+   "id": "interesting",
+   "act": "act3",
+   "a": [
+    3705.4,
+    3706.9
+   ]
+  },
+  {
+   "id": "melancholy",
+   "act": "act3",
+   "a": [
+    3783.0,
+    3784.7
+   ],
+   "music": "ambient"
+  },
+  {
+   "id": "voice",
+   "act": "act3",
+   "a": [
+    3794.7,
+    3799.8
+   ]
+  },
+  {
+   "id": "crying",
+   "act": "act3",
+   "a": [
+    3807.0,
+    3809.2
+   ],
+   "v": [
+    [
+     3790.0,
+     3792.2
+    ]
+   ]
+  },
+  {
+   "id": "sneak-peek",
+   "act": "act3",
+   "a": [
+    3888.9,
+    3892.9
+   ],
+   "music": "tension"
+  },
+  {
+   "id": "hair",
+   "act": "act3",
+   "a": [
+    3897.5,
+    3900.3
+   ]
+  },
+  {
+   "id": "kill-you",
+   "act": "act3",
+   "a": [
+    3907.0,
+    3912.6
+   ]
+  },
+  {
+   "id": "polaris-outside",
+   "act": "act3",
+   "a": [
+    4098.4,
+    4105.7
+   ],
+   "music": "ambient"
+  },
+  {
+   "id": "for-the-mission",
+   "act": "act3",
+   "a": [
+    4108.7,
+    4112.6
+   ]
+  },
+  {
+   "id": "the-mission",
+   "act": "act3",
+   "a": [
+    4116.0,
+    4117.2
+   ]
+  },
+  {
+   "id": "that-mission",
+   "act": "act3",
+   "a": [
+    4120.7,
+    4121.4
+   ]
+  },
+  {
+   "id": "saved-your-life",
+   "act": "act3",
+   "a": [
+    4339.6,
+    4349.8
+   ],
+   "music": "action"
+  },
+  {
+   "id": "box",
+   "act": "act3",
+   "a": [
+    4442.8,
+    4446.8
+   ],
+   "fade_out": 0.4
+  },
+  {
+   "id": "act4-card",
+   "act": "act4",
+   "card": "act",
+   "label": "ACT IV",
+   "heading": "VANDUUL IN ORIGIN",
+   "dur": 3.2,
+   "music": "ambient"
+  },
+  {
+   "id": "know-a-lot",
+   "act": "act4",
+   "a": [
+    4830.6,
+    4837.4
+   ],
+   "fade_in": 0.3
+  },
+  {
+   "id": "back-end",
+   "act": "act4",
+   "a": [
+    4838.8,
+    4843.0
+   ]
+  },
+  {
+   "id": "aux-station",
+   "act": "act4",
+   "a": [
+    4951.7,
+    4956.3
+   ]
+  },
+  {
+   "id": "flight-2",
+   "act": "act4",
+   "v": [
+    [
+     5040,
+     5047
+    ]
+   ],
+   "gain": 0.45,
+   "music": "tension"
+  },
+  {
+   "id": "coming-up",
+   "act": "act4",
+   "a": [
+    5215.0,
+    5217.0
+   ],
+   "loc": "AUXILIARY STATION"
+  },
+  {
+   "id": "boarding-pods",
+   "act": "act4",
+   "a": [
+    5394.7,
+    5396.1
+   ]
+  },
+  {
+   "id": "stories",
+   "act": "act4",
+   "a": [
+    5399.7,
+    5401.3
+   ]
+  },
+  {
+   "id": "held-the-line",
+   "act": "act4",
+   "a": [
+    5404.0,
+    5414.1
+   ]
+  },
+  {
+   "id": "is-this-vanduul",
+   "act": "act4",
+   "a": [
+    5437.1,
+    5438.1
+   ]
+  },
+  {
+   "id": "late-to-party",
+   "act": "act4",
+   "a": [
+    5446.2,
+    5447.7
+   ]
+  },
+  {
+   "id": "killed-him",
+   "act": "act4",
+   "a": [
+    5579.0,
+    5581.0
+   ],
+   "music": "action"
+  },
+  {
+   "id": "final-piece",
+   "act": "act4",
+   "a": [
+    5667.3,
+    5673.4
+   ],
+   "music": "tension"
+  },
+  {
+   "id": "chaos",
+   "act": "act4",
+   "a": [
+    5772.5,
+    5773.9
+   ]
+  },
+  {
+   "id": "this-is-vanduul",
+   "act": "act4",
+   "a": [
+    5784.9,
+    5786.1
+   ]
+  },
+  {
+   "id": "let-me-in",
+   "act": "act4",
+   "a": [
+    5966.2,
+    5972.5
+   ],
+   "music": "action"
+  },
+  {
+   "id": "funny",
+   "act": "act4",
+   "a": [
+    6252.3,
+    6259.5
+   ],
+   "music": "tension"
+  },
+  {
+   "id": "tired",
+   "act": "act4",
+   "a": [
+    6277.0,
+    6279.0
+   ]
+  },
+  {
+   "id": "friends",
+   "act": "act4",
+   "a": [
+    6298.5,
+    6300.8
+   ]
+  },
+  {
+   "id": "say-youre-sorry",
+   "act": "act4",
+   "a": [
+    6318.3,
+    6319.3
+   ]
+  },
+  {
+   "id": "sorry-2",
+   "act": "act4",
+   "a": [
+    6334.1,
+    6334.8
+   ]
+  },
+  {
+   "id": "even",
+   "act": "act4",
+   "a": [
+    6347.0,
+    6348.1
+   ],
+   "fade_out": 0.4
+  },
+  {
+   "id": "epilogue-card",
+   "act": "epilogue",
+   "card": "act",
+   "label": "EPILOGUE",
+   "heading": "STORMBREAKER",
+   "dur": 3.2,
+   "music": "outro"
+  },
+  {
+   "id": "transferred",
+   "act": "epilogue",
+   "a": [
+    6423.2,
+    6429.1
+   ],
+   "fade_in": 0.3
+  },
+  {
+   "id": "reveal-1",
+   "act": "epilogue",
+   "a": [
+    6453.4,
+    6457.3
+   ],
+   "v": [
+    [
+     4223.5,
+     4227.4
+    ]
+   ],
+   "gain": 1.15,
+   "tag": "transmission"
+  },
+  {
+   "id": "reveal-2",
+   "act": "epilogue",
+   "a": [
+    6463.5,
+    6475.5
+   ],
+   "v": [
+    [
+     4230,
+     4242
+    ]
+   ],
+   "gain": 1.15,
+   "tag": "transmission"
+  },
+  {
+   "id": "reveal-3",
+   "act": "epilogue",
+   "a": [
+    6476.1,
+    6488.7
+   ],
+   "v": [
+    [
+     2477,
+     2489.6
+    ]
+   ],
+   "gain": 1.15,
+   "tag": "transmission"
+  },
+  {
+   "id": "reveal-4",
+   "act": "epilogue",
+   "a": [
+    6495.9,
+    6514.9
+   ],
+   "v": [
+    [
+     5762,
+     5771.5
+    ],
+    [
+     5893,
+     5902.5
+    ]
+   ],
+   "gain": 1.15,
+   "tag": "transmission"
+  },
+  {
+   "id": "reveal-5",
+   "act": "epilogue",
+   "a": [
+    6521.2,
+    6531.1
+   ],
+   "v": [
+    [
+     5042,
+     5051.9
+    ]
+   ],
+   "gain": 1.15,
+   "tag": "transmission"
+  },
+  {
+   "id": "reveal-6",
+   "act": "epilogue",
+   "a": [
+    6545.2,
+    6558.3
+   ],
+   "v": [
+    [
+     6060,
+     6073.1
+    ]
+   ],
+   "gain": 1.15,
+   "tag": "transmission"
+  },
+  {
+   "id": "reveal-7",
+   "act": "epilogue",
+   "a": [
+    6558.9,
+    6565.5
+   ],
+   "v": [
+    [
+     6137,
+     6143.6
+    ]
+   ],
+   "gain": 1.15,
+   "tag": "transmission"
+  },
+  {
+   "id": "reveal-8",
+   "act": "epilogue",
+   "a": [
+    6594.8,
+    6599.6
+   ],
+   "v": [
+    [
+     6145,
+     6149.8
+    ]
+   ],
+   "gain": 1.15,
+   "tag": "transmission"
+  },
+  {
+   "id": "stormbreaker",
+   "act": "epilogue",
+   "a": [
+    6604.3,
+    6605.4
+   ],
+   "v": [
+    [
+     6606,
+     6607.1
+    ]
+   ]
+  },
+  {
+   "id": "working-more",
+   "act": "epilogue",
+   "a": [
+    6626.2,
+    6627.8
+   ],
+   "fade_out": 0.8
+  },
+  {
+   "id": "end-card",
+   "act": "epilogue",
+   "card": "end",
+   "dur": 7.0,
+   "heading": "TO BE CONTINUED",
+   "sub": "Find Stormbreaker."
+  }
+ ],
+ "captions": {
+  "fix": {
+   "bareheads.": "bearheads.",
+   "stems,": "stims,",
+   "stems": "stims",
+   "Vandor": "Vanduul",
+   "Vanduel?": "Vanduul?",
+   "Dool?": "Duul?",
+   "Vandul": "Vanduul",
+   "Doole": "Duul",
+   "Vandal": "Vanduul",
+   "Vandal.": "Vanduul.",
+   "Vandal,": "Vanduul,",
+   "Vandu": "Vanduul",
+   "Jorat": "Jorrit",
+   "Jorit.": "Jorrit.",
+   "Jori": "Jorrit",
+   "organisations,": "organizations,",
+   "organisation": "organization",
+   "calm": "comm",
+   "AUEC": "aUEC",
+   "not.": "on.",
+   "intersect": "Intersec",
+   "main": "main\u2014",
+   "to": "",
+   "held": "Held",
+   "Line.": "Line."
+  },
+  "fix_only_after": {
+   "main\u2014": [
+    "the"
+   ],
+   "": [
+    "main"
+   ],
+   "on.": [
+    "let"
+   ],
+   "Duul?": [
+    "Van"
+   ],
+   "Duul": [
+    "Van"
+   ],
+   "Held": [
+    "I"
+   ]
+  }
+ }
+}

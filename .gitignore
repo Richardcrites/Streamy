@@ -2,3 +2,7 @@ node_modules/
 renders/
 .hyperframes/
 hyperframes/assets/vendor/
+projects/*/build/
+projects/*/hf/
+projects/*/*.log
+__pycache__/
