@@ -71,8 +71,11 @@ def build_segment(seg, src, out_path, frames):
     else:
         ranges = seg.get("v") or [seg["a"]]
         ranges = [list(r) for r in ranges]
-        # Dissolves eat (n-1)*DISSOLVE seconds; give them back on the last shot.
-        ranges[-1][1] += DISSOLVE * (len(ranges) - 1) + 0.2
+        # Dissolves eat (n-1)*DISSOLVE seconds, and the sound may run longer than the picture
+        # ranges were sized for; stretch the last shot so the picture always covers the sound.
+        need = dur + DISSOLVE * (len(ranges) - 1) + 0.2
+        have = sum(b - a for a, b in ranges)
+        ranges[-1][1] += max(0.2, need - have)
         for a, b in ranges:
             cmd += ["-ss", f"{a:.3f}", "-t", f"{b - a:.3f}", "-i", src]
         a_src = seg.get("a") or seg["v"][0]
@@ -86,7 +89,9 @@ def build_segment(seg, src, out_path, frames):
             parts.append(f"[{last}][g{i}]xfade=transition=fade:duration={DISSOLVE}:offset={offset:.3f}[x{i}]")
             last = f"x{i}"
         parts.append(f"[{last}]{vf_tail}[v]")
-        afade = f"afade=t=in:d={max(fi, 0.02)},afade=t=out:st={dur - max(fo, 0.03):.3f}:d={max(fo, 0.03)}"
+        # Short edge fades even on hard cuts, so a cut over game noise lands softly instead of clicking.
+        ai, ao = max(fi, 0.06), max(fo, 0.15)
+        afade = f"afade=t=in:d={ai},afade=t=out:st={dur - ao:.3f}:d={ao}"
         parts.append(
             f"[{n}:a]aresample={SR},pan=stereo|c0=c0|c1=c1,volume={gain},"
             f"apad,atrim=end_sample={round(dur * SR)},{afade}[a]"
