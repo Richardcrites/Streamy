@@ -1,11 +1,12 @@
 """Generate the HyperFrames overlay composition for a cut timeline.
 
-Usage: compose.py <project_dir> [--range START,END] [--overlay-only]
+Usage: compose.py <project_dir> [--range START,END] [--overlay-only] [--spans]
 
 Reads <project_dir>/build/timeline.json and writes <project_dir>/hf/index.html, a HyperFrames
 composition that plays build/base.mp4 (muted; sound is mixed separately) under titles, act
 cards, animated captions, location tags, lower thirds and transmission styling.
 --range renders only that slice of the timeline (for quick previews).
+--spans prints the time ranges that carry overlays (JSON) instead of writing the page.
 --overlay-only leaves the video out and makes the background transparent, for rendering the
 overlays as an alpha layer that FFmpeg composites onto the cut (much faster than in-browser video).
 """
@@ -57,8 +58,9 @@ def main():
     for seg in tl["segments"]:
         span = (seg["start"], seg["end"])
         kind = seg.get("card")
-        if kind in ("title", "act", "end"):
+        if kind in ("title", "act", "end", "note"):
             data = {k: seg.get(k, "") for k in ("label", "heading", "sub")}
+            data["lines"] = seg.get("lines", [])
             c = clip(*span)
             if c:
                 events.append((*c, kind, data))
@@ -94,6 +96,17 @@ def main():
                 }))
 
     events.sort(key=lambda e: e[0])
+    if "--spans" in sys.argv:
+        # Print the stretches that carry any overlay, merged and padded, for splice rendering.
+        spans = []
+        for start, length, _, _ in events:
+            a, b = max(0.0, start - 0.5), min(dur, start + length + 0.5)
+            if spans and a <= spans[-1][1] + 1.0:
+                spans[-1][1] = max(spans[-1][1], b)
+            else:
+                spans.append([a, b])
+        print(json.dumps([[round(a, 3), round(b, 3)] for a, b in spans]))
+        return
     body = []
     for n, (start, length, kind, data) in enumerate(events):
         eid = f"e{n}"
@@ -103,7 +116,11 @@ def main():
             body.append(f'<div {attrs}><p class="line {data["style"]}">{spans.strip()}</p></div>')
         elif kind == "act":
             body.append(f'<div {attrs}><div class="act-inner"><div class="act-label">{html.escape(data["label"])}</div>'
-                        f'<div class="act-rule"></div><h2 class="act-heading">{html.escape(data["heading"])}</h2></div></div>')
+                        f'<div class="act-rule"></div><h2 class="act-heading">{html.escape(data["heading"])}</h2>'
+                        f'<div class="act-sub">{html.escape(data["sub"])}</div></div></div>')
+        elif kind == "note":
+            lines = "".join(f'<p class="note-line">{html.escape(l)}</p>' for l in data["lines"])
+            body.append(f'<div {attrs}><div class="note-inner">{lines}</div></div>')
         elif kind == "title":
             body.append(f'<div {attrs}><div class="title-inner"><div class="presents">{html.escape(data["label"])}</div>'
                         f'<h1 class="title-main">{html.escape(data["heading"])}</h1><div class="title-sub">{html.escape(data["sub"])}</div></div></div>')

@@ -40,6 +40,14 @@
       .act-rule { width: 520px; height: 3px; margin: 26px auto; background: linear-gradient(90deg, transparent, var(--amber), transparent); }
       .act-heading { white-space: nowrap; font-family: var(--font-display); font-weight: 700; font-size: 120px; letter-spacing: 0.12em; padding-left: 0.12em; }
 
+      .act-sub { margin-top: 22px; font-family: var(--font-text); font-style: italic; font-size: 36px; color: var(--muted); min-height: 1em; }
+
+      /* Context card: a few short lines on black. */
+      .note { z-index: 6; background: #000; display: flex; align-items: center; justify-content: center; }
+      .note-inner { text-align: center; max-width: 1400px; }
+      .note-line { font-family: var(--font-text); font-size: 44px; line-height: 1.5; color: var(--ink); margin: 10px 0; }
+      .note-line:first-child { font-family: var(--font-display); font-weight: 600; font-size: 40px; letter-spacing: 0.3em; color: var(--amber); margin-bottom: 28px; }
+
       .title { z-index: 6; display: flex; align-items: center; justify-content: center; }
       .title-inner { position: relative; text-align: center; padding: 60px 160px; }
       .title-inner::before { content: ""; position: absolute; inset: -80px -120px; z-index: -1; background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.62) 0%, rgba(0, 0, 0, 0.35) 45%, rgba(0, 0, 0, 0) 72%); }
@@ -102,7 +110,13 @@
           tl.fromTo(q(".act-label"), { opacity: 0, scale: 1.25 }, { opacity: 1, scale: 1, duration: 0.9, ease: "power3.out" }, s + 0.15);
           tl.fromTo(q(".act-rule"), { scaleX: 0 }, { scaleX: 1, duration: 0.8, ease: "power2.inOut" }, s + 0.3);
           tl.fromTo(q(".act-heading"), { opacity: 0, y: 30, filter: "blur(10px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.8, ease: "power3.out" }, s + 0.45);
+          tl.fromTo(q(".act-sub"), { opacity: 0 }, { opacity: 1, duration: 0.8 }, s + 1.1);
           tl.to(q(".act-inner"), { opacity: 0, duration: 0.4 }, end - 0.45);
+        } else if (el.classList.contains("note")) {
+          q(".note-line").forEach((line, i) => {
+            tl.fromTo(line, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" }, s + 0.3 + i * 0.9);
+          });
+          tl.to(q(".note-inner"), { opacity: 0, duration: 0.6 }, end - 0.7);
         } else if (el.classList.contains("title")) {
           tl.fromTo(q(".presents"), { opacity: 0 }, { opacity: 1, duration: 0.8 }, s + 0.4);
           tl.fromTo(q(".title-main"), { opacity: 0, scale: 1.18, filter: "blur(14px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: 2.2, ease: "power3.out" }, s + 1.0);

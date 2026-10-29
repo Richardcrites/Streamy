@@ -144,8 +144,9 @@ def main():
     edl = json.load(open(os.path.join(project, "edl.json")))
     build = os.path.join(project, "build")
     os.makedirs(os.path.join(build, "segments"), exist_ok=True)
-    fixes = edl["captions"]["fix"]
-    only_after = edl["captions"].get("fix_only_after", {})
+    captions_on = edl.get("captions", {}).get("enabled", True)
+    fixes = edl.get("captions", {}).get("fix", {})
+    only_after = edl.get("captions", {}).get("fix_only_after", {})
 
     jobs, layout, t = [], [], 0.0
     for seg in edl["segments"]:
@@ -157,14 +158,19 @@ def main():
         jobs.append((seg, path, frames, video))
         entry = {k: v for k, v in seg.items() if k not in ("a", "v")}
         entry.update(start=round(t, 3), end=round(t + dur, 3))
-        entry["captions"] = build_captions(seg, t, words, fixes, only_after)
+        entry["captions"] = build_captions(seg, t, words, fixes, only_after) if captions_on else []
+        entry["speech"] = "a" in seg and seg.get("gain", 1) != 0
         if "lower" in seg:
             entry["lower"] = dict(seg["lower"], at=round(t + seg["lower"]["at"] - seg["a"][0], 3))
         layout.append(entry)
         t += dur
 
     with ThreadPoolExecutor(max_workers=4) as pool:
-        todo = [j for j in jobs if not os.path.exists(j[1])]
+        todo, seen = [], set()
+        for j in jobs:  # identical segments share one file; build it once
+            if not os.path.exists(j[1]) and j[1] not in seen:
+                seen.add(j[1])
+                todo.append(j)
         for done in pool.map(lambda j: build_segment(j[0], j[3], j[1] + ".tmp.mkv", j[2]), todo):
             os.replace(done, done[: -len(".tmp.mkv")])
             print("built", os.path.basename(done), flush=True)

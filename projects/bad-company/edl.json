@@ -1,599 +1,473 @@
 {
  "title": "Bad Company",
  "source": "Night two of 'Tonight we tell a story' (twitch.tv/rjreload VOD 2879078599)",
+ "captions": {
+  "enabled": false
+ },
  "segments": [
-  {
-   "id": "cold-open",
-   "act": "cold",
-   "a": [
-    2931.89,
-    2947.7
-   ],
-   "fade_out": 0.4,
-   "music": "action",
-   "snap": false
-  },
   {
    "id": "title",
    "act": "title",
    "card": "title",
-   "music": "ambient",
+   "music": "mystery",
    "label": "RJRELOAD PRESENTS · SAGA I",
    "heading": "BAD COMPANY",
    "sub": "Tonight we tell a story",
    "v": [
     [
      4215,
-     4223.5
+     4224
     ]
    ],
    "gain": 0,
-   "fade_in": 0.6,
+   "fade_in": 0.8,
    "fade_out": 0.6
+  },
+  {
+   "id": "setup",
+   "act": "title",
+   "card": "note",
+   "dur": 7.0,
+   "lines": [
+    "Levski, Nyx.",
+    "A handful of strangers have each been told to wait at the same bar.",
+    "None of them know who sent the message, or why."
+   ]
   },
   {
    "id": "act1-card",
    "act": "act1",
    "card": "act",
-   "label": "ACT I",
+   "label": "CHAPTER ONE",
    "heading": "A DRINK AT LEVSKI",
-   "dur": 3.2
+   "sub": "One bar. A room full of strangers.",
+   "dur": 4.0,
+   "music": "playful"
   },
   {
-   "id": "talkative",
-   "act": "act1",
+   "id": "bar-wait",
    "a": [
-    736.46,
-    745.7
+    736.28,
+    756.14
    ],
-   "fade_in": 0.4,
-   "loc": "LEVSKI · DELAMAR",
-   "a_hand": [
-    736.79,
-    745.38
-   ]
+   "snap": false,
+   "act": "act1",
+   "fade_in": 0.5,
+   "loc": "LEVSKI · DELAMAR"
   },
   {
-   "id": "partner",
-   "act": "act1",
+   "id": "bar-who-1",
    "a": [
-    1023.69,
-    1024.93
+    793.06,
+    808.78
    ],
-   "a_hand": [
-    1024.02,
-    1024.61
-   ]
+   "snap": false,
+   "act": "act1"
   },
   {
-   "id": "what-mission",
-   "act": "act1",
+   "id": "bar-who-2",
    "a": [
-    1029.24,
-    1031.13
+    812.62,
+    856.46
    ],
-   "a_hand": [
-    1029.49,
-    1030.8
-   ]
+   "snap": false,
+   "act": "act1"
   },
   {
-   "id": "told-to-meet",
-   "act": "act1",
+   "id": "bar-bearheads-1",
    "a": [
-    1034.09,
-    1035.69
+    972.44,
+    1017.13
    ],
-   "a_hand": [
-    1034.26,
-    1035.41
-   ]
+   "snap": false,
+   "act": "act1",
+   "music": "playful"
   },
   {
-   "id": "bearheads",
-   "act": "act1",
+   "id": "bar-bearheads-2",
    "a": [
-    1037.93,
-    1039.57
+    1023.47,
+    1040.42
    ],
-   "a_hand": [
-    1038.1,
-    1038.85
-   ]
+   "snap": false,
+   "act": "act1"
   },
   {
-   "id": "racist",
-   "act": "act1",
+   "id": "bar-bearheads-3",
    "a": [
-    1043.0,
-    1046.67
+    1042.48,
+    1066.79
    ],
+   "snap": false,
+   "act": "act1"
+  },
+  {
+   "id": "bar-bearheads-4",
+   "a": [
+    1070.54,
+    1087.78
+   ],
+   "snap": false,
+   "act": "act1"
+  },
+  {
+   "id": "bar-bearheads-5",
+   "a": [
+    1090.03,
+    1121.06
+   ],
+   "snap": false,
+   "act": "act1"
+  },
+  {
+   "id": "fixer-a",
+   "a": [
+    1181.43,
+    1204.46
+   ],
+   "snap": false,
+   "act": "act1",
    "v": [
     [
-     1086.5,
-     1089.8
-    ]
-   ],
-   "a_hand": [
-    1043.27,
-    1046.42
-   ]
-  },
-  {
-   "id": "say-sorry",
-   "act": "act1",
-   "a": [
-    1090.48,
-    1094.13
-   ],
-   "snap": false
-  },
-  {
-   "id": "more-feeling",
-   "act": "act1",
-   "a": [
-    1097.63,
-    1107.99
-   ],
-   "a_hand": [
-    1098.04,
-    1107.59
-   ]
-  },
-  {
-   "id": "im-sorry",
-   "act": "act1",
-   "a": [
-    1109.16,
-    1110.8
-   ],
-   "a_hand": [
-    1109.57,
-    1110.4
-   ]
-  },
-  {
-   "id": "buzz",
-   "act": "act1",
-   "a": [
-    1181.53,
-    1185.98
-   ],
-   "music": "tension",
-   "a_hand": [
-    1181.94,
-    1185.73
-   ]
-  },
-  {
-   "id": "fixer-1",
-   "act": "act1",
-   "a": [
-    1186.85,
-    1193.19
-   ],
-   "v": [
+     1182,
+     1189
+    ],
     [
-     915,
-     920.6
+     905,
+     935
     ]
    ],
-   "gain": 1.15,
-   "tag": "transmission",
-   "a_hand": [
-    1187.02,
-    1192.62
-   ],
-   "caption": "You don't know. And, for the purposes of this conversation, you don't need to."
+   "music": "mystery",
+   "tag": "transmission"
   },
   {
-   "id": "fixer-2",
-   "act": "act1",
+   "id": "fixer-b",
    "a": [
-    1198.67,
-    1204.11
+    1216.15,
+    1306.95
    ],
-   "v": [
-    [
-     722,
-     726.7
-    ]
-   ],
-   "gain": 1.15,
-   "tag": "transmission",
-   "a_hand": [
-    1198.82,
-    1203.62
-   ],
-   "caption": "An abandoned station that is important. Officially, there's nothing there."
-  },
-  {
-   "id": "fixer-3",
+   "snap": false,
    "act": "act1",
-   "a": [
-    1216.57,
-    1235.97
-   ],
    "v": [
     [
      935,
-     944
+     975
     ],
     [
-     950,
-     959.6
-    ]
-   ],
-   "gain": 1.15,
-   "tag": "transmission",
-   "a_hand": [
-    1216.66,
-    1235.17
-   ]
-  },
-  {
-   "id": "fixer-4",
-   "act": "act1",
-   "a": [
-    1280.6,
-    1298.48
-   ],
-   "v": [
-    [
-     1083,
-     1091
+     722,
+     762
     ],
     [
-     960,
-     969.4
+     940,
+     975
     ]
    ],
-   "gain": 1.15,
    "tag": "transmission",
-   "a_hand": [
-    1281.01,
-    1298.24
-   ]
-  },
-  {
-   "id": "got-a-job",
-   "act": "act1",
-   "a": [
-    1304.82,
-    1306.05
-   ],
-   "fade_out": 0.4,
-   "snap": false
+   "fade_out": 0.6
   },
   {
    "id": "act2-card",
    "act": "act2",
    "card": "act",
-   "label": "ACT II",
+   "label": "CHAPTER TWO",
    "heading": "STRANGE BEDFELLOWS",
-   "dur": 3.2,
-   "music": "ambient"
+   "sub": "Same job. Same ship. Zero trust.",
+   "dur": 4.0,
+   "music": "playful"
   },
   {
-   "id": "tiger-claws",
-   "act": "act2",
+   "id": "insults-1",
    "a": [
-    1338.57,
-    1340.2
+    1331.61,
+    1397.22
    ],
-   "fade_in": 0.3,
-   "a_hand": [
-    1338.72,
-    1339.95
-   ]
+   "snap": false,
+   "act": "act2",
+   "fade_in": 0.4
   },
   {
-   "id": "salamander-1",
-   "act": "act2",
+   "id": "insults-2",
    "a": [
-    1341.83,
-    1345.31
+    1400.69,
+    1404.97
    ],
-   "a_hand": [
-    1342.16,
-    1344.67
-   ]
+   "snap": false,
+   "act": "act2"
   },
   {
-   "id": "salamander-2",
-   "act": "act2",
+   "id": "insults-3",
    "a": [
-    1345.75,
-    1348.91
+    1407.66,
+    1456.42
    ],
-   "a_hand": [
-    1346.0,
-    1348.91
-   ]
+   "snap": false,
+   "act": "act2"
   },
   {
-   "id": "salamander-3",
-   "act": "act2",
+   "id": "insults-4",
    "a": [
-    1351.82,
-    1356.76
+    1458.93,
+    1469.22
    ],
-   "a_hand": [
-    1351.82,
-    1355.72
-   ]
+   "snap": false,
+   "act": "act2"
   },
   {
-   "id": "working-together",
-   "act": "act2",
+   "id": "insults-5",
    "a": [
-    1385.53,
-    1396.38
+    1471.05,
+    1477.03
    ],
-   "a_hand": [
-    1385.94,
-    1396.13
-   ]
-  },
-  {
-   "id": "no-gas",
-   "act": "act2",
-   "a": [
-    1418.2,
-    1423.2
-   ],
-   "a_hand": [
-    1418.45,
-    1422.64
-   ]
-  },
-  {
-   "id": "no-quantum",
-   "act": "act2",
-   "a": [
-    1451.96,
-    1455.44
-   ],
-   "a_hand": [
-    1452.21,
-    1454.96
-   ]
-  },
-  {
-   "id": "jobs",
-   "act": "act2",
-   "a": [
-    1464.73,
-    1468.13
-   ],
-   "a_hand": [
-    1464.98,
-    1467.73
-   ]
-  },
-  {
-   "id": "hangar-5",
-   "act": "act2",
-   "a": [
-    1473.59,
-    1476.44
-   ],
-   "a_hand": [
-    1473.84,
-    1475.95
-   ]
+   "snap": false,
+   "act": "act2"
   },
   {
    "id": "knock-out",
-   "act": "act2",
    "a": [
-    1483.13,
-    1496.27
+    1479.51,
+    1516.58
    ],
-   "a_hand": [
-    1483.62,
-    1494.71
-   ]
+   "snap": false,
+   "act": "act2",
+   "music": "tension"
   },
   {
    "id": "stims",
-   "act": "act2",
    "a": [
-    1577.47,
-    1590.8
+    1577.53,
+    1594.15
    ],
-   "a_hand": [
-    1577.88,
-    1590.0
-   ],
-   "caption": "About forty-one stims, that should keep you busy. Forty-one stims? That's what you blow all of our mercenary money on? Every mission, you just go out and buy stims? Yeah, yeah, we all love stims."
+   "snap": false,
+   "act": "act2",
+   "music": "playful"
   },
   {
-   "id": "lost-my-ship",
-   "act": "act2",
+   "id": "zero-g-1",
    "a": [
-    1817.05,
-    1823.44
+    1732.92,
+    1746.41
    ],
-   "a_hand": [
-    1817.46,
-    1822.79
-   ]
+   "snap": false,
+   "act": "act2",
+   "music": "playful"
   },
   {
-   "id": "keep-her-clean",
-   "act": "act2",
+   "id": "zero-g-2",
    "a": [
-    1937.88,
-    1940.8
+    1759.02,
+    1763.08
    ],
-   "a_hand": [
-    1938.29,
-    1940.24
-   ]
+   "snap": false,
+   "act": "act2"
   },
   {
-   "id": "plotting",
-   "act": "act2",
+   "id": "zero-g-3",
    "a": [
-    2038.7,
-    2047.07
+    1765.49,
+    1783.37
    ],
-   "music": "tension",
+   "snap": false,
+   "act": "act2"
+  },
+  {
+   "id": "zero-g-4",
+   "a": [
+    1786.61,
+    1823.53
+   ],
+   "snap": false,
+   "act": "act2",
    "v": [
     [
-     2052,
-     2059.7
+     1665,
+     1712
     ]
-   ],
-   "a_hand": [
-    2039.03,
-    2046.66
    ]
   },
   {
-   "id": "comms",
-   "act": "act2",
+   "id": "zero-g-5",
    "a": [
-    2064.03,
-    2079.55
+    1826.29,
+    1830.41
    ],
-   "snap": false
-  },
-  {
-   "id": "betray",
+   "snap": false,
    "act": "act2",
-   "a": [
-    2121.08,
-    2132.96
-   ],
-   "a_hand": [
-    2121.65,
-    2132.32
+   "v": [
+    [
+     1712,
+     1717
+    ]
    ]
   },
   {
-   "id": "worded-wrong",
-   "act": "act2",
+   "id": "pyro-words-1",
    "a": [
-    2133.42,
-    2135.55
+    1897.81,
+    1921.0
    ],
-   "a_hand": [
-    2133.91,
-    2135.3
+   "snap": false,
+   "act": "act2",
+   "music": "calm"
+  },
+  {
+   "id": "pyro-words-2",
+   "a": [
+    1923.6,
+    1933.86
+   ],
+   "snap": false,
+   "act": "act2"
+  },
+  {
+   "id": "pyro-words-3",
+   "a": [
+    1937.74,
+    1941.51
+   ],
+   "snap": false,
+   "act": "act2"
+  },
+  {
+   "id": "pyro-words-4",
+   "a": [
+    1943.73,
+    1947.59
+   ],
+   "snap": false,
+   "act": "act2"
+  },
+  {
+   "id": "comms-1",
+   "a": [
+    2007.89,
+    2032.49
+   ],
+   "snap": false,
+   "act": "act2",
+   "music": "tension"
+  },
+  {
+   "id": "comms-2",
+   "a": [
+    2036.37,
+    2053.8
+   ],
+   "snap": false,
+   "act": "act2",
+   "v": [
+    [
+     2056,
+     2074
+    ]
    ]
   },
   {
-   "id": "scary",
-   "act": "act2",
+   "id": "comms-3",
    "a": [
-    2137.01,
-    2139.14
+    2056.78,
+    2060.49
    ],
-   "fade_out": 0.4,
-   "a_hand": [
-    2137.34,
-    2139.14
+   "snap": false,
+   "act": "act2"
+  },
+  {
+   "id": "comms-4",
+   "a": [
+    2063.92,
+    2080.36
    ],
-   "caption": "That sounded a little scary."
+   "snap": false,
+   "act": "act2"
+  },
+  {
+   "id": "comms-5",
+   "a": [
+    2082.93,
+    2139.91
+   ],
+   "snap": false,
+   "act": "act2",
+   "fade_out": 0.6
   },
   {
    "id": "act3-card",
    "act": "act3",
    "card": "act",
-   "label": "ACT III",
+   "label": "CHAPTER THREE",
    "heading": "THE STATION",
-   "dur": 3.2,
-   "music": "ambient"
+   "sub": "Officially, there's nothing there.",
+   "dur": 4.0,
+   "music": "tension"
   },
   {
-   "id": "flight",
+   "id": "approach-1",
+   "a": [
+    2212.76,
+    2223.02
+   ],
+   "snap": false,
+   "act": "act3",
+   "fade_in": 0.4
+  },
+  {
+   "id": "approach-2",
+   "a": [
+    2225.87,
+    2260.23
+   ],
+   "snap": false,
+   "act": "act3"
+  },
+  {
+   "id": "turret-1",
+   "a": [
+    2287.86,
+    2294.25
+   ],
+   "snap": false,
+   "act": "act3",
+   "music": "action"
+  },
+  {
+   "id": "turret-2",
+   "a": [
+    2301.49,
+    2305.86
+   ],
+   "snap": false,
+   "act": "act3"
+  },
+  {
+   "id": "fight-1",
    "act": "act3",
    "v": [
     [
      2475,
-     2483
+     2489
     ]
    ],
-   "gain": 0.45,
-   "fade_in": 0.4
-  },
-  {
-   "id": "approaching",
-   "act": "act3",
-   "a": [
-    2248.78,
-    2253.0
-   ],
-   "music": "tension",
-   "snap": false,
-   "caption": "I need you eyes up. We are approaching the station now."
-  },
-  {
-   "id": "turret",
-   "act": "act3",
-   "a": [
-    2257.14,
-    2259.89
-   ],
-   "a_hand": [
-    2257.14,
-    2259.33
-   ],
-   "caption": "If you're not in a turret, get in a turret."
-  },
-  {
-   "id": "polaris",
-   "act": "act3",
-   "a": [
-    2291.85,
-    2293.9
-   ],
-   "a_hand": [
-    2292.26,
-    2293.49
-   ]
-  },
-  {
-   "id": "abandoned",
-   "act": "act3",
-   "a": [
-    2301.63,
-    2303.35
-   ],
-   "a_hand": [
-    2302.12,
-    2302.95
-   ]
+   "gain": 0.6
   },
   {
    "id": "how-many",
-   "act": "act3",
    "a": [
-    2406.49,
-    2409.42
+    2406.55,
+    2409.58
    ],
-   "music": "action",
-   "a_hand": [
-    2406.9,
-    2408.77
-   ]
+   "snap": false,
+   "act": "act3"
   },
   {
    "id": "hits",
-   "act": "act3",
    "a": [
-    2470.55,
-    2473.15
+    2470.77,
+    2474.15
    ],
-   "a_hand": [
-    2471.12,
-    2472.75
-   ]
+   "snap": false,
+   "act": "act3"
   },
   {
-   "id": "dogfight",
+   "id": "fight-2",
    "act": "act3",
    "v": [
     [
@@ -605,71 +479,46 @@
   },
   {
    "id": "touchdown",
-   "act": "act3",
    "a": [
-    2710.41,
-    2712.22
+    2709.59,
+    2712.58
    ],
-   "music": "ambient",
+   "snap": false,
+   "act": "act3",
    "v": [
     [
-     2712.0,
-     2722.0
+     2712,
+     2722
     ]
    ],
-   "a_hand": [
-    2710.58,
-    2711.81
-   ]
+   "music": "calm"
   },
   {
-   "id": "good-shooting",
-   "act": "act3",
+   "id": "landing-1",
    "a": [
-    2727.47,
-    2730.55
+    2723.77,
+    2730.86
    ],
-   "a_hand": [
-    2727.64,
-    2730.07
-   ]
+   "snap": false,
+   "act": "act3"
   },
   {
-   "id": "first-nice",
-   "act": "act3",
+   "id": "landing-2",
    "a": [
-    2737.45,
-    2741.18
+    2733.52,
+    2760.87
    ],
-   "a_hand": [
-    2737.78,
-    2740.77
-   ]
+   "snap": false,
+   "act": "act3"
   },
   {
-   "id": "engineer",
-   "act": "act3",
+   "id": "landing-3",
    "a": [
-    2754.22,
-    2760.6
+    2763.12,
+    2770.15
    ],
-   "a_hand": [
-    2754.55,
-    2760.11
-   ],
-   "caption": "He's not just a stim junkie, he's also a pretty good engineer. Man knows his way around a control board."
-  },
-  {
-   "id": "scavenger",
-   "act": "act3",
-   "a": [
-    2764.92,
-    2769.85
-   ],
-   "a_hand": [
-    2765.33,
-    2769.52
-   ]
+   "snap": false,
+   "act": "act3"
   },
   {
    "id": "docking",
@@ -681,629 +530,513 @@
     ]
    ],
    "gain": 0.5,
-   "loc": "ABANDONED STATION · NYX"
+   "loc": "ABANDONED STATION · NYX",
+   "music": "mystery"
   },
   {
-   "id": "arrived",
-   "act": "act3",
+   "id": "arrived-1",
    "a": [
-    2812.86,
-    2814.34
+    2812.92,
+    2819.34
    ],
-   "a_hand": [
-    2813.27,
-    2813.86
-   ]
+   "snap": false,
+   "act": "act3"
   },
   {
-   "id": "airlock",
-   "act": "act3",
-   "v": [
-    [
-     2832,
-     2838
-    ],
-    [
-     2841,
-     2847.5
-    ]
-   ],
-   "gain": 0.6
-  },
-  {
-   "id": "betting-man",
-   "act": "act3",
+   "id": "arrived-2",
    "a": [
-    2852.11,
-    2856.08
+    2822.06,
+    2829.74
    ],
-   "a_hand": [
-    2852.6,
-    2855.67
-   ]
+   "snap": false,
+   "act": "act3"
   },
   {
-   "id": "ships-dont-fit",
-   "act": "act3",
+   "id": "arrived-4",
    "a": [
-    2860.05,
-    2862.11
+    2859.69,
+    2862.66
    ],
-   "a_hand": [
-    2860.24,
-    2861.71
-   ],
-   "caption": "I feel like these ships don't fit."
+   "snap": false,
+   "act": "act3"
   },
   {
-   "id": "bit-big",
-   "act": "act3",
+   "id": "arrived-5",
    "a": [
-    2865.87,
-    2868.43
+    2865.65,
+    2867.68
    ],
-   "a_hand": [
-    2866.12,
-    2868.42
-   ]
+   "snap": false,
+   "act": "act3"
   },
   {
-   "id": "mines",
-   "act": "act3",
+   "id": "trap-1",
    "a": [
-    2914.12,
-    2916.56
+    2914.1,
+    2950.47
    ],
-   "music": "tension",
-   "a_hand": [
-    2914.53,
-    2916.16
-   ]
+   "snap": false,
+   "act": "act3",
+   "music": "action"
   },
   {
-   "id": "not-alone",
-   "act": "act3",
+   "id": "trap-2",
    "a": [
-    2926.29,
-    2928.56
+    2954.0,
+    2957.74
    ],
-   "a_hand": [
-    2926.68,
-    2928.15
-   ]
+   "snap": false,
+   "act": "act3"
   },
   {
-   "id": "covering-fire",
-   "act": "act3",
+   "id": "trap-3",
    "a": [
-    2955.58,
-    2957.55
+    2964.69,
+    2976.71
    ],
-   "music": "action",
-   "a_hand": [
-    2955.83,
-    2957.14
-   ]
+   "snap": false,
+   "act": "act3"
   },
   {
-   "id": "keep-stims",
-   "act": "act3",
+   "id": "too-smoothly-1",
    "a": [
-    2972.86,
-    2975.3
+    3639.67,
+    3647.85
    ],
-   "a_hand": [
-    2973.35,
-    2975.3
-   ]
+   "snap": false,
+   "act": "act3",
+   "music": "tension"
   },
   {
-   "id": "transfer-codes",
-   "act": "act3",
+   "id": "too-smoothly-2",
    "a": [
-    3237.07,
-    3240.64
+    3664.53,
+    3667.91
    ],
-   "music": "tension",
-   "v": [
-    [
-     3258.5,
-     3261.1
-    ]
-   ],
-   "a_hand": [
-    3237.32,
-    3239.91
-   ]
+   "snap": false,
+   "act": "act3"
   },
   {
-   "id": "lethal-force",
-   "act": "act3",
+   "id": "too-smoothly-3",
    "a": [
-    3263.12,
-    3268.75
+    3694.93,
+    3700.65
    ],
-   "a_hand": [
-    3263.51,
-    3268.42
-   ]
+   "snap": false,
+   "act": "act3"
   },
   {
-   "id": "too-smoothly",
-   "act": "act3",
+   "id": "too-smoothly-4",
    "a": [
-    3639.45,
-    3646.34
+    3704.11,
+    3710.06
    ],
-   "a_hand": [
-    3639.94,
-    3646.34
-   ],
-   "caption": "I feel like things are going a little too smoothly. Something smells off. Whoever put this team together knew what he was doing."
+   "snap": false,
+   "act": "act3"
   },
   {
-   "id": "raptors",
-   "act": "act3",
+   "id": "melancholy-1",
    "a": [
-    3664.75,
-    3666.95
+    3784.63,
+    3813.19
    ],
-   "music": "action",
-   "a_hand": [
-    3665.08,
-    3666.39
-   ]
+   "snap": false,
+   "act": "act3",
+   "music": "playful"
   },
   {
-   "id": "aliens",
-   "act": "act3",
+   "id": "melancholy-2",
    "a": [
-    3695.15,
-    3699.51
+    3816.05,
+    3822.25
    ],
-   "a_hand": [
-    3695.48,
-    3699.19
-   ]
+   "snap": false,
+   "act": "act3"
   },
   {
-   "id": "interesting",
-   "act": "act3",
+   "id": "melancholy-3",
    "a": [
-    3707.12,
-    3709.51
+    3825.52,
+    3835.43
    ],
-   "a_hand": [
-    3707.37,
-    3708.87
-   ],
-   "caption": "Today just got interesting."
+   "snap": false,
+   "act": "act3"
   },
   {
-   "id": "melancholy",
-   "act": "act3",
+   "id": "helmet-1",
    "a": [
-    3784.65,
-    3787.57
+    3890.81,
+    3906.09
    ],
-   "music": "ambient",
-   "a_hand": [
-    3784.98,
-    3786.77
-   ]
+   "snap": false,
+   "act": "act3",
+   "music": "playful"
   },
   {
-   "id": "voice",
-   "act": "act3",
+   "id": "helmet-2",
    "a": [
-    3796.51,
-    3802.32
+    3908.65,
+    3918.76
    ],
-   "a_hand": [
-    3796.76,
-    3801.99
-   ]
+   "snap": false,
+   "act": "act3"
   },
   {
-   "id": "crying",
-   "act": "act3",
+   "id": "helmet-3",
    "a": [
-    3809.01,
-    3811.72
+    3920.62,
+    3933.19
    ],
-   "v": [
-    [
-     3790.0,
-     3792.2
-    ]
-   ],
-   "snap": false
+   "snap": false,
+   "act": "act3"
   },
   {
-   "id": "sneak-peek",
-   "act": "act3",
+   "id": "helmet-4",
    "a": [
-    3890.83,
-    3895.43
+    3936.91,
+    3952.2
    ],
-   "music": "tension",
-   "a_hand": [
-    3891.16,
-    3895.11
-   ]
+   "snap": false,
+   "act": "act3"
   },
   {
-   "id": "hair",
-   "act": "act3",
+   "id": "polaris",
    "a": [
-    3899.26,
-    3902.88
+    4100.28,
+    4124.49
    ],
-   "a_hand": [
-    3899.67,
-    3902.48
-   ],
-   "caption": "I saw his hair. No you didn't."
+   "snap": false,
+   "act": "act3",
+   "music": "playful"
   },
   {
-   "id": "kill-you",
-   "act": "act3",
+   "id": "polaris-story-1",
    "a": [
-    3908.87,
-    3915.48
+    4219.22,
+    4237.8
    ],
-   "a_hand": [
-    3909.2,
-    3914.83
-   ]
+   "snap": false,
+   "act": "act3"
   },
   {
-   "id": "polaris-outside",
-   "act": "act3",
+   "id": "polaris-story-2",
    "a": [
-    4100.22,
-    4108.4
+    4242.7,
+    4245.1
    ],
-   "music": "ambient",
-   "a_hand": [
-    4100.63,
-    4107.99
-   ],
-   "caption": "On our flight in I remember seeing a Polaris outside. Thing was beat to shit. Maybe we should check that out."
+   "snap": false,
+   "act": "act3"
   },
   {
-   "id": "for-the-mission",
-   "act": "act3",
+   "id": "saved",
    "a": [
-    4110.67,
-    4115.19
+    4341.69,
+    4359.4
    ],
-   "a_hand": [
-    4110.84,
-    4114.87
-   ]
-  },
-  {
-   "id": "the-mission",
+   "snap": false,
    "act": "act3",
-   "a": [
-    4117.86,
-    4120.19
-   ],
-   "a_hand": [
-    4118.19,
-    4119.39
-   ],
-   "caption": "Yeah, the mission."
-  },
-  {
-   "id": "that-mission",
-   "act": "act3",
-   "a": [
-    4122.6,
-    4123.92
-   ],
-   "a_hand": [
-    4123.01,
-    4123.6
-   ]
-  },
-  {
-   "id": "saved-your-life",
-   "act": "act3",
-   "a": [
-    4341.55,
-    4352.51
-   ],
-   "music": "action",
-   "a_hand": [
-    4342.04,
-    4352.26
-   ]
+   "music": "action"
   },
   {
    "id": "box",
-   "act": "act3",
    "a": [
-    4444.83,
-    4449.63
+    4444.89,
+    4450.08
    ],
-   "fade_out": 0.4,
-   "a_hand": [
-    4445.24,
-    4449.23
-   ]
+   "snap": false,
+   "act": "act3",
+   "fade_out": 0.6
   },
   {
    "id": "act4-card",
    "act": "act4",
    "card": "act",
-   "label": "ACT IV",
+   "label": "CHAPTER FOUR",
    "heading": "VANDUUL IN ORIGIN",
-   "dur": 3.2,
-   "music": "ambient"
+   "sub": "Whatever they found, it isn't human.",
+   "dur": 4.0,
+   "music": "mystery"
   },
   {
-   "id": "know-a-lot",
-   "act": "act4",
+   "id": "know-more-1",
    "a": [
-    4832.93,
-    4840.47
+    4825.88,
+    4846.22
    ],
-   "fade_in": 0.3,
-   "a_hand": [
-    4833.18,
-    4839.98
-   ],
-   "caption": "Dunno, it seems like you know a lot. I feel like you know more than you're letting on."
-  },
-  {
-   "id": "back-end",
+   "snap": false,
    "act": "act4",
-   "a": [
-    4840.91,
-    4846.08
-   ],
-   "a_hand": [
-    4841.4,
-    4845.43
-   ]
+   "fade_in": 0.4,
+   "music": "mystery"
   },
   {
-   "id": "aux-station",
-   "act": "act4",
+   "id": "know-more-2",
    "a": [
-    4953.98,
-    4959.46
+    4849.71,
+    4865.1
    ],
-   "a_hand": [
-    4954.39,
-    4959.06
-   ]
+   "snap": false,
+   "act": "act4"
   },
   {
-   "id": "flight-2",
+   "id": "know-more-3",
+   "a": [
+    4868.05,
+    4871.34
+   ],
+   "snap": false,
+   "act": "act4"
+  },
+  {
+   "id": "aux-1",
+   "a": [
+    4932.21,
+    4937.22
+   ],
+   "snap": false,
+   "act": "act4"
+  },
+  {
+   "id": "aux-2",
+   "a": [
+    4940.33,
+    4960.3
+   ],
+   "snap": false,
+   "act": "act4"
+  },
+  {
+   "id": "flight",
    "act": "act4",
    "v": [
     [
      5040,
-     5047
+     5049
     ]
    ],
-   "gain": 0.45,
-   "music": "tension"
+   "gain": 0.45
   },
   {
    "id": "coming-up",
-   "act": "act4",
    "a": [
-    5217.61,
-    5220.28
+    5217.33,
+    5225.74
    ],
-   "loc": "AUXILIARY STATION",
-   "a_hand": [
-    5217.84,
-    5219.87
-   ]
+   "snap": false,
+   "act": "act4",
+   "loc": "AUXILIARY STATION"
   },
   {
-   "id": "boarding-pods",
-   "act": "act4",
+   "id": "pods-1",
    "a": [
-    5397.23,
-    5399.52
+    5391.25,
+    5393.7
    ],
-   "a_hand": [
-    5397.56,
-    5398.96
-   ],
-   "caption": "Vanduul boarding pods."
+   "snap": false,
+   "act": "act4",
+   "music": "tension"
   },
   {
-   "id": "stories",
-   "act": "act4",
+   "id": "pods-2",
    "a": [
-    5402.23,
-    5404.92
+    5397.07,
+    5399.98
    ],
-   "a_hand": [
-    5402.72,
-    5404.27
-   ]
+   "snap": false,
+   "act": "act4"
   },
   {
-   "id": "held-the-line",
-   "act": "act4",
+   "id": "pods-3",
    "a": [
-    5406.47,
-    5417.2
+    5402.09,
+    5417.8
    ],
-   "a_hand": [
-    5406.96,
-    5417.04
-   ]
+   "snap": false,
+   "act": "act4"
   },
   {
-   "id": "is-this-vanduul",
-   "act": "act4",
+   "id": "late-1",
    "a": [
-    5439.59,
-    5441.71
+    5439.73,
+    5442.25
    ],
-   "a_hand": [
-    5440.08,
-    5440.83
-   ]
+   "snap": false,
+   "act": "act4"
   },
   {
-   "id": "late-to-party",
-   "act": "act4",
+   "id": "late-2",
    "a": [
-    5448.84,
-    5451.05
+    5444.65,
+    5451.75
    ],
-   "a_hand": [
-    5449.25,
-    5450.64
-   ]
+   "snap": false,
+   "act": "act4"
   },
   {
-   "id": "killed-him",
-   "act": "act4",
+   "id": "killed",
    "a": [
-    5581.77,
-    5584.3
+    5581.75,
+    5587.62
    ],
-   "music": "action",
-   "a_hand": [
-    5582.1,
-    5584.05
-   ]
+   "snap": false,
+   "act": "act4",
+   "music": "action"
   },
   {
    "id": "final-piece",
-   "act": "act4",
    "a": [
-    5669.82,
-    5676.8
+    5670.04,
+    5677.35
    ],
-   "music": "tension",
-   "a_hand": [
-    5670.39,
-    5676.47
-   ]
+   "snap": false,
+   "act": "act4"
   },
   {
-   "id": "chaos",
-   "act": "act4",
+   "id": "real-1",
    "a": [
-    5775.34,
-    5777.54
+    5737.3,
+    5762.12
    ],
-   "a_hand": [
-    5775.67,
-    5777.06
-   ]
+   "snap": false,
+   "act": "act4",
+   "music": "playful"
   },
   {
-   "id": "this-is-vanduul",
-   "act": "act4",
+   "id": "real-2",
    "a": [
-    5787.69,
-    5789.57
+    5764.08,
+    5769.93
    ],
-   "a_hand": [
-    5788.02,
-    5789.25
-   ]
+   "snap": false,
+   "act": "act4"
   },
   {
-   "id": "let-me-in",
-   "act": "act4",
+   "id": "real-3",
    "a": [
-    5969.02,
-    5976.17
+    5772.37,
+    5790.28
    ],
-   "music": "action",
-   "a_hand": [
-    5969.43,
-    5975.84
-   ],
-   "caption": "Let me into my ship, the Vanduul are attacking right now. We're under attack. Let me in."
+   "snap": false,
+   "act": "act4"
   },
   {
-   "id": "funny",
-   "act": "act4",
+   "id": "real-4",
    "a": [
-    6255.37,
-    6263.37
+    5792.17,
+    5801.0
    ],
-   "music": "tension",
-   "a_hand": [
-    6255.7,
-    6262.96
-   ]
+   "snap": false,
+   "act": "act4"
   },
   {
-   "id": "tired",
-   "act": "act4",
+   "id": "elevator-1",
    "a": [
-    6279.87,
-    6282.88
+    5926.49,
+    5931.21
    ],
-   "a_hand": [
-    6280.28,
-    6282.47
-   ]
+   "snap": false,
+   "act": "act4",
+   "music": "playful"
   },
   {
-   "id": "friends",
-   "act": "act4",
+   "id": "elevator-2",
    "a": [
-    6301.53,
-    6304.93
+    5957.13,
+    5959.98
    ],
-   "a_hand": [
-    6301.94,
-    6304.29
-   ]
+   "snap": false,
+   "act": "act4"
   },
   {
-   "id": "say-youre-sorry",
-   "act": "act4",
+   "id": "elevator-3",
    "a": [
-    6321.39,
-    6323.51
+    5968.88,
+    5977.26
    ],
-   "a_hand": [
-    6321.72,
-    6322.79
-   ]
+   "snap": false,
+   "act": "act4"
   },
   {
-   "id": "sorry-2",
-   "act": "act4",
+   "id": "elevator-4",
    "a": [
-    6337.54,
-    6338.37
+    5986.7,
+    5995.43
    ],
-   "a_hand": [
-    6337.54,
-    6337.89
-   ]
+   "snap": false,
+   "act": "act4"
   },
   {
-   "id": "even",
-   "act": "act4",
+   "id": "elevator-5",
    "a": [
-    6350.04,
-    6351.77
+    5998.38,
+    6001.0
    ],
-   "fade_out": 0.4,
-   "a_hand": [
-    6350.45,
-    6351.52
-   ]
+   "snap": false,
+   "act": "act4"
+  },
+  {
+   "id": "elevator-6",
+   "a": [
+    6009.97,
+    6013.03
+   ],
+   "snap": false,
+   "act": "act4"
+  },
+  {
+   "id": "say-sorry-1",
+   "a": [
+    6255.35,
+    6283.11
+   ],
+   "snap": false,
+   "act": "act4",
+   "music": "playful"
+  },
+  {
+   "id": "say-sorry-2",
+   "a": [
+    6301.39,
+    6318.02
+   ],
+   "snap": false,
+   "act": "act4"
+  },
+  {
+   "id": "say-sorry-3",
+   "a": [
+    6321.17,
+    6328.65
+   ],
+   "snap": false,
+   "act": "act4"
+  },
+  {
+   "id": "say-sorry-4",
+   "a": [
+    6330.51,
+    6338.89
+   ],
+   "snap": false,
+   "act": "act4"
+  },
+  {
+   "id": "say-sorry-5",
+   "a": [
+    6340.72,
+    6342.79
+   ],
+   "snap": false,
+   "act": "act4"
+  },
+  {
+   "id": "say-sorry-6",
+   "a": [
+    6349.9,
+    6356.62
+   ],
+   "snap": false,
+   "act": "act4",
+   "fade_out": 0.6
   },
   {
    "id": "epilogue-card",
@@ -1311,218 +1044,85 @@
    "card": "act",
    "label": "EPILOGUE",
    "heading": "STORMBREAKER",
-   "dur": 3.2,
-   "music": "outro"
+   "dur": 4.0,
+   "music": "mystery"
   },
   {
    "id": "transferred",
-   "act": "epilogue",
    "a": [
-    6426.33,
-    6433.17
+    6426.39,
+    6433.8
    ],
-   "fade_in": 0.3,
-   "a_hand": [
-    6426.74,
-    6432.61
-   ]
+   "snap": false,
+   "act": "epilogue",
+   "fade_in": 0.4
   },
   {
-   "id": "reveal-1",
-   "act": "epilogue",
+   "id": "reveal-a",
    "a": [
-    6456.67,
-    6461.52
+    6456.57,
+    6524.74
    ],
+   "snap": false,
+   "act": "epilogue",
    "v": [
     [
-     4223.5,
-     4227.4
-    ]
-   ],
-   "gain": 1.15,
-   "tag": "transmission",
-   "a_hand": [
-    6456.92,
-    6460.72
-   ]
-  },
-  {
-   "id": "reveal-2",
-   "act": "epilogue",
-   "a": [
-    6466.81,
-    6479.49
-   ],
-   "v": [
-    [
-     4230,
-     4242
-    ]
-   ],
-   "gain": 1.15,
-   "tag": "transmission",
-   "a_hand": [
-    6467.14,
-    6479.01
-   ],
-   "caption": "More importantly, it appears to have been stolen. We've traced fragments of its history through several shell organizations, and the trail doesn't end with the gang you encountered. It leads to something much larger."
-  },
-  {
-   "id": "reveal-3",
-   "act": "epilogue",
-   "a": [
-    6479.37,
-    6492.85
-   ],
-   "v": [
-    [
-     2477,
-     2489.6
-    ]
-   ],
-   "gain": 1.15,
-   "tag": "transmission",
-   "a_hand": [
-    6479.62,
-    6492.29
-   ]
-  },
-  {
-   "id": "reveal-4",
-   "act": "epilogue",
-   "a": [
-    6499.16,
-    6518.4
-   ],
-   "v": [
-    [
-     5762,
-     5771.5
+     4224,
+     4245
     ],
     [
-     5893,
-     5902.5
-    ]
-   ],
-   "gain": 1.15,
-   "tag": "transmission",
-   "a_hand": [
-    6499.41,
-    6518.4
-   ]
-  },
-  {
-   "id": "reveal-5",
-   "act": "epilogue",
-   "a": [
-    6524.54,
-    6535.14
-   ],
-   "v": [
+     2475,
+     2505
+    ],
     [
-     5042,
-     5051.9
+     5762,
+     5772
+    ],
+    [
+     5040,
+     5075
     ]
    ],
-   "gain": 1.15,
-   "tag": "transmission",
-   "a_hand": [
-    6524.79,
-    6534.66
-   ],
-   "caption": "And then there's the organization connected to him, Associated Sciences and Development, ASD. They're involved in this somehow."
+   "tag": "transmission"
   },
   {
-   "id": "reveal-6",
-   "act": "epilogue",
+   "id": "reveal-b",
    "a": [
-    6548.43,
-    6562.23
+    6524.74,
+    6604.46
    ],
+   "snap": false,
+   "act": "epilogue",
    "v": [
     [
      6060,
-     6073.1
-    ]
-   ],
-   "gain": 1.15,
-   "tag": "transmission",
-   "a_hand": [
-    6548.76,
-    6561.83
-   ]
-  },
-  {
-   "id": "reveal-7",
-   "act": "epilogue",
-   "a": [
-    6562.19,
-    6569.03
-   ],
-   "v": [
+     6090
+    ],
     [
      6137,
-     6143.6
-    ]
-   ],
-   "gain": 1.15,
-   "tag": "transmission",
-   "a_hand": [
-    6562.44,
-    6569.03
-   ]
-  },
-  {
-   "id": "reveal-8",
-   "act": "epilogue",
-   "a": [
-    6598.07,
-    6603.47
-   ],
-   "v": [
+     6170
+    ],
     [
-     6145,
-     6149.8
-    ]
-   ],
-   "gain": 1.15,
-   "tag": "transmission",
-   "a_hand": [
-    6598.32,
-    6603.07
-   ]
-  },
-  {
-   "id": "stormbreaker",
-   "act": "epilogue",
-   "a": [
-    6607.81,
-    6609.11
-   ],
-   "v": [
+     4245,
+     4262
+    ],
     [
-     6606,
-     6607.1
+     2489,
+     2505
     ]
    ],
-   "a_hand": [
-    6607.96,
-    6608.31
-   ]
+   "tag": "transmission",
+   "music": "outro"
   },
   {
-   "id": "working-more",
-   "act": "epilogue",
+   "id": "coda",
    "a": [
-    6629.29,
-    6631.74
+    6607.45,
+    6632.36
    ],
-   "fade_out": 0.8,
-   "a_hand": [
-    6629.78,
-    6631.41
-   ]
+   "snap": false,
+   "act": "epilogue",
+   "fade_out": 1.0
   },
   {
    "id": "end-card",
@@ -1532,54 +1132,5 @@
    "heading": "TO BE CONTINUED",
    "sub": "Find Stormbreaker."
   }
- ],
- "captions": {
-  "fix": {
-   "bareheads.": "bearheads.",
-   "stems,": "stims,",
-   "stems": "stims",
-   "Vandor": "Vanduul",
-   "Vanduel?": "Vanduul?",
-   "Dool?": "Duul?",
-   "Vandul": "Vanduul",
-   "Doole": "Duul",
-   "Vandal": "Vanduul",
-   "Vandal.": "Vanduul.",
-   "Vandal,": "Vanduul,",
-   "Vandu": "Vanduul",
-   "Jorat": "Jorrit",
-   "Jorit.": "Jorrit.",
-   "Jori": "Jorrit",
-   "organisations,": "organizations,",
-   "organisation": "organization",
-   "calm": "comm",
-   "AUEC": "aUEC",
-   "not.": "on.",
-   "intersect": "Intersec",
-   "main": "main—",
-   "to": "",
-   "held": "Held",
-   "Line.": "Line."
-  },
-  "fix_only_after": {
-   "main—": [
-    "the"
-   ],
-   "": [
-    "main"
-   ],
-   "on.": [
-    "let"
-   ],
-   "Duul?": [
-    "Van"
-   ],
-   "Duul": [
-    "Van"
-   ],
-   "Held": [
-    "I"
-   ]
-  }
- }
+ ]
 }

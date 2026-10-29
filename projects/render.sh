@@ -14,5 +14,8 @@ cp tools/fonts/*.woff2 "$PROJECT/hf/assets/fonts/"
 cp hyperframes/hyperframes.json "$PROJECT/hf/"
 ffmpeg -hide_banner -loglevel error -y -i "$PROJECT/build/base.mkv" -map 0:v -c copy -movflags +faststart "$PROJECT/hf/assets/base.mp4"
 "$PY" tools/compose.py "$PROJECT"
-(cd "$PROJECT/hf" && "$HF" lint >/dev/null && "$HF" render --quality delivery --quiet --output ../build/picture.mp4)
+(cd "$PROJECT/hf" && "$HF" lint >/dev/null)
+# Only the stretches with overlays go through the browser; the rest is spliced from the cut.
+rm -f "$PROJECT"/build/overlay_*.mp4
+"$PY" tools/splice.py "$PROJECT" "$HF" "$PROJECT/build/picture.mp4"
 "$PY" tools/mix.py "$PROJECT" "$PROJECT/build/picture.mp4" "$PROJECT/build/final.mp4"

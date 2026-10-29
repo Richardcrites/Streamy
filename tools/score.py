@@ -2,9 +2,16 @@
 
 Usage: score.py <sections.json> <out.wav>
 
-sections.json is a list of {"dur": seconds, "mode": "ambient"|"tension"|"action"|"outro"}.
-Each section is rendered at the same tempo and key (A minor) so sections butt together cleanly;
-transitions get a short equal-power crossfade.
+sections.json is a list of {"dur": seconds, "mode": ...}, mode one of:
+  playful  light, bouncy plucks in a major key, for banter and comedy
+  calm     soft major-seventh pads, for quiet beats
+  mystery  dark pad, sparse bells, no drums, for the fixer and reveals
+  ambient  neutral minor pad
+  tension  pulsing bass, low kick
+  action   full drums, driving bass
+  outro    resolving progression with arpeggio
+Sections share one tempo so they butt together cleanly; transitions get an equal-power
+crossfade, and every section is brought to the same loudness so the mix alone sets its level.
 """
 import json
 import sys
@@ -28,6 +35,17 @@ PROGRESSIONS = {
     "tension": [(57, [0, 3, 7, 10]), (53, [0, 4, 7, 11]), (50, [0, 3, 7, 10]), (52, [0, 4, 7, 10])],
     "action": [(57, [0, 3, 7, 12]), (53, [0, 4, 7, 12]), (48, [0, 4, 7, 12]), (55, [0, 4, 7, 12])],
     "outro": [(53, [0, 4, 7, 11]), (48, [0, 4, 7, 14]), (55, [0, 2, 7, 12]), (57, [0, 3, 7, 14])],
+    # C major I-vi-IV-V
+    "playful": [(48, [0, 4, 7, 12]), (57, [0, 3, 7, 12]), (53, [0, 4, 7, 12]), (55, [0, 4, 7, 10])],
+    # Fmaj7 - Cmaj9 - Am7 - Gsus
+    "calm": [(53, [0, 4, 7, 11]), (48, [0, 4, 7, 14]), (57, [0, 3, 7, 10]), (55, [0, 5, 7, 12])],
+    # D minor drone with shifting colour
+    "mystery": [(50, [0, 3, 7, 14]), (50, [0, 3, 8, 14]), (46, [0, 4, 7, 14]), (49, [0, 4, 7, 10])],
+}
+MELODY = {  # scale steps (semitones above the bar's root) the plucks and bells choose from
+    "playful": [0, 2, 4, 7, 9, 12, 14],
+    "mystery": [0, 3, 7, 10, 14, 15],
+    "calm": [0, 4, 7, 11, 14],
 }
 
 
@@ -130,24 +148,103 @@ def arp(root, chord, n):
     return 0.12 * out
 
 
-def render_section(dur, mode):
+def pluck(freq, n, decay=9.0):
+    """Short plucked note: a couple of harmonics with a fast decay."""
+    t = np.arange(n) / SR
+    tone = np.sin(2 * np.pi * freq * t) + 0.35 * np.sin(4 * np.pi * freq * t) + 0.12 * np.sin(6 * np.pi * freq * t)
+    return tone * np.exp(-t * decay) * np.minimum(1, t * 400)
+
+
+def bell(freq, n):
+    """Glassy bell: inharmonic partials, long decay."""
+    t = np.arange(n) / SR
+    out = np.zeros(n)
+    for ratio, g, d in ((1, 1, 1.6), (2.76, 0.45, 2.4), (5.4, 0.2, 3.5)):
+        out += g * np.sin(2 * np.pi * freq * ratio * t) * np.exp(-t * d)
+    return out * np.minimum(1, t * 200)
+
+
+def tick(n, decay=90):
+    return highpass(rng.standard_normal(n), 5000) * np.exp(-np.arange(n) / SR * decay)
+
+
+def playful_layer(root, n, steps):
+    """Bouncy eighth-note plucks with rests, root-fifth bass on the beat, light ticks."""
+    out = np.zeros(n)
+    eighth = int(BEAT / 2 * SR)
+    pattern = [1, 0, 1, 1, 0, 1, 0, 1]  # where a pluck lands within the bar
+    for k, i in enumerate(range(0, n, eighth)):
+        m = min(int(0.4 * SR), n - i)
+        if pattern[k % 8]:
+            note = root + 12 + steps[int(rng.integers(len(steps)))]
+            out[i : i + m] += 0.22 * pluck(hz(note), m)
+        if k % 2 == 0:  # bass on each beat, alternating root and fifth
+            b = root - 12 + (7 if (k // 2) % 2 else 0)
+            out[i : i + m] += 0.28 * pluck(hz(b), m, decay=6)
+        if k % 2 == 1:
+            tm = min(eighth, n - i)
+            out[i : i + tm] += 0.05 * tick(tm)
+    return out
+
+
+def mystery_layer(root, n, steps):
+    """Low drone plus a sparse bell every couple of beats."""
+    t = np.arange(n) / SR
+    out = 0.18 * np.sin(2 * np.pi * hz(root - 12) * t)
+    two_beats = int(2 * BEAT * SR)
+    for i in range(0, n, two_beats):
+        if rng.random() < 0.6:
+            m = min(int(3 * SR), n - i)
+            note = root + 12 + steps[int(rng.integers(len(steps)))]
+            out[i : i + m] += 0.12 * bell(hz(note), m)
+    return out
+
+
+def calm_layer(root, chord, n):
+    """Soft quarter-note arpeggio."""
+    out = np.zeros(n)
+    q = int(BEAT * SR)
+    notes = [root + iv + 12 for iv in chord]
+    for k, i in enumerate(range(0, n, q)):
+        m = min(int(1.2 * SR), n - i)
+        out[i : i + m] += 0.09 * pluck(hz(notes[k % len(notes)]), m, decay=3)
+    return out
+
+
+VARIANT_SHIFT = [0, 5, -3, 2, -5, 3]  # semitones: each repeat of a mood moves to a new key
+
+
+def render_section(dur, mode, variant=0):
     n = int(dur * SR)
     bar = int(4 * BEAT * SR)
+    shift = VARIANT_SHIFT[variant % len(VARIANT_SHIFT)]
     prog = PROGRESSIONS[mode]
+    prog = prog[variant % len(prog):] + prog[: variant % len(prog)]  # start somewhere else, too
+    prog = [(root + shift, chord) for root, chord in prog]
     tail = int(1.2 * SR)  # pad bars overlap so chords sustain into each other
     music = np.zeros(n + tail)
-    pad_gain = {"ambient": 1.0, "tension": 0.8, "action": 0.55, "outro": 0.9}[mode]
+    pad_gain = {"ambient": 1.0, "tension": 0.8, "action": 0.55, "outro": 0.9,
+                "playful": 0.3, "calm": 0.7, "mystery": 0.75}[mode]
+    bright = {"ambient": 900, "tension": 1300, "action": 2600, "outro": 1100,
+              "playful": 1800, "calm": 1000, "mystery": 600}[mode]
     for bi, i in enumerate(range(0, n, bar)):
         m = min(bar, n - i)
         root, chord = prog[bi % len(prog)]
-        bright = {"ambient": 900, "tension": 1300, "action": 2600, "outro": 1100}[mode]
         music[i : i + m + tail] += pad_gain * highpass(pad(root, chord, m + tail, bright), 140)
-        music[i : i + m] += bass(root, m, pulse=mode in ("action", "tension"))
+        if mode == "playful":
+            music[i : i + m] += playful_layer(root, m, MELODY["playful"])
+        elif mode == "mystery":
+            music[i : i + m] += mystery_layer(root, m, MELODY["mystery"])
+        elif mode == "calm":
+            music[i : i + m] += calm_layer(root, chord, m)
+        else:
+            music[i : i + m] += bass(root, m, pulse=mode in ("action", "tension"))
         if mode in ("action", "outro"):
             music[i : i + m] += arp(root, chord, m)
     music = music[:n]
     music += drums(n, mode)
-    return music
+    # Same loudness for every section: the mix, not the score, decides how loud each part is.
+    return music / (np.sqrt((music**2).mean()) + 1e-9) * 0.1
 
 
 def reverb(x, seconds=2.4, mix=0.25):
@@ -164,7 +261,7 @@ def main():
     xf = int(1.5 * SR)
     out = np.zeros(0)
     for sec in sections:
-        part = render_section(sec["dur"] + 1.5, sec["mode"])
+        part = render_section(sec["dur"] + 1.5, sec["mode"], sec.get("variant", 0))
         if len(out) == 0:
             out = part
             continue
