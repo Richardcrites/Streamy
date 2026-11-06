@@ -15,6 +15,7 @@ EDL segment fields:
   card     "act" | "end" -> black frame for an overlay card (needs "dur")
   gain     sound gain (default 1)
   fade_in / fade_out   seconds of fade from/to black (picture and sound)
+  push     slow push-in over each picture range, as a zoom fraction (e.g. 0.06)
 """
 import hashlib
 import json
@@ -81,7 +82,14 @@ def build_segment(seg, src, out_path, frames):
         a_src = seg.get("a") or seg["v"][0]
         cmd += ["-ss", f"{a_src[0]:.3f}", "-t", f"{dur + 0.5:.3f}", "-i", src]
         n = len(ranges)
-        parts = [f"[{i}:v]fps={FPS},{GRADE},settb=AVTB[g{i}]" for i in range(n)]
+        push = ""
+        if seg.get("push"):
+            # Slow centred push-in over each shot (zoom grows by `push`, e.g. 0.06 = 6%).
+            pz = float(seg["push"])
+            push = (f"zoompan=z='1+{pz}*on/{FPS}/{{d}}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
+                    f":d=1:s=1920x1080:fps={FPS},")
+        parts = [f"[{i}:v]fps={FPS},{push.format(d=round(ranges[i][1] - ranges[i][0], 3))}{GRADE},settb=AVTB[g{i}]"
+                 for i in range(n)]
         last = "g0"
         offset = 0.0
         for i in range(1, n):

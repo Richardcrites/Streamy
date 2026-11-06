@@ -60,6 +60,7 @@ def main():
         kind = seg.get("card")
         if kind in ("title", "act", "end", "note"):
             data = {k: seg.get(k, "") for k in ("label", "heading", "sub")}
+            data["credit"] = seg.get("credit", "A story told live on twitch.tv/rjreload")
             data["lines"] = seg.get("lines", [])
             c = clip(*span)
             if c:
@@ -127,7 +128,7 @@ def main():
         elif kind == "end":
             body.append(f'<div {attrs}><div class="end-inner"><h2 class="end-heading">{html.escape(data["heading"] or "TO BE CONTINUED")}</h2>'
                         f'<div class="end-sub">{html.escape(data["sub"] or "")}</div>'
-                        f'<div class="end-credit">A story told live on twitch.tv/rjreload</div></div></div>')
+                        f'<div class="end-credit">{html.escape(data["credit"])}</div></div></div>')
         elif kind == "loc":
             body.append(f'<div {attrs}><div class="loc-inner"><span class="loc-mark"></span>{html.escape(data["text"])}</div></div>')
         elif kind == "transmission":

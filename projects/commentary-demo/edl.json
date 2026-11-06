@@ -1,0 +1,99 @@
+{
+ "title": "Commentary format demo",
+ "source": "B-roll recorded 2026-11-05/06, joined into one reel (work/reel.mp4)",
+ "captions": {
+  "enabled": false
+ },
+ "segments": [
+  {
+   "id": "title",
+   "act": "title",
+   "card": "title",
+   "label": "STREAMY · COMMENTARY",
+   "heading": "THE FRONTIER",
+   "sub": "Sample cut: your voiceover goes here",
+   "v": [
+    [
+     312.5,
+     321.0
+    ]
+   ],
+   "gain": 0.3,
+   "push": 0.05,
+   "fade_in": 1.0,
+   "fade_out": 0.6,
+   "music": "calm"
+  },
+  {
+   "id": "broll",
+   "act": "broll",
+   "v": [
+    [
+     2,
+     9
+    ],
+    [
+     12,
+     19
+    ],
+    [
+     116.25,
+     123.25
+    ],
+    [
+     231.25,
+     238.25
+    ],
+    [
+     84,
+     92
+    ],
+    [
+     859.33,
+     867.33
+    ],
+    [
+     874.33,
+     882.33
+    ],
+    [
+     969.33,
+     976.33
+    ],
+    [
+     478.99,
+     485.99
+    ],
+    [
+     1162.21,
+     1170.21
+    ],
+    [
+     1182.21,
+     1189.21
+    ],
+    [
+     1079.33,
+     1086.33
+    ],
+    [
+     1134.33,
+     1141.33
+    ]
+   ],
+   "gain": 0.35,
+   "push": 0.06,
+   "fade_in": 0.5,
+   "fade_out": 1.2
+  },
+  {
+   "id": "end-card",
+   "act": "end",
+   "card": "end",
+   "dur": 6.0,
+   "heading": "THANKS FOR WATCHING",
+   "sub": "Subscribe for the next one",
+   "credit": "twitch.tv/rjreload"
+  }
+ ]
+}
